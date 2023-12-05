@@ -1,6 +1,6 @@
 [user]
-	name = {{ .name }}
-	email = {{ .email }}
+	name = {{ .email | quote }}
+	email = {{ .name  }}
 [advice]
 	pushNonFastForward = false
 	statusHints = false
