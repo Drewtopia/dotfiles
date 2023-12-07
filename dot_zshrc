@@ -154,14 +154,14 @@ alias zshrc="source ~/.zshrc"
 # original asdf location
 
 # Created by `pipx` on 2022-05-10 10:35:11
-export PATH="$PATH:/Users/drew/.local/bin"
+export PATH="$PATH:$HOME/.local/bin"
 eval "$(starship init zsh)"
 
 
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
 # pnpm
-export PNPM_HOME="/Users/drew/Library/pnpm"
+export PNPM_HOME="$HOME/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
@@ -178,13 +178,13 @@ eval "$(rtx activate zsh)"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # bun completions
-[ -s "/Users/drew/.bun/_bun" ] && source "/Users/drew/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-source /Users/drew/.config/op/plugins.sh
+source $HOME/.config/op/plugins.sh
 
 # Fig post block. Keep at the bottom of this file.
 [[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.post.zsh"
