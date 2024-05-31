@@ -4,6 +4,7 @@
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
+FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
 
 # Fig pre block. Keep at the top of this file.
 [[ -f "$HOME/.fig/shell/zshrc.pre.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.pre.zsh"
@@ -80,7 +81,7 @@ export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_STATE_HOME="$HOME/.local/state"
 export XDG_RUNTIME_DIR="/run/user/$UID"
-export EDITOR="nvim"
+export EDITOR="lvim"
 
 # Apps
 export ANDROID_HOME="$XDG_DATA_HOME/android"
@@ -97,6 +98,8 @@ plugins=(
     colored-man-pages       # Adds colors to man pages
     common-aliases          # Aliases for many commonly used commands  
     docker
+    # fzf-zsh-plugin
+    fzf-tab
     git
     macos
     node
@@ -126,7 +129,6 @@ source $ZSH/oh-my-zsh.sh
 
 # Other configurations
 #
-. /opt/homebrew/opt/asdf/libexec/asdf.sh
 
 # User configuration
 
@@ -149,10 +151,32 @@ source $ZSH/oh-my-zsh.sh
 # For a full list of active aliases, run `alias`.
 #
 # Example aliases
-alias zshconfig="nvim ~/.zshrc"
+alias zshconfig="lvim ~/.zshrc"
 alias zshrc="source ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
+# Neovim
+alias v='nvim' # default Neovim config
+alias lvim='NVIM_APPNAME=nvim-lazyvim nvim' # LazyVim
+alias vc='NVIM_APPNAME=nvim-nvchad nvim' # NvChad
+alias vk='NVIM_APPNAME=nvim-kickstart nvim' # Kickstart
+alias kvim='NVIM_APPNAME=nvim-kickstart nvim' # Kickstart
+alias va='NVIM_APPNAME=nvim-astrovim nvim' # AstroVim
+alias vl='NVIM_APPNAME=nvim-lunarvim nvim' # LunarVim
+
+vv() {
+  # Assumes all configs exist in directories named ~/.config/nvim-*
+  local config=$(fd --max-depth 1 --glob 'nvim-*' ~/.config | fzf --prompt="Neovim Configs > " --height=~50% --layout=reverse --border --exit-0)
+ 
+  # If I exit fzf without selecting a config, don't open Neovim
+  [[ -z $config ]] && echo "No config selected" && return
+ 
+  # Open Neovim with the selected config
+  NVIM_APPNAME=$(basename $config) nvim $@
+}
+
+# Custom
+alias pymobset="pymobiledevice3 developer dvt simulate-location set"
 # original asdf location
 
 # Created by `pipx` on 2022-05-10 10:35:11
@@ -187,6 +211,9 @@ eval "$(mise activate zsh)"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+PATH="$PATH:/Applications/WezTerm.app/Contents/MacOS"
+export PATH
+
 source $HOME/.config/op/plugins.sh
 
 # Fig post block. Keep at the bottom of this file.
@@ -194,3 +221,4 @@ source $HOME/.config/op/plugins.sh
 
 source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
 
+PATH=~/.console-ninja/.bin:$PATH
