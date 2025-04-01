@@ -7,6 +7,9 @@ README.*
 **/plugged/**/*
 **/yankring_history*.txt
 
+# Lazyvim
+lazy-lock.json
+
 # Ignore non-macOS files.
 {{ if ne .chezmoi.os "darwin" -}}
 dot_config/iterm
