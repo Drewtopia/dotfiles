@@ -1,0 +1,32 @@
+!.oh-my-zsh/plugins
+{{ range .zshPlugins }}
+!.oh-my-zsh/plugins/{{ . }}
+!.oh-my-zsh/plugins/{{ . }}/**
+{{- end }}
+.oh-my-zsh/cache/**
+.oh-my-zsh/plugins/**
+.oh-my-zsh/templates/**
+.oh-my-zsh/custom/themes/powerlevel10k/**/*.zwc
+
+README.*
+
+# Neovim
+**/autoload/
+**/autoload/**/*
+**/plugged/
+**/plugged/**/*
+**/yankring_history*.txt
+
+# Lazyvim
+lazy-lock.json
+
+# Ignore non-macOS files.
+{{ if ne .chezmoi.os "darwin" -}}
+dot_config/iterm
+dot_Brewfile
+{{- end }}
+
+# Ignore non-Windows files.
+{{ if ne .chezmoi.os "windows" -}}
+dot_config/windows_terminal
+{{- end }}

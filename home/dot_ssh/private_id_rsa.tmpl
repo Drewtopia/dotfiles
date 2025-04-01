@@ -1,0 +1,5 @@
+{{ if .work -}}
+{{   onepasswordRead "op://Employee/SSH Key - RSA/private key" }}
+{{ else if .personal -}}
+{{   onepasswordRead "op://Private/SSH Key - MacOS/private key" }}
+{{ end -}}
