@@ -1,0 +1,91 @@
+{{- $name := "Andrew Cliff" -}}
+{{- $opVault := "" }}
+
+{{/* boolean feature tags */}}
+{{- $ephemeral := false -}}{{/* true if this machine is ephemeral, e.g. a cloud or VM instance */}}
+{{- $work := false -}}{{/* true if this machine is a work machine */}}
+{{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
+{{- $personal := false -}}{{/* true if this machine should have personal secrets */}}
+{{- "" -}}
+
+{{- $osID := .chezmoi.os -}}
+{{- if (and (eq .chezmoi.os "linux") (hasKey .chezmoi.osRelease "id")) -}}
+{{-   $osID = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
+{{- end -}}
+
+{{ $device_type := "desktop" }}
+{{ if eq .chezmoi.os "darwin" }}
+{{   if contains "MacBook" (output "sysctl" "-n" "hw.model") }}
+{{     $device_type = "laptop" }}
+{{   else }}
+{{     $device_type = "desktop" }}
+{{   end }}
+{{ else if eq .chezmoi.os "linux" }}
+{{   $device_type = (output "hostnamectl" "--json=short" | mustFromJson).Chassis }}
+{{ else if eq .chezmoi.os "windows" }}
+{{   $device_type = (output "powershell.exe" "-NoProfile" "-NonInteractive" "-Command" "if ((Get-CimInstance -Class Win32_Battery | Measure-Object).Count -gt 0) { Write-Output 'laptop' } else { Write-Output 'desktop' }") | trim }}
+{{ end }}
+
+
+{{/* work around unreliable hostname on darwin */}}
+{{- $hostname := .chezmoi.hostname -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{-   $computerName := output "scutil" "--get" "ComputerName" | trim -}}
+{{-   if eq $computerName "Andrew’s MacBook Pro" -}}
+{{-     $hostname = "andrews-mbp" -}}
+{{-   else -}}
+{{-     $hostname = $computerName -}}
+{{-   end -}}
+{{- end -}}
+
+{{- if not $ephemeral -}}
+{{-   if eq $hostname "andrews-mbp" -}}
+{{-     $personal = true -}}
+{{-     $opVault = "andrews-mbp" -}}
+{{-   else if eq $hostname "ubuntu" -}}
+{{-     $headless = true -}}
+{{-     $personal = false -}}
+{{-     $work = true -}}
+{{-   else if stdinIsATTY -}}
+{{-     $headless = promptBoolOnce . "headless" "headless" -}}
+{{-     $ephemeral = promptBoolOnce . "ephemeral" "ephemeral" -}}
+{{-   else -}}
+{{-     $ephemeral = true -}}
+{{-     $headless = true -}}
+{{-   end -}}
+{{- end -}}
+
+{{- $email := "drew@drewtopia.com.au" -}}
+{{- if $work -}}
+{{-   $email = "andrew.cliff@vec.vic.gov.au" -}}
+{{- end -}}
+
+
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $ephemeral = true -}}
+{{- end -}}
+
+[data]
+  ephemeral = {{ $ephemeral }}
+  name = {{ $name | quote }}
+  email = {{ $email | quote }}
+  device_type = {{ $device_type | quote }}
+  work = {{ $work }}
+  headless = {{ $headless }}
+  hostname = {{ $hostname | quote }}
+  personal = {{ $personal }}
+  osid = {{ $osID | quote }}
+  zshPlugins = [
+      "fzf-tab",
+      "per-directory-history",
+      "vi-mode",
+      "thefuck",
+      "zsh-autosuggestions",
+      # "zsh-syntax-highlighting",
+  ]
+
+[github]
+    refreshPeriod = "12h"
+
+[git]
+    autoCommit = true
