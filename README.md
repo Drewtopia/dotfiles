@@ -1,4 +1,4 @@
-# github.com/twpayne/dotfiles
+# github.com/Drewtopia/dotfiles
 
 Drew's dotfiles, managed with [`chezmoi`](https://github.com/twpayne/chezmoi).
 
