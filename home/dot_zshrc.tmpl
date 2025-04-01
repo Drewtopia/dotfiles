@@ -12,8 +12,19 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
 
-# Fig pre block. Keep at the top of this file.
-[[ -f "$HOME/.fig/shell/zshrc.pre.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.pre.zsh"
+# If you come from bash you might have to change your $PATH.
+{{- $paths := list }}
+{{- $homeDir := .chezmoi.homeDir }}
+{{- range $_, $relPath := list "bin" "go/bin" ".cargo/bin" ".local/bin" }}
+{{    $path := joinPath $homeDir $relPath }}
+{{-   if stat $path }}
+{{-     $paths = mustAppend $paths $path }}
+{{-   end }}
+{{- end }}
+{{- if $paths }}
+export PATH={{ toStrings $paths | join ":" }}:$PATH
+{{- end }}
+
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
