@@ -4,6 +4,7 @@
 {{/* boolean feature tags */}}
 {{- $ephemeral := false -}}{{/* true if this machine is ephemeral, e.g. a cloud or VM instance */}}
 {{- $work := false -}}{{/* true if this machine is a work machine */}}
+{{- $is_wsl := false -}}{{/* true if this machine is a WSL machine */}}
 {{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
 {{- $personal := false -}}{{/* true if this machine should have personal secrets */}}
 {{- "" -}}
@@ -18,6 +19,17 @@
 {{-   $ephemeral = true -}}
 {{-   $headless = true -}}
 {{- end -}}
+
+
+{{ if eq .chezmoi.os "linux" }}
+{{   if (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
+{{-   $is_wsl = true -}}
+{{   end }}
+{{ end }}
+
+#{{- if and .chezmoi.kernel (hasKey .chezmoi.kernel "osrelease") -}}
+#{{-   $is_wsl = (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+#{{- end -}}
 
 {{ $device_type := "desktop" }}
 {{ if eq .chezmoi.os "darwin" }}
@@ -78,6 +90,7 @@
   device_type = {{ $device_type | quote }}
   work = {{ $work }}
   headless = {{ $headless }}
+  is_wsl = {{ $is_wsl }}
   hostname = {{ $hostname | quote }}
   personal = {{ $personal }}
   osid = {{ $osID | quote }}
@@ -87,7 +100,7 @@
       "vi-mode",
       "thefuck",
       "zsh-autosuggestions",
-      # "zsh-syntax-highlighting",
+      "zsh-syntax-highlighting",
   ]
 
 [github]
@@ -95,3 +108,12 @@
 
 [git]
     autoCommit = true
+
+[merge]
+    command = "nvim"
+    args = [
+        "-d",
+        {{ printf "%q" "{{ .Destination }}" }},
+        {{ printf "%q" "{{ .Source }}" }},
+        {{ printf "%q" "{{ .Target }}" }},
+    ]

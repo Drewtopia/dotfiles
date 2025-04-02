@@ -109,8 +109,11 @@
 	fsckobjects = true
 [trim]
 	bases = master,gh-pages
-[url "git@github.com:"]
-      insteadOf = https://github.com/
+
+{{- if .personal }}
+[url "git@github.com:Drewtopia/"]
+	insteadOf = https://github.com/Drewtopia/
+{{- end }}
 {{ if eq .chezmoi.os "darwin" -}}
 [credential]
        helper = osxkeychain
@@ -120,6 +123,13 @@
        program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
 [commit]
        gpgsign = true
+{{- end }}
+
+{{- if and .work .is_wsl -}}
+[credential]
+  helper = /mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe
+[credential "https://dev.azure.com"]
+  useHttpPath = true
 {{- end }}
 
 {{/* vim: set filetype=gitconfig: */}}

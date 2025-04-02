@@ -21,6 +21,8 @@ Host github.com
 #  HostName windows
 #  User twpay
 
-#{{- if .work }}
-# {{ onepasswordRead "op://Employee/SSH Config/notesPlain" }}
-#{{- end }}
+{{ if .work -}}
+Host ssh.dev.azure.com
+  IdentityFile ~/.ssh/id_rsa
+  IdentitiesOnly yes
+{{ end -}}
