@@ -1,3 +1,29 @@
+[".local/bin/nvim"]
+    type = "file"
+    url = "https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.appimage"
+    refreshPeriod = "672h"
+    executable = true
+
+{{- if and (not .ephemeral) }}
+{{-   $fontDir := "" }}
+{{-   if eq .chezmoi.os "darwin" }}
+{{-     $fontDir = "Library/Fonts" }}
+{{-   else if eq .chezmoi.os "linux" }}
+{{-     $fontDir = ".local/share/fonts" }}
+{{-   end }}
+{{-   range (list
+        "MesloLGS NF Regular.ttf"
+        "MesloLGS NF Bold.ttf"
+        "MesloLGS NF Italic.ttf"
+        "MesloLGS NF Bold Italic.ttf") }}
+["{{ $fontDir }}/{{ . }}"]
+    type = "file"
+    url = "https://github.com/romkatv/powerlevel10k-media/raw/master/{{ . }}"
+    refreshPeriod = "168h"
+{{-   end }}
+{{- end }}
+
+
 [".oh-my-zsh"]
     type = "archive"
     url = "https://github.com/ohmyzsh/ohmyzsh/archive/master.tar.gz"
@@ -57,7 +83,13 @@
     stripComponents = 1
 
 
-# [".config/nvim-lazyvim"]
-# type = "git-repo"
-# url = "https://github.com/Drewtopia/starter.git"
-# refreshPeriod = "1h"
+# [".config/nvim"]
+#    type = "git-repo"
+#    url = "https://github.com/LazyVim/LazyVim"
+#    exact = true
+#    stripComponents = 1
+
+[".local/share/nvim/lazy/lazy.nvim"]
+    type = "git-repo"
+    url = "https://github.com/folke/lazy.nvim.git"
+    clone.args = ["--filter=blob:none", "--branch=stable"]
