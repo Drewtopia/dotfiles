@@ -8,6 +8,45 @@
 .oh-my-zsh/templates/**
 .oh-my-zsh/custom/themes/powerlevel10k/**/*.zwc
 
+# Ignore non-macOS files.
+{{ if ne .chezmoi.os "darwin" }}
+.chezmoiscripts/darwin/**
+.config/homebrew
+.config/karabiner
+.hammerspoon
+.config/iterm
+.Brewfile
+{{ end }}
+
+# Ignore non-Linux files.
+{{ if ne .chezmoi.os "linux" }}
+.chezmoiscripts/linux/**
+.hushlogin
+.local/bin/nvim
+.local/share/fonts
+{{ end }}
+
+# Ignore non-Windows files.
+{{ if ne .chezmoi.os "windows" }}
+.chezmoiscripts/windows/**
+.config/windows_terminal
+Documents
+{{ else }}
+.bash_aliases
+.config/ghostty
+.config/git/cookies
+.config/tmux
+.inputrc
+.oh-my-zsh
+.oh-my-zsh/**
+.p10k.zsh
+.ssh/id_rsa
+.ssh/id_rsa.pub
+.tmux.conf
+.zprofile
+.zshrc
+{{ end }}
+
 README.*
 
 # Neovim
@@ -18,15 +57,4 @@ README.*
 **/yankring_history*.txt
 
 # Lazyvim
-lazy-lock.json
-
-# Ignore non-macOS files.
-{{ if ne .chezmoi.os "darwin" -}}
-dot_config/iterm
-dot_Brewfile
-{{- end }}
-
-# Ignore non-Windows files.
-{{ if ne .chezmoi.os "windows" -}}
-dot_config/windows_terminal
-{{- end }}
+.config/nvim/lazy-lock.json
