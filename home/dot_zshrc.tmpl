@@ -3,14 +3,14 @@ export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_STATE_HOME="$HOME/.local/state"
 export XDG_RUNTIME_DIR="$HOME/.cache/xdg-runtime"
-export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom" 
+export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block, everything else may go below.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
-FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+# FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
 
 # If you come from bash you might have to change your $PATH.
 {{- $paths := list }}
@@ -83,15 +83,6 @@ HIST_STAMPS="yyyy-mm-dd"
 
 ZSH_DISABLE_COMPFIX=true
 
-export MANPATH="/usr/local/man:$MANPATH"
-export EDITOR="nvim"
-
-# Apps
-export ANDROID_HOME="$XDG_DATA_HOME/android"
-export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
-export IPYTHONDIR="$XDG_CONFIG_HOME/ipython"
-export JUPYTER_CONFIG_DIR="$XDG_CONFIG_HOME/jupyter"
-
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
@@ -102,11 +93,6 @@ plugins=(
 {{- end }}
 )
 
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
 # plugins=(
 #     brew
 #     colored-man-pages       # Adds colors to man pages
@@ -168,10 +154,26 @@ export EDITOR=nvim
 {{ else -}}
 export EDITOR=vim
 {{ end -}}
+{{ if not .ephemeral -}}
+export GITHUB_ACCESS_TOKEN={{ onepasswordRead "op://Private/GitHub Personal Access Token - MacOS/token" | trim }}
+{{ end -}}
 
+export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
 export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+
+{{- if .personal }}
+
+# Apps
+export ANDROID_HOME="$XDG_DATA_HOME/android"
+export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
+export IPYTHONDIR="$XDG_CONFIG_HOME/ipython"
+export JUPYTER_CONFIG_DIR="$XDG_CONFIG_HOME/jupyter"
+
+{{- end }}
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
