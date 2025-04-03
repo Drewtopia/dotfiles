@@ -89,7 +89,7 @@
 #    exact = true
 #    stripComponents = 1
 
-[".local/share/nvim/lazy/lazy.nvim"]
-    type = "git-repo"
-    url = "https://github.com/folke/lazy.nvim.git"
-    clone.args = ["--filter=blob:none", "--branch=stable"]
+# [".local/share/nvim/lazy/lazy.nvim"]
+#     type = "git-repo"
+#     url = "https://github.com/folke/lazy.nvim.git"
+#     clone.args = ["--filter=blob:none", "--branch=stable"]
