@@ -26,18 +26,18 @@
 {{-   end -}}
 {{- end -}}
 
-{{- $device_type := "desktop" -}}
-{{- if eq .chezmoi.os "darwin" -}}
-{{-   if contains "MacBook" (output "sysctl" "-n" "hw.model") -}}
-{{-     $device_type = "laptop" -}}
-{{-   else -}}
-{{-     $device_type = "desktop" -}}
-{{-   end -}}
-{{- else if eq .chezmoi.os "linux" -}}
-{{-   $device_type = (output "hostnamectl" "--json=short" | mustFromJson).Chassis -}}
-{{- else if eq .chezmoi.os "windows" -}}
-{{-   $device_type = (output "powershell.exe" "-NoProfile" "-NonInteractive" "-Command" "if ((Get-CimInstance -Class Win32_Battery | Measure-Object).Count -gt 0) { Write-Output 'laptop' } else { Write-Output 'desktop' }") | trim -}}
-{{- end -}}
+# {{- $device_type := "desktop" -}}
+# {{- if eq .chezmoi.os "darwin" -}}
+# {{-   if contains "MacBook" (output "sysctl" "-n" "hw.model") -}}
+# {{-     $device_type = "laptop" -}}
+# {{-   else -}}
+# {{-     $device_type = "desktop" -}}
+# {{-   end -}}
+# {{- else if eq .chezmoi.os "linux" -}}
+# {{-   $device_type = (output "hostnamectl" "--json=short" | mustFromJson).Chassis -}}
+# {{- else if eq .chezmoi.os "windows" -}}
+# {{-   $device_type = (output "powershell.exe" "-NoProfile" "-NonInteractive" "-Command" "if ((Get-CimInstance -Class Win32_Battery | Measure-Object).Count -gt 0) { Write-Output 'laptop' } else { Write-Output 'desktop' }") | trim -}}
+# {{- end -}}
 
 {{/* work around unreliable hostname on darwin */}}
 {{- $hostname := .chezmoi.hostname -}}
@@ -67,13 +67,13 @@
 {{-   end -}}
 {{- end -}}
 
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $ephemeral = true -}}
+{{- end -}}
+
 {{- $email := "drew@drewtopia.com.au" -}}
 {{- if $work -}}
 {{-   $email = "andrew.cliff@vec.vic.gov.au" -}}
-{{- end -}}
-
-{{- if eq .chezmoi.os "windows" -}}
-{{-   $ephemeral = true -}}
 {{- end -}}
 
 [data]
