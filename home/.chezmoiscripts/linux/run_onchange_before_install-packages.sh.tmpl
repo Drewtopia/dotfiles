@@ -1,0 +1,49 @@
+{{ if eq .osid "linux-debian" "linux-raspbian" "linux-ubuntu" -}}
+
+{{ $packages := list
+     "bat"
+     "curl"
+     "fd-find"
+     "fzf"
+     "git"
+     "jq"
+		 "lazygit"
+		 "neovim"
+     "ripgrep"
+     "shellcheck"
+     "units"
+     "zsh" -}}
+{{ $snaps := list -}}
+{{ $classicSnaps := list -}}
+
+{{ if eq .osid "linux-ubuntu" -}}
+{{   $packages = mustAppend $packages "btop" -}}
+{{ end -}}
+
+{{ if not .headless -}}
+{{   $packages = mustAppend $packages "xclip" -}}
+{{   $classicSnaps = mustAppend $classicSnaps "code" -}}
+{{ end -}}
+
+{{ $sudo := "sudo " -}}
+{{ if eq .chezmoi.username "root" -}}
+{{   $sudo = "" -}}
+{{ end -}}
+
+#!/bin/bash
+
+set -eufo pipefail
+
+{{ $sudo }}apt-get update
+{{ $sudo }}apt-get install -y {{ $packages | join " " }}
+
+{{ if lookPath "snap" }}
+{{   range $snaps }}
+( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install {{ . }}
+{{   end }}
+{{   range $classicSnaps }}
+( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install --classic {{ . }}
+{{   end }}
+{{ end }}
+
+{{ end -}}
