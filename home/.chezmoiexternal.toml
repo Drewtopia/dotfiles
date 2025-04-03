@@ -49,19 +49,6 @@
         "*/.gitignore",
     ]
 
-[".oh-my-zsh/custom/plugins/zsh-autosuggestions"]
-    type = "archive"
-    url = "https://github.com/marlonrichert/zsh-autosuggestions/archive/master.tar.gz"
-    exact = true
-    stripComponents = 1
-    refreshPeriod = "168h"
-    exclude = [
-        "*/.editorconfig",
-        "*/.gitattributes",
-        "*/.github",
-        "*/.gitignore",
-    ]
-
 [".oh-my-zsh/custom/plugins/fzf-tab"]
     type = "archive"
     url = "https://github.com/Aloxaf/fzf-tab/archive/master.tar.gz"
@@ -74,7 +61,6 @@
         "*/.github",
         "*/.gitignore",
     ]
-
 
 [".oh-my-zsh/custom/themes/powerlevel10k"]
     type = "archive"
