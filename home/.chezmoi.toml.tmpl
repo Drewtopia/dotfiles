@@ -91,9 +91,10 @@
   personal = {{ $personal }}
   osid = {{ $osID | quote }}
   zshPlugins = [
+      "git",
       "fzf-tab",
       "per-directory-history",
-      "vi-mode",
+      {{/* "vi-mode", */}}
       "thefuck",
       "zsh-autosuggestions",
       "zsh-syntax-highlighting",
