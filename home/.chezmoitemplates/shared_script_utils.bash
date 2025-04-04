@@ -345,13 +345,28 @@ _trapCleanup_() {
     fi
 }
 
+# Check if the current user is root
+is_root() {
+  [ "$(id -u)" -eq 0 ]
+}
+
+# Run a command as root, use sudo if necessary
+run_as_root() {
+  if is_root; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+
 _hasJQ_() {
 
     if [[ ! $(command -v jq) ]]; then
         warning "Must instal jq prior to running script"
 
         {{- if eq .chezmoi.os "linux" }}
-        sudo apt install -y jq
+        run_as_root apt install -y jq
         {{- else if eq .chezmoi.os "darwin" }}
         brew install jq
         {{ end }}
