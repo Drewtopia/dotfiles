@@ -2,7 +2,7 @@ return {
   "echasnovski/mini.surround",
   opts = {
     mappings = {
-      add = "<leader>ss",
+      add = "gsa",
       delete = "gsd",
       find = "gsf",
       find_left = "gsF",
