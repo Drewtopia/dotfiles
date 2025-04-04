@@ -12,17 +12,17 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # If you come from bash you might have to change your $PATH.
-{{- $paths := list }}
-{{- $homeDir := .chezmoi.homeDir }}
-{{- range $_, $relPath := list "bin" "go/bin" ".cargo/bin" ".local/bin" }}
+{{- $paths := list -}}
+{{- $homeDir := .chezmoi.homeDir -}}
+{{- range $_, $relPath := list "bin" "go/bin" ".cargo/bin" ".local/bin" -}}
 {{    $path := joinPath $homeDir $relPath }}
-{{-   if stat $path }}
-{{-     $paths = mustAppend $paths $path }}
-{{-   end }}
-{{- end }}
-{{- if $paths }}
+{{-   if stat $path -}}
+{{-     $paths = mustAppend $paths $path -}}
+{{-   end -}}
+{{- end -}}
+{{- if $paths -}}
 export PATH={{ toStrings $paths | join ":" }}:$PATH
-{{- end }}
+{{- end -}}
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -244,15 +244,18 @@ eval "$(mise activate zsh)"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
-export FPATH+="$BUN_INSTALL/bin:$PATH"
+case ":$PATH:" in
+  *":$BUN_INSTALL:"*) ;;
+  *) export PATH="$BUN_INSTALL/bin:$PATH" ;;
+esac
 
-export FPATH+="$PATH:/Applications/WezTerm.app/Contents/MacOS"
+# export FPATH+="$PATH:/Applications/WezTerm.app/Contents/MacOS"
 
 source $HOME/.config/op/plugins.sh
 
 # source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
 
-FPATH+=~/.console-ninja/.bin:$PATH
+# FPATH+=~/.console-ninja/.bin:$PATH
 
 
 {{- /* vim: set filetype=zsh: */}}
