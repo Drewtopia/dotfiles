@@ -150,7 +150,7 @@ export EDITOR=nvim
 {{ else -}}
 export EDITOR=vim
 {{ end -}}
-{{ if not .ephemeral .work -}}
+{{ if and (not .ephemeral) (and .work) -}}
 export GITHUB_ACCESS_TOKEN={{ onepasswordRead "op://Private/GitHub Personal Access Token - MacOS/token" | trim }}
 {{ end -}}
 
