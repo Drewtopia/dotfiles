@@ -1,0 +1,35 @@
+# Configures XDG specification environment variables.
+# https://specifications.freedesktop.org/basedir-spec/latest/
+
+# A single base directory relative to which user-specific data files should be written
+export XDG_DATA_HOME=${HOME}/.local/share
+
+# A single base directory relative to which user-specific configuration files should be written
+export XDG_CONFIG_HOME=${HOME}/.config
+
+# A single base directory relative to which user-specific state data should be written
+export XDG_STATE_HOME=${HOME}/.local/state
+
+# A single base directory relative to which user-specific non-essential (cached) data should be written
+export XDG_CACHE_HOME=${HOME}/.cache
+
+# A single base directory relative to which user-specific runtime files and other file objects should be stored
+export XDG_RUNTIME_DIR=${HOME}/.cache/xdg-runtime
+
+# Reconfigure applications to use these directories
+# ####################################
+alias wget="wget --hsts-file='${XDG_DATA_HOME}/wget-hsts'"
+export ANDROID_HOME="$XDG_DATA_HOME/android"
+export ANSIBLE_HOME="${XDG_DATA_HOME}"/ansible
+export CARGO_HOME="${XDG_DATA_HOME}"/cargo
+export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
+export DOTNET_CLI_HOME="${XDG_DATA_HOME}"/dotnet
+export GNUPGHOME="${XDG_DATA_HOME}"/gnupg
+export IPYTHONDIR="$XDG_CONFIG_HOME/ipython"
+export JUPYTER_CONFIG_DIR="$XDG_CONFIG_HOME/jupyter"
+export LESSHISTFILE="${XDG_STATE_HOME}"/less/history
+export NPM_CONFIG_USERCONFIG="${XDG_CONFIG_HOME}"/npm/npmrc
+export PYTHONSTARTUP="${XDG_CONFIG_HOME}"/python/pythonrc
+export PYTHON_HISTORY="${XDG_STATE_HOME}"/python_history
+export RUSTUP_HOME="${XDG_DATA_HOME}"/rustup
+export ZDOTDIR="${XDG_CONFIG_HOME}"/zsh
