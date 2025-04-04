@@ -1,9 +1,12 @@
 {{- $name := "Andrew Cliff" -}}
+{{- $use_secrets := promptBoolOnce . "use_secrets" "Use secrets from 1Password? (true/false)" -}}
+{{- $dev_computer := promptBoolOnce . "dev_computer" "Do you do development on this computer? (true/false)" -}}
 {{- $opVault := "" -}}
 
 {{/* boolean feature tags */}}
 {{- $ephemeral := false -}}{{/* true if this machine is ephemeral, e.g. a cloud or VM instance */}}
 {{- $work := false -}}{{/* true if this machine is a work machine */}}
+{{- $dev_computer := $dev_computer -}}{{/* true if this machine is a development machine */}}
 {{- $is_wsl := false -}}{{/* true if this machine is a WSL machine */}}
 {{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
 {{- $personal := false -}}{{/* true if this machine should have personal secrets */}}
@@ -87,6 +90,7 @@
   work = {{ $work }}
   headless = {{ $headless }}
   is_wsl = {{ $is_wsl }}
+  dev_computer = {{ $dev_computer }}
   hostname = {{ $hostname | quote }}
   personal = {{ $personal }}
   osid = {{ $osID | quote }}
