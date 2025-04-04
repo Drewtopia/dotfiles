@@ -171,6 +171,32 @@ export JUPYTER_CONFIG_DIR="$XDG_CONFIG_HOME/jupyter"
 
 {{- end }}
 
+
+# Files containing files *.zsh or *.sh to be sourced to your environment
+configFileLocations=(
+    "{{ .xdgConfigDir }}/dotfile_source"
+)
+
+for configFileLocation in "${configFileLocations[@]}"; do
+    if [ -d "${configFileLocation}" ]; then
+        while read -r configFile; do
+            source "${configFile}"
+        done < <(find "${configFileLocation}" \
+            -maxdepth 2 \
+            -type f \
+            -name '*.zsh' \
+            -o -name '*.sh' | sort)
+    fi
+done
+
+unset configFileLocations configFileLocation
+
+# Allow for local configuration not managed by chezmoi
+if [ -f "${HOME}/.dotfiles.local" ]; then
+    source "${HOME}/.dotfiles.local"
+fi
+
+
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
@@ -183,6 +209,10 @@ export JUPYTER_CONFIG_DIR="$XDG_CONFIG_HOME/jupyter"
 # Example aliases
 
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+
+
+
+
 
 
 # Created by `pipx` on 2022-05-10 10:35:11
