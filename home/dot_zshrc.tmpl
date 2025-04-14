@@ -144,7 +144,7 @@ export EDITOR=nvim
 export EDITOR=vim
 {{ end -}}
 {{ if and (not .ephemeral) (not .work) -}}
-export GITHUB_ACCESS_TOKEN={{ onepasswordRead "op://Private/GitHub Personal Access Token - MacOS/token" | trim }}
+export GITHUB_ACCESS_TOKEN={{ onepasswordRead "op://Private/GitHub Metadata Read-Only Access Token/token" | trim }}
 {{ end -}}
 
 export MANPATH="/usr/local/man:$MANPATH"
