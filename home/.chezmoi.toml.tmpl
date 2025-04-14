@@ -100,6 +100,10 @@
       "per-directory-history",
       "thefuck",
       "zsh-syntax-highlighting",
+      {{- if eq .chezmoi.os "darwin" }}
+        "brew",
+        "macos",
+      {{- end}}
   ]
   xdgCacheDir = "{{ .chezmoi.homeDir }}/.cache"
   xdgConfigDir = "{{ .chezmoi.homeDir }}/.config"
