@@ -1,6 +1,7 @@
 .*.sw*
 *.pyc
 .DS_Store
+**/.DS_Store
 .Python
 .envrc
 .idea
