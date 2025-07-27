@@ -9,11 +9,8 @@ export PNPM_HOME="$HOME/Library/pnpm"
 export PNPM_HOME="$HOME/.local/share/pnpm"
 {{- end }}
 
-# Add pnpm to PATH
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
+# Add pnpm to PATH safely
+path_add "$PNPM_HOME"
 
 # Shell completions for pnpm
 if [[ -n ${ZSH_NAME} ]]; then

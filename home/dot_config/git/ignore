@@ -8,3 +8,4 @@
 .pc
 .svn
 /tmp
+**/.claude/settings.local.json
