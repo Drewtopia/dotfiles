@@ -43,8 +43,6 @@
     "EDITOR": "nvim",
     "GIT_EDITOR": "nvim --wait"
   },
-  "preferredNotifChannel": "terminal_bell",
-  "verbose": true,
   "cleanupPeriodDays": 90,
   "includeCoAuthoredBy": false
 }
