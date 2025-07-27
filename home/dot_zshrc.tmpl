@@ -4,6 +4,9 @@ export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 
+# Enable profiling
+zmodload zsh/zprof
+
 # export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -12,17 +15,16 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
+# Load PATH management utilities first
+source "${XDG_CONFIG_HOME}/path-management.sh"
+
 # If you come from bash you might have to change your $PATH.
-{{- $paths := list }}
 {{- $homeDir := .chezmoi.homeDir }}
 {{- range $_, $relPath := list "bin" "go/bin" ".cargo/bin" ".local/bin" }}
 {{    $path := joinPath $homeDir $relPath }}
 {{-   if stat $path }}
-{{-     $paths = mustAppend $paths $path }}
+path_add "{{ $path }}"
 {{-   end }}
-{{- end }}
-{{- if $paths }}
-export PATH={{ toStrings $paths | join ":" }}:$PATH
 {{- end }}
 
 # Path to your oh-my-zsh installation.
@@ -48,7 +50,7 @@ DISABLE_AUTO_UPDATE="true"
 # zstyle ':omz:update' frequency 13
 
 # Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
+DISABLE_MAGIC_FUNCTIONS="true"
 
 # Uncomment the following line to disable colors in ls.
 # DISABLE_LS_COLORS="true"
@@ -80,8 +82,13 @@ HIST_STAMPS="yyyy-mm-dd"
 
 ZSH_DISABLE_COMPFIX=true
 
-# Optimize completion system
-autoload -Uz compinit && compinit -C
+# Optimize completion system - only rebuild once per day
+autoload -Uz compinit
+if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
+    compinit -C
+else
+    compinit
+fi
 
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
@@ -203,5 +210,8 @@ fi
 
 # Deduplicate PATH after all configurations are loaded
 typeset -U PATH
+
+# Display profiling results
+zprof
 
 {{- /* vim: set filetype=zsh: */}}
