@@ -2,15 +2,20 @@
 
 alias pn='pnpm'
 
-# pnpm installation paths
+# pnpm installation paths - use proto shim when available
+if [[ -f "$HOME/.local/share/proto/shims/pnpm" ]]; then
+    # Proto manages pnpm, no need to set PNPM_HOME
+    :
 {{- if eq .chezmoi.os "darwin" }}
-export PNPM_HOME="$HOME/Library/pnpm"
-{{- else }}
-export PNPM_HOME="$HOME/.local/share/pnpm"
+elif [[ -d "$HOME/Library/pnpm" ]]; then
+    export PNPM_HOME="$HOME/Library/pnpm"
+    path_add "$PNPM_HOME"
 {{- end }}
+elif [[ -d "$HOME/.local/share/pnpm" ]]; then
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    path_add "$PNPM_HOME"
+fi
 
-# Add pnpm to PATH safely
-path_add "$PNPM_HOME"
 
 # Shell completions for pnpm
 if [[ -n ${ZSH_NAME} ]]; then
