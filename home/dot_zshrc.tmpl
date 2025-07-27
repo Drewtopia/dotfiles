@@ -1,8 +1,4 @@
-export XDG_CONFIG_HOME="$HOME/.config"
-export XDG_CACHE_HOME="$HOME/.cache"
-export XDG_DATA_HOME="$HOME/.local/share"
-export XDG_STATE_HOME="$HOME/.local/state"
-export XDG_RUNTIME_DIR="$HOME/.cache/xdg-runtime"
+# XDG Base Directory Specification - configured in dotfile_source/000-xdg.sh
 # export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -92,25 +88,6 @@ plugins=(
 {{- end }}
 )
 
-# plugins=(
-#     brew
-#     colored-man-pages       # Adds colors to man pages
-#     common-aliases          # Aliases for many commonly used commands
-#     docker
-#     # fzf-zsh-plugin
-#     fzf-tab
-#     git
-#     macos
-#     node
-#     nvm
-#     npm
-#     pip
-#     python
-#     thefuck
-#     zsh-autosuggestions     # Command suggestions based on history and completions (https://github.com/zsh-users/zsh-autosuggestions)
-#     zsh-syntax-highlighting # Fish shell like syntax highlighting (https://github.com/zsh-users/zsh-syntax-highlighting)
-#     # 1password
-# )
 
 source $ZSH/oh-my-zsh.sh
 
@@ -122,19 +99,7 @@ setopt autocd
 setopt histignorespace
 setopt rm_star_silent
 
-alias g=git
-alias gnp="git --no-pager"
-{{- if lookPath "bat" }}
-alias cat=bat
-{{- else if lookPath "batcat" }}
-alias cat=batcat
-{{- end }}
-{{- if lookPath "fdfind" }}
-alias fd=fdfind
-{{- end }}
-{{- if lookPath "eza" }}
-alias ls=eza
-{{- end }}
+# Common aliases - configured in dotfile_source/060-common_aliases.sh
 
 alias zshconfig="nvim ~/.zshrc"
 alias zshrc="source ~/.zshrc"
@@ -154,18 +119,21 @@ export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
 export LANG=en_US.UTF-8
+{{- if eq .chezmoi.os "linux" }}
+# Fix locale on Linux systems
+if locale -a | grep -q "en_US.UTF-8"; then
+    export LC_ALL=en_US.UTF-8
+elif locale -a | grep -q "en_US.utf8"; then
+    export LC_ALL=en_US.utf8
+else
+    export LC_ALL=C.UTF-8
+fi
+{{- else }}
 export LC_ALL=en_US.UTF-8
-
-
-{{- if .personal }}
-
-# Apps
-export ANDROID_HOME="$XDG_DATA_HOME/android"
-export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
-export IPYTHONDIR="$XDG_CONFIG_HOME/ipython"
-export JUPYTER_CONFIG_DIR="$XDG_CONFIG_HOME/jupyter"
-
 {{- end }}
+
+
+# App-specific XDG configurations - configured in dotfile_source/000-xdg.sh
 
 
 # Files containing files *.zsh or *.sh to be sourced to your environment
@@ -197,61 +165,29 @@ fi
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-
-# alias ohmyzsh="mate ~/.oh-my-zsh"
 
 
 
 
 
 
-# Created by `pipx` on 2022-05-10 10:35:11
-# export PATH="$PATH:$HOME/.local/bin"
-eval "$(starship init zsh)"
+# starship - configured in dotfile_source/third-party/starship.sh
 
 
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+# iterm2 - configured in dotfile_source/third-party/iterm2.sh
 
-# pnpm
-export PNPM_HOME="$HOME/Library/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
 
 # CopilotCLI
-eval "$(github-copilot-cli alias -- "$0")"
+# github-copilot-cli - configured in dotfile_source/third-party/github-copilot-cli.sh
 
-# mise (formally rtx)
-eval "$(mise activate zsh)"
 
-# fzf
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# fzf - configured in dotfile_source/third-party/fzf.sh
 
-# bun completions
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
-# bun
-export BUN_INSTALL="$HOME/.bun"
-case ":$PATH:" in
-  *":$BUN_INSTALL:"*) ;;
-  *) export PATH="$BUN_INSTALL/bin:$PATH" ;;
-esac
 
-# export FPATH+="$PATH:/Applications/WezTerm.app/Contents/MacOS"
+# 1password - configured in dotfile_source/third-party/1password.sh
 
-source $HOME/.config/op/plugins.sh
 
-# source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
-
-# FPATH+=~/.console-ninja/.bin:$PATH
 
 
 {{- /* vim: set filetype=zsh: */}}

@@ -2,6 +2,19 @@
 
 alias pn='pnpm'
 
+# pnpm installation paths
+{{- if eq .chezmoi.os "darwin" }}
+export PNPM_HOME="$HOME/Library/pnpm"
+{{- else }}
+export PNPM_HOME="$HOME/.local/share/pnpm"
+{{- end }}
+
+# Add pnpm to PATH
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+
 # Shell completions for pnpm
 if [[ -n ${ZSH_NAME} ]]; then
     eval "$(pnpm completion zsh)"
