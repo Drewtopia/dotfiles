@@ -1,4 +1,4 @@
-{{- if lookPath "proto" -}}
+{{- if and (lookPath "proto") (or (not (eq .chezmoi.os "linux")) .is_wsl) -}}
 
 # Proto - Unified toolchain manager
 # Alternative to mise/rtx for managing tool versions

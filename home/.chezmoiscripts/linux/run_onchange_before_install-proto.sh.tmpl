@@ -1,0 +1,44 @@
+{{- if and (eq .chezmoi.os "linux") .is_wsl -}}
+#!/bin/bash
+
+set -eufo pipefail
+
+# Install Proto on WSL2 only using official installer
+# This script runs when the hash changes (onchange)
+
+echo "Installing Proto on WSL2..."
+
+# Set installation directory
+export PROTO_HOME="$HOME/.local/share/proto"
+
+# Check if Proto is already installed
+if [[ -f "$PROTO_HOME/bin/proto" ]]; then
+    echo "Proto is already installed: $($PROTO_HOME/bin/proto --version)"
+    exit 0
+fi
+
+# Ensure required tools are available
+for tool in git unzip gzip xz; do
+    if ! command -v $tool >/dev/null 2>&1; then
+        echo "Error: $tool is required but not installed"
+        exit 1
+    fi
+done
+
+# Install Proto using official installer
+echo "Installing Proto toolchain manager..."
+bash <(curl -fsSL https://moonrepo.dev/install/proto.sh) --yes --no-profile
+
+# Add to PATH for verification
+export PATH="$PROTO_HOME/bin:$PROTO_HOME/shims:$PATH"
+
+# Verify installation
+if command -v proto >/dev/null 2>&1; then
+    echo "Proto installed successfully: $(proto --version)"
+    echo "Proto home: $PROTO_HOME"
+    echo "PATH management will be handled by chezmoi configuration"
+else
+    echo "Error: Proto installation failed"
+    exit 1
+fi
+{{- end }}
