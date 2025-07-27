@@ -1,0 +1,6 @@
+{{- if lookPath "github-copilot-cli" -}}
+
+# GitHub Copilot CLI aliases
+eval "$(github-copilot-cli alias -- "$0")"
+
+{{- end }}

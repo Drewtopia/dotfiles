@@ -1,11 +1,6 @@
 {{- if lookPath "lazygit" -}}
 
-# Shell completions for lazygit
-if [[ -n ${ZSH_NAME} ]]; then
-    eval "$(lazygit --print-autocomplete-zsh)"
-elif [[ -n ${BASH} ]]; then
-    # shellcheck disable=SC1090
-    source <(lazygit --print-autocomplete-bash)
-fi
+# lazygit does not provide built-in shell completions
+# Configuration is managed through ~/.config/lazygit/config.yml
 
 {{- end }}

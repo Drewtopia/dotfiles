@@ -1,0 +1,21 @@
+{{- if lookPath "bun" -}}
+
+alias bn='bun'
+
+# Bun installation paths
+{{- if eq .chezmoi.os "darwin" }}
+export BUN_INSTALL="$HOME/.bun"
+{{- else }}
+export BUN_INSTALL="$HOME/.bun"
+{{- end }}
+
+# Add bun to PATH
+case ":$PATH:" in
+  *":$BUN_INSTALL/bin:"*) ;;
+  *) export PATH="$BUN_INSTALL/bin:$PATH" ;;
+esac
+
+# Bun completions
+[[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
+
+{{- end }}
