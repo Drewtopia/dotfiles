@@ -1,18 +1,29 @@
 {{ if eq .osid "linux-debian" "linux-raspbian" "linux-ubuntu" -}}
 
 {{ $packages := list
+     "age"
      "bat"
      "curl"
      "fd-find"
+     "ffmpeg"
      "fzf"
+     "gh"
      "git"
+     "git-lfs"
+     "gnupg"
+     "golang-go"
      "jq"
      "neovim"
+     "nodejs"
+     "npm"
+     "pkg-config"
      "ripgrep"
      "shellcheck"
+     "tmux"
      "units"
      "unzip"
      "wget"
+     "xz-utils"
      "zsh" -}}
 {{ $snaps := list -}}
 {{ $classicSnaps := list -}}
@@ -46,5 +57,30 @@ set -eufo pipefail
 ( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install --classic {{ . }}
 {{   end }}
 {{ end }}
+
+# Install tools via their recommended installation methods
+if ! command -v atuin >/dev/null 2>&1; then
+    echo "Installing atuin..."
+    curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
+fi
+
+if ! command -v zoxide >/dev/null 2>&1; then
+    echo "Installing zoxide..."
+    curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
+fi
+
+if ! command -v mise >/dev/null 2>&1; then
+    echo "Installing mise..."
+    curl https://mise.run | sh
+fi
+
+# Install yq
+if ! command -v yq >/dev/null 2>&1; then
+    echo "Installing yq..."
+    YQ_VERSION=$(curl -s "https://api.github.com/repos/mikefarah/yq/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+    wget -qO /tmp/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+    chmod +x /tmp/yq
+    {{ $sudo }}mv /tmp/yq /usr/local/bin/yq
+fi
 
 {{ end -}}
