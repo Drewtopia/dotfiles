@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -eufo pipefail
+
+# Install Deno on Linux
+# This script runs when the hash changes (onchange)
+
+echo "Installing Deno on Linux..."
+
+# Check if Deno is already installed
+if command -v deno >/dev/null 2>&1; then
+    echo "Deno is already installed: $(deno --version | head -1)"
+    exit 0
+fi
+
+# Install Deno via official installer
+echo "Installing Deno..."
+export DENO_INSTALL="$HOME/.deno"
+
+# Create install directory if it doesn't exist
+mkdir -p "$DENO_INSTALL/bin"
+
+# Download and run installer with proper stdin handling
+curl -fsSL https://deno.land/x/install/install.sh | bash -s
+
+# Add to PATH for verification
+export PATH="$DENO_INSTALL/bin:$PATH"
+
+# Verify installation
+if command -v deno >/dev/null 2>&1; then
+    echo "Deno installed successfully: $(deno --version | head -1)"
+    echo "PATH and completions will be managed by chezmoi configuration"
+else
+    echo "Error: Deno installation failed"
+    exit 1
+fi

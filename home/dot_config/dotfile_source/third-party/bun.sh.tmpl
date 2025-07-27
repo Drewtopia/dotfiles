@@ -1,7 +1,5 @@
 {{- if lookPath "bun" -}}
 
-alias bn='bun'
-
 # Bun installation paths
 {{- if eq .chezmoi.os "darwin" }}
 export BUN_INSTALL="$HOME/.bun"
