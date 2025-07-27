@@ -1,6 +1,11 @@
 {{- if lookPath "mise" -}}
 
 # mise (formerly rtx) - runtime version manager
-eval "$(mise activate zsh)"
+# Lazy load mise to avoid 13s startup penalty
+mise() {
+    unfunction mise
+    eval "$(command mise activate zsh)"
+    mise "$@"
+}
 
 {{- end }}

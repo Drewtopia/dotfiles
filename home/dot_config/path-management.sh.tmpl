@@ -1,0 +1,14 @@
+# PATH management utilities
+
+# Function to safely add to PATH without duplicates
+path_add() {
+    local dir="$1"
+    # Remove trailing slash
+    dir="${dir%/}"
+
+    # Skip expensive realpath for absolute paths that already exist
+    if [[ "$dir" = /* ]] && [ -d "$dir" ] && [[ ":$PATH:" != *":$dir:"* ]]; then
+        export PATH="$dir:$PATH"
+    fi
+}
+
