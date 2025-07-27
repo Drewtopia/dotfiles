@@ -1,5 +1,5 @@
 {{- if eq .chezmoi.os "linux" -}}
-# Add atuin to PATH safely on Linux
+# Add atuin to PATH safely on Linux (normalize path)
 path_add "${HOME}/.atuin/bin"
 {{- end }}
 
