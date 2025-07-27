@@ -6,7 +6,7 @@ path_add() {
     # Normalize path (remove trailing slash, resolve ..)
     dir=$(realpath -m "$dir" 2>/dev/null || echo "$dir")
     dir="${dir%/}"  # Remove trailing slash
-    
+
     if [ -d "$dir" ] && [[ ":$PATH:" != *":$dir:"* ]]; then
         export PATH="$dir:$PATH"
     fi
