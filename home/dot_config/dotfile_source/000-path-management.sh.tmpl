@@ -1,0 +1,27 @@
+# PATH management utilities
+
+# Function to safely add to PATH without duplicates
+path_add() {
+    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$1:$PATH"
+    fi
+}
+
+# Function to deduplicate PATH
+path_dedupe() {
+    local new_path=""
+    local dir
+    
+    # Split PATH and rebuild without duplicates
+    echo "$PATH" | tr ':' '\n' | while read -r dir; do
+        if [ -n "$dir" ] && [ -d "$dir" ]; then
+            case ":$new_path:" in
+                *":$dir:"*) ;;  # Skip if already in new_path
+                *) new_path="$new_path:$dir" ;;
+            esac
+        fi
+    done
+    
+    # Remove leading colon and export
+    export PATH="${new_path#:}"
+}

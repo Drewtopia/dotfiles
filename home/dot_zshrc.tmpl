@@ -120,11 +120,17 @@ export MANPATH="/usr/local/man:$MANPATH"
 # You may need to manually set your language environment
 export LANG=en_US.UTF-8
 {{- if eq .chezmoi.os "linux" }}
-# Fix locale on Linux systems
-if locale -a | grep -q "en_US.UTF-8"; then
-    export LC_ALL=en_US.UTF-8
-elif locale -a | grep -q "en_US.utf8"; then
-    export LC_ALL=en_US.utf8
+# Fix locale on Linux systems - check once and cache result
+if command -v locale >/dev/null 2>&1; then
+    _available_locales=$(locale -a 2>/dev/null)
+    if echo "$_available_locales" | grep -q "en_US.UTF-8"; then
+        export LC_ALL=en_US.UTF-8
+    elif echo "$_available_locales" | grep -q "en_US.utf8"; then
+        export LC_ALL=en_US.utf8
+    else
+        export LC_ALL=C.UTF-8
+    fi
+    unset _available_locales
 else
     export LC_ALL=C.UTF-8
 fi
@@ -187,7 +193,7 @@ fi
 
 # 1password - configured in dotfile_source/third-party/1password.sh
 
-
-
+# Deduplicate PATH after all configurations are loaded
+path_dedupe
 
 {{- /* vim: set filetype=zsh: */}}

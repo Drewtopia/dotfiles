@@ -12,6 +12,7 @@ alias fpath='echo -e ${FPATH//:/\\n}'  # system: Echo fpath
 alias untar='tar -zxvf'                # Extract tar.gz file
 alias mktar='tar -cvzf'                # Create a tar.gz file
 alias numfiles='echo $(ls -1 | wc -l)' # Count of non-hidden files in current dir
+alias listpaths='echo $PATH | tr ":" "\n" | uniq -c | sort -nr'
 
 ####################### LIST DIRECTORY CONTENTS #######################
 {{- if lookPath "eza" }}

@@ -9,11 +9,8 @@ export BUN_INSTALL="$HOME/.bun"
 export BUN_INSTALL="$HOME/.bun"
 {{- end }}
 
-# Add bun to PATH
-case ":$PATH:" in
-  *":$BUN_INSTALL/bin:"*) ;;
-  *) export PATH="$BUN_INSTALL/bin:$PATH" ;;
-esac
+# Add bun to PATH safely
+path_add "$BUN_INSTALL/bin"
 
 # Bun completions
 [[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
