@@ -61,11 +61,17 @@
 [core]
 	editor = nvim
 	whitespace = trailing-space,space-before-tab
+{{- if lookPath "delta" }}
+	pager = delta
+{{- end }}
 [diff]
 	algorithm = histogram
 	colorMoved = plain
 	renamelimit = 8192
 	renames = true
+{{- if lookPath "delta" }}
+	colorMoved = default
+{{- end }}
 [fetch]
 	all = true
 	fsckobjects = false
@@ -130,6 +136,43 @@
   helper = /mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe
 [credential "https://dev.azure.com"]
   useHttpPath = true
+{{- end }}
+
+{{- if lookPath "delta" }}
+[delta]
+	# Use n and N to move between diff sections
+	navigate = true
+	# Enable syntax highlighting
+	syntax-theme = Monokai Extended
+	# Show line numbers
+	line-numbers = true
+	# Side-by-side view for large screens
+	side-by-side = true
+	# File modification indicators
+	file-style = bold yellow ul
+	file-decoration-style = none
+	# Hunk headers
+	hunk-header-decoration-style = blue box
+	hunk-header-file-style = red
+	hunk-header-line-number-style = "#067a00"
+	hunk-header-style = file line-number syntax
+	# Line number styling
+	line-numbers-left-style = cyan
+	line-numbers-right-style = cyan
+	line-numbers-minus-style = 124
+	line-numbers-plus-style = 28
+	# Plus/minus line styling  
+	minus-style = syntax "#450a15"
+	minus-emph-style = syntax "#600818"
+	plus-style = syntax "#0e2f0e"
+	plus-emph-style = syntax "#174517"
+	# Whitespace handling
+	whitespace-error-style = 22 reverse
+	# Zero width for cleaner output
+	line-numbers-zero-style = "#444444"
+
+[interactive]
+	diffFilter = delta --color-only
 {{- end }}
 
 {{/* vim: set filetype=gitconfig: */}}
