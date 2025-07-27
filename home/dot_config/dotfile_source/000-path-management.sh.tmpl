@@ -2,8 +2,13 @@
 
 # Function to safely add to PATH without duplicates
 path_add() {
-    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
-        export PATH="$1:$PATH"
+    local dir="$1"
+    # Normalize path (remove trailing slash, resolve ..)
+    dir=$(realpath -m "$dir" 2>/dev/null || echo "$dir")
+    dir="${dir%/}"  # Remove trailing slash
+    
+    if [ -d "$dir" ] && [[ ":$PATH:" != *":$dir:"* ]]; then
+        export PATH="$dir:$PATH"
     fi
 }
 
