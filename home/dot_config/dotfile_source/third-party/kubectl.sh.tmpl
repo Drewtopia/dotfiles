@@ -1,0 +1,11 @@
+{{- if lookPath "kubectl" -}}
+
+# Shell completions for kubectl
+if [[ -n ${ZSH_NAME} ]]; then
+    eval "$(kubectl completion zsh)"
+elif [[ -n ${BASH} ]]; then
+    # shellcheck disable=SC1090
+    source <(kubectl completion bash)
+fi
+
+{{- end }}
