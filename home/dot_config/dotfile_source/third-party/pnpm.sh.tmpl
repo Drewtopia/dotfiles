@@ -1,0 +1,13 @@
+{{- if lookPath "pnpm" -}}
+
+alias pn='pnpm'
+
+# Shell completions for pnpm
+if [[ -n ${ZSH_NAME} ]]; then
+    eval "$(pnpm completion zsh)"
+elif [[ -n ${BASH} ]]; then
+    # shellcheck disable=SC1090
+    source <(pnpm completion bash)
+fi
+
+{{- end }}
