@@ -12,26 +12,3 @@ path_add() {
     fi
 }
 
-# Function to deduplicate PATH
-path_dedupe() {
-    local new_path=""
-    local dir
-    local IFS=':'
-    
-    # Split PATH and rebuild without duplicates
-    for dir in $PATH; do
-        if [ -n "$dir" ] && [ -d "$dir" ]; then
-            # Normalize path (remove trailing slash, resolve ..)
-            dir=$(realpath -m "$dir" 2>/dev/null || echo "$dir")
-            dir="${dir%/}"  # Remove trailing slash
-            
-            case ":$new_path:" in
-                *":$dir:"*) ;;  # Skip if already in new_path
-                *) new_path="$new_path:$dir" ;;
-            esac
-        fi
-    done
-    
-    # Remove leading colon and export
-    export PATH="${new_path#:}"
-}
