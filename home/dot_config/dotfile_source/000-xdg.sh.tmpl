@@ -1,23 +1,6 @@
-# Configures XDG specification environment variables.
+# Configure applications to use XDG Base Directory Specification
 # https://specifications.freedesktop.org/basedir-spec/latest/
-
-# A single base directory relative to which user-specific data files should be written
-export XDG_DATA_HOME={{ .xdgDataDir }}
-
-# A single base directory relative to which user-specific configuration files should be written
-export XDG_CONFIG_HOME={{ .xdgConfigDir }}
-
-# A single base directory relative to which user-specific state data should be written
-export XDG_STATE_HOME={{ .xdgStateDir }}
-
-# A single base directory relative to which user-specific non-essential (cached) data should be written
-export XDG_CACHE_HOME={{ .xdgCacheDir }}
-
-# A single base directory relative to which user-specific runtime files and other file objects should be stored
-export XDG_RUNTIME_DIR={{ .xdgCacheDir }}/xdg-runtime
-
-# Reconfigure applications to use these directories
-# ####################################
+# Base XDG variables are set in .zshrc
 alias wget="wget --hsts-file='${XDG_DATA_HOME}/wget-hsts'"
 export ANDROID_HOME="$XDG_DATA_HOME/android"
 export ANSIBLE_HOME="${XDG_DATA_HOME}"/ansible
