@@ -16,10 +16,15 @@ path_add() {
 path_dedupe() {
     local new_path=""
     local dir
+    local IFS=':'
     
     # Split PATH and rebuild without duplicates
-    echo "$PATH" | tr ':' '\n' | while read -r dir; do
+    for dir in $PATH; do
         if [ -n "$dir" ] && [ -d "$dir" ]; then
+            # Normalize path (remove trailing slash, resolve ..)
+            dir=$(realpath -m "$dir" 2>/dev/null || echo "$dir")
+            dir="${dir%/}"  # Remove trailing slash
+            
             case ":$new_path:" in
                 *":$dir:"*) ;;  # Skip if already in new_path
                 *) new_path="$new_path:$dir" ;;
