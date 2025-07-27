@@ -1,0 +1,8 @@
+{{- if lookPath "zoxide" -}}
+
+# Zoxide - smarter cd command
+# Must be initialized after compinit for completions to work
+
+eval "$(zoxide init zsh)"
+
+{{- end }}
