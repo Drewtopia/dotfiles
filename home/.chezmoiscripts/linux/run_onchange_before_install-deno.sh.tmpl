@@ -8,27 +8,42 @@ set -eufo pipefail
 echo "Installing Deno on Linux..."
 
 # Check if Deno is already installed
-if command -v deno >/dev/null 2>&1; then
-    echo "Deno is already installed: $(deno --version | head -1)"
+if [[ -f "$HOME/.deno/bin/deno" ]]; then
+    echo "Deno is already installed: $($HOME/.deno/bin/deno --version | head -1)"
     exit 0
 fi
 
-# Install Deno via official installer
-echo "Installing Deno..."
+# Install Deno manually to avoid shell modifications
+echo "Installing Deno binary directly..."
 export DENO_INSTALL="$HOME/.deno"
 
-# Create install directory if it doesn't exist
+# Create install directory
 mkdir -p "$DENO_INSTALL/bin"
 
-# Download and run installer with proper stdin handling
-curl -fsSL https://deno.land/x/install/install.sh | bash -s
+# Detect architecture and OS
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64) DENO_ARCH="x86_64" ;;
+    aarch64|arm64) DENO_ARCH="aarch64" ;;
+    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+esac
 
-# Add to PATH for verification
-export PATH="$DENO_INSTALL/bin:$PATH"
+# Get latest Deno version
+DENO_VERSION=$(curl -fsSL https://api.github.com/repos/denoland/deno/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+
+# Download Deno binary directly
+DENO_URL="https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-${DENO_ARCH}-unknown-linux-gnu.zip"
+echo "Downloading Deno ${DENO_VERSION} for ${DENO_ARCH}..."
+
+curl -fsSL "$DENO_URL" -o "/tmp/deno.zip"
+unzip -q "/tmp/deno.zip" -d "/tmp"
+mv "/tmp/deno" "$DENO_INSTALL/bin/deno"
+chmod +x "$DENO_INSTALL/bin/deno"
+rm "/tmp/deno.zip"
 
 # Verify installation
-if command -v deno >/dev/null 2>&1; then
-    echo "Deno installed successfully: $(deno --version | head -1)"
+if [[ -x "$DENO_INSTALL/bin/deno" ]]; then
+    echo "Deno installed successfully: $($DENO_INSTALL/bin/deno --version | head -1)"
     echo "PATH and completions will be managed by chezmoi configuration"
 else
     echo "Error: Deno installation failed"
