@@ -114,7 +114,7 @@ export EDITOR=vim
 {{ if and (not .ephemeral) (not .work) -}}
 export GITHUB_ACCESS_TOKEN={{ onepasswordRead "op://Private/GitHub Metadata Read-Only Access Token/token" | trim }}
 export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | trim }}
-{{ if .work -}}
+{{ else if .work -}}
 export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
 {{ end -}}
 
