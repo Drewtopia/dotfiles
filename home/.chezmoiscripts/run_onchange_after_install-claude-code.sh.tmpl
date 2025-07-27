@@ -9,14 +9,14 @@ set -eufo pipefail
 echo "Installing Claude Code globally via pnpm..."
 
 # Check if Claude Code is already installed globally
-if pnpm list -g | grep -q "@anthropic/claude-cli"; then
+if pnpm list -g | grep -q "@anthropic-ai/claude-code"; then
     echo "Claude Code is already installed globally"
     exit 0
 fi
 
 # Install Claude Code globally
-echo "Installing @anthropic/claude-cli..."
-pnpm add -g @anthropic/claude-cli
+echo "Installing @anthropic-ai/claude-code..."
+pnpm add -g @anthropic-ai/claude-code
 
 # Verify installation
 if command -v claude >/dev/null 2>&1; then
