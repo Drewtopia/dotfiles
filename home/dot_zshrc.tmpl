@@ -1,4 +1,9 @@
-# XDG Base Directory Specification - configured in dotfile_source/000-xdg.sh
+# XDG Base Directory Specification
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+
 # export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -197,6 +202,6 @@ fi
 # 1password - configured in dotfile_source/third-party/1password.sh
 
 # Deduplicate PATH after all configurations are loaded
-path_dedupe
+typeset -U PATH
 
 {{- /* vim: set filetype=zsh: */}}
