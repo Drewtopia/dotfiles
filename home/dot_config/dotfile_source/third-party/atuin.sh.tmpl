@@ -1,5 +1,6 @@
 {{- if eq .chezmoi.os "linux" -}}
-PATH="${HOME}/.atuin/bin/:${PATH}"
+# Add atuin to PATH safely on Linux
+path_add "${HOME}/.atuin/bin"
 {{- end }}
 
 if [ "$(command -v atuin)" ]; then
