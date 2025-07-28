@@ -1,12 +1,14 @@
 {{- $name := "Andrew Cliff" -}}
-{{- $use_secrets := promptBoolOnce . "use_secrets" "Use secrets from 1Password? (true/false)" -}}
-{{- $dev_computer := promptBoolOnce . "dev_computer" "Do you do development on this computer? (true/false)" -}}
+
+{{- $dev_computer := promptBoolOnce . "dev_computer" "Do you want development on this computer? (true/false)" -}}
+
+
+{{/* set up 1Password vaults */}}
 {{- $opVault := "" -}}
 
 {{/* boolean feature tags */}}
 {{- $ephemeral := false -}}{{/* true if this machine is ephemeral, e.g. a cloud or VM instance */}}
 {{- $work := false -}}{{/* true if this machine is a work machine */}}
-{{- $dev_computer := $dev_computer -}}{{/* true if this machine is a development machine */}}
 {{- $is_wsl := false -}}{{/* true if this machine is a WSL machine */}}
 {{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
 {{- $personal := false -}}{{/* true if this machine should have personal secrets */}}
@@ -30,9 +32,8 @@
 {{- end -}}
 
 {{- $device_type := "desktop" -}}
-{{/*
 {{- if eq .chezmoi.os "darwin" -}}
-{{-   if contains "MacBook" (output "sysctl" "-n" "hw.model") -}}
+{{-   if contains "MacBook" (output "sysctl" "-n" "hw.model" | trim ) -}}
 {{-     $device_type = "laptop" -}}
 {{-   else -}}
 {{-     $device_type = "desktop" -}}
@@ -42,21 +43,19 @@
 {{- else if eq .chezmoi.os "windows" -}}
 {{-   $device_type = (output "powershell.exe" "-NoProfile" "-NonInteractive" "-Command" "if ((Get-CimInstance -Class Win32_Battery | Measure-Object).Count -gt 0) { Write-Output 'laptop' } else { Write-Output 'desktop' }") | trim -}}
 {{- end -}}
-*/}}
 
 {{/* work around unreliable hostname on darwin */}}
 {{- $hostname := .chezmoi.hostname -}}
 {{- if eq .chezmoi.os "darwin" -}}
-{{-   $computerName := output "scutil" "--get" "ComputerName" | trim -}}
-{{-   if eq $computerName "Andrew’s MacBook Pro" -}}
-{{-     $hostname = "andrews-mbp" -}}
-{{-   else -}}
-{{-     $hostname = $computerName -}}
-{{-   end -}}
+{{-   $hostname = output "scutil" "--get" "LocalHostName" | trim | lower -}}
+{{- end -}}
+
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $ephemeral = true -}}
 {{- end -}}
 
 {{- if not $ephemeral -}}
-{{-   if eq $hostname "andrews-mbp" -}}
+{{-   if eq $hostname "andrews-macbook-pro" -}}
 {{-     $personal = true -}}
 {{-     $opVault = "Private" -}}
 {{-   else if eq $osID "linux-ubuntu" -}}
@@ -70,10 +69,6 @@
 {{-     $ephemeral = true -}}
 {{-     $headless = true -}}
 {{-   end -}}
-{{- end -}}
-
-{{- if eq .chezmoi.os "windows" -}}
-{{-   $ephemeral = true -}}
 {{- end -}}
 
 {{- $email := "drew@drewtopia.com.au" -}}
