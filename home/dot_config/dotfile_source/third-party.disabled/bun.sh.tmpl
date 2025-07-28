@@ -1,0 +1,23 @@
+# Bun installation paths - check common locations
+{{- if eq .chezmoi.os "darwin" }}
+for bun_path in "$HOME/.bun" "/opt/homebrew/share/bun" "$HOME/.local/share/bun"; do
+    if [[ -d "$bun_path" ]]; then
+        export BUN_INSTALL="$bun_path"
+        path_add "$BUN_INSTALL/bin"
+        break
+    fi
+done
+{{- else }}
+for bun_path in "$HOME/.bun" "$HOME/.local/share/bun" "/usr/local/share/bun"; do
+    if [[ -d "$bun_path" ]]; then
+        export BUN_INSTALL="$bun_path"
+        path_add "$BUN_INSTALL/bin"
+        break
+    fi
+done
+{{- end }}
+
+# Bun completions - only if bun is available
+if command -v bun >/dev/null 2>&1; then
+    [[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
+fi

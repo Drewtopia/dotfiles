@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# Development Tools Configuration
+# Consolidated from individual third-party tool configs for faster loading
+
+## Package Managers & Runtimes
+{{- if eq .chezmoi.os "darwin" }}
+# Bun - JavaScript runtime
+for bun_path in "$HOME/.bun" "/opt/homebrew/share/bun" "$HOME/.local/share/bun"; do
+    if [[ -d "$bun_path" ]] && [[ -f "$bun_path/pnpm" || -f "$bun_path/bin/pnpm" ]]; then
+        export BUN_INSTALL="$bun_path"
+        path_add "$BUN_INSTALL/bin"
+        break
+    fi
+done
+
+# Deno - JavaScript runtime
+for deno_path in "$HOME/.deno" "/opt/homebrew/share/deno" "$HOME/.local/share/deno"; do
+    if [[ -d "$deno_path/bin" ]]; then
+        export DENO_INSTALL="$deno_path"
+        path_add "$DENO_INSTALL/bin"
+        break
+    fi
+done
+
+# UV - Python package installer
+for uv_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$uv_path/uv" ]]; then
+        path_add "$uv_path"
+        break
+    fi
+done
+{{- end }}
+
+## Development Aliases (only if tools are available)
+if command -v bun >/dev/null 2>&1; then
+    [[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
+fi
+
+# Deno aliases removed - user prefers no automatic aliases
+
+if command -v docker >/dev/null 2>&1; then
+    # Docker completions
+    if [[ -n ${ZSH_NAME} ]]; then
+        eval "$(docker completion zsh)"
+    elif [[ -n ${BASH} ]]; then
+        source <(docker completion bash)
+    fi
+fi
+
+## Shell Completions (batched for performance)
+if [[ -n ${ZSH_NAME} ]]; then
+    # Load completions for available development tools
+    command -v kubectl >/dev/null 2>&1 && eval "$(kubectl completion zsh)"
+    command -v gh >/dev/null 2>&1 && eval "$(gh completion -s zsh)"
+    command -v uv >/dev/null 2>&1 && eval "$(uv generate-shell-completion zsh)"
+    command -v topgrade >/dev/null 2>&1 && eval "$(topgrade --gen-completion zsh)"
+elif [[ -n ${BASH} ]]; then
+    # Bash completions
+    command -v kubectl >/dev/null 2>&1 && source <(kubectl completion bash)
+    command -v gh >/dev/null 2>&1 && source <(gh completion -s bash)
+    command -v uv >/dev/null 2>&1 && source <(uv generate-shell-completion bash)
+    command -v topgrade >/dev/null 2>&1 && source <(topgrade --gen-completion bash)
+fi

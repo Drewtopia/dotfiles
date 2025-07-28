@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# System Management Tools
+# Tools for system administration, maintenance, and configuration
+
+## System Administration
+# topgrade - upgrade everything
+for topgrade_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$topgrade_path/topgrade" ]]; then
+        path_add "$topgrade_path"
+        break
+    fi
+done
+
+# chezmoi - dotfiles manager (should already be in PATH, but ensure it)
+if command -v chezmoi >/dev/null 2>&1; then
+    # Chezmoi completions
+    if [[ -n ${ZSH_NAME} ]]; then
+        eval "$(chezmoi completion zsh)"
+    elif [[ -n ${BASH} ]]; then
+        source <(chezmoi completion bash)
+    fi
+    
+# Chezmoi aliases removed - user prefers no automatic aliases
+fi
+
+## Security Tools
+# 1Password CLI
+if command -v op >/dev/null 2>&1; then
+    # 1Password completions
+    if [[ -n ${ZSH_NAME} ]]; then
+        eval "$(op completion zsh)"
+    elif [[ -n ${BASH} ]]; then
+        source <(op completion bash)
+    fi
+fi
+
+## Terminal & Interface
+{{- if eq .chezmoi.os "darwin" }}
+# iTerm2 integration (macOS only)
+if [[ -f "${HOME}/.iterm2_shell_integration.zsh" ]]; then
+    source "${HOME}/.iterm2_shell_integration.zsh"
+fi
+{{- end }}
+
+# thefuck - command correction (if available)
+if command -v thefuck >/dev/null 2>&1; then
+    eval "$(thefuck --alias)"
+    # Note: Default 'fuck' alias only, no additional aliases
+fi
+
+# System tool aliases removed - user prefers no automatic aliases
+
+## System Tool Completions
+if [[ -n ${ZSH_NAME} ]]; then
+    command -v topgrade >/dev/null 2>&1 && eval "$(topgrade --gen-completion zsh)"
+elif [[ -n ${BASH} ]]; then
+    command -v topgrade >/dev/null 2>&1 && source <(topgrade --gen-completion bash)
+fi

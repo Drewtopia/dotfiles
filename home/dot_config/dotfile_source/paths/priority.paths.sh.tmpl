@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# Priority paths - tools that should override system defaults
+# These paths are added first (highest priority)
+
+{{- if eq .chezmoi.os "darwin" }}
+# pnpm - direct installation (highest priority for package management)
+if [[ -d "$HOME/Library/pnpm" ]]; then
+    export PNPM_HOME="$HOME/Library/pnpm"
+    export PATH="$PNPM_HOME:${PATH}"
+fi
+{{- else }}
+# pnpm - direct installation (Linux)
+if [[ -d "$HOME/.local/share/pnpm" ]]; then
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    export PATH="$PNPM_HOME:${PATH}"
+fi
+{{- end }}
+
+# Other high-priority tools can be added here
+# Example: export PATH="/path/to/priority/tool:${PATH}"

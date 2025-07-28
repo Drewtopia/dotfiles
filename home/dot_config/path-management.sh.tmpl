@@ -6,9 +6,36 @@ path_add() {
     # Remove trailing slash
     dir="${dir%/}"
 
-    # Skip expensive realpath for absolute paths that already exist
-    if [[ "$dir" = /* ]] && [ -d "$dir" ] && [[ ":$PATH:" != *":$dir:"* ]]; then
+    # Skip if directory doesn't exist
+    [[ -d "$dir" ]] || return 1
+
+    # Simple duplicate check using grep (inspired by sebastienrousseau/dotfiles)
+    if ! echo "$PATH" | tr ":" "\n" | grep -qx "$dir"; then
         export PATH="$dir:$PATH"
     fi
+}
+
+# Deduplicate PATH entries (from sebastienrousseau/dotfiles)
+deduplicate_path() {
+    PATH=$(echo "$PATH" | awk -v RS=':' '!seen[$0]++ {ORS=(NR>1?":":"")} {print}')
+    export PATH
+}
+
+# Load paths in priority order
+load_paths() {
+    # 1. Priority paths (highest priority - pnpm, critical tools)
+    [[ -f "${XDG_CONFIG_HOME}/dotfile_source/paths/priority.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/dotfile_source/paths/priority.paths.sh"
+    
+    # 2. Default system paths (essential system directories)
+    [[ -f "${XDG_CONFIG_HOME}/dotfile_source/paths/default.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/dotfile_source/paths/default.paths.sh"
+    
+    # 3. Custom paths (user-specific, tool managers)
+    [[ -f "${XDG_CONFIG_HOME}/dotfile_source/paths/custom.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/dotfile_source/paths/custom.paths.sh"
+    
+    # 4. Deduplicate PATH after all additions
+    deduplicate_path
 }
 

@@ -1,0 +1,20 @@
+# Git-delta configuration
+# Delta provides enhanced git diffs with syntax highlighting
+
+# Add delta paths - check common locations
+for delta_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$delta_path/delta" ]]; then
+        path_add "$delta_path"
+        break
+    fi
+done
+
+# Delta configuration - only if delta is available
+if command -v delta >/dev/null 2>&1; then
+    # Aliases for delta usage
+    alias delta-themes='delta --list-syntax-themes'
+    alias delta-help='delta --help'
+    
+    # Environment variables for delta
+    export DELTA_PAGER="less -R"
+fi

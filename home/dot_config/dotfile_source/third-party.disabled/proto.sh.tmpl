@@ -1,0 +1,21 @@
+# Proto - Unified toolchain manager
+# DISABLED: Using mise instead to avoid conflicts
+# 
+{{- if or (not (eq .chezmoi.os "linux")) .is_wsl }}
+# Proto is disabled in favor of mise for consistency
+# Uncomment below if you prefer proto over mise:
+# for proto_path in "$HOME/.local/share/proto" "$HOME/.proto" "/opt/proto"; do
+#     if [[ -d "$proto_path" ]]; then
+#         path_add "$proto_path/shims"
+#         path_add "$proto_path/bin"
+#         break
+#     fi
+# done
+# 
+# if command -v proto >/dev/null 2>&1; then
+#     alias proto-list='proto list'
+#     alias proto-install='proto install'
+#     alias proto-use='proto use'
+#     alias proto-pin='proto pin'
+# fi
+{{- end }}

@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+# Shell Enhancement Tools
+# Tools that enhance shell experience and productivity
+
+## Navigation & Search Tools
+# fzf - fuzzy finder
+for fzf_path in "$HOME/.fzf/bin" "/opt/homebrew/bin" "$HOME/.local/bin" "/usr/local/bin"; do
+    if [[ -f "$fzf_path/fzf" ]]; then
+        path_add "$fzf_path"
+        break
+    fi
+done
+
+# zoxide - smarter cd command  
+for zoxide_path in "$HOME/.local/bin" "$HOME/.cargo/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$zoxide_path/zoxide" ]]; then
+        path_add "$zoxide_path"
+        break
+    fi
+done
+
+# atuin - shell history enhancement (if available)
+# No PATH setup needed - typically installed system-wide
+
+## Shell Integration (only if tools are available)
+if command -v fzf >/dev/null 2>&1; then
+    [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+    eval "$(zoxide init zsh)"
+fi
+
+if command -v atuin >/dev/null 2>&1; then
+    eval "$(atuin init zsh)"
+fi
+
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init zsh)"
+fi
+
+## Shell Prompt & Theme
+# starship - cross-shell prompt
+for starship_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$starship_path/starship" ]]; then
+        path_add "$starship_path"
+        break
+    fi
+done
+
+# Shell tool aliases removed - user prefers no automatic aliases

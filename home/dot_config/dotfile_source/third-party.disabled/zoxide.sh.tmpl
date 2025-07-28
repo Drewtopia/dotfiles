@@ -1,0 +1,13 @@
+# Zoxide - smarter cd command
+# Add zoxide paths - check common locations
+for zoxide_path in "$HOME/.local/bin" "$HOME/.cargo/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$zoxide_path/zoxide" ]]; then
+        path_add "$zoxide_path"
+        break
+    fi
+done
+
+# Must be initialized after compinit for completions to work
+if command -v zoxide >/dev/null 2>&1; then
+    eval "$(zoxide init zsh)"
+fi
