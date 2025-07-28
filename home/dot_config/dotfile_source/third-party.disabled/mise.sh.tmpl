@@ -1,0 +1,11 @@
+# mise (formerly rtx) - runtime version manager
+# PATH setup handled in paths/custom.paths.sh
+
+# Lazy load mise to avoid 13s startup penalty - only if mise is available
+if command -v mise >/dev/null 2>&1; then
+    mise() {
+        unfunction mise
+        eval "$(command mise activate zsh)"
+        mise "$@"
+    }
+fi

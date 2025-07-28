@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# Default system paths - loaded first for reliability
+# Based on sebastienrousseau/dotfiles path management
+
+## Essential System Paths
+# Core system directories that should always be accessible
+export PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/sbin:${PATH}"
+
+{{- if eq .chezmoi.os "darwin" }}
+# macOS-specific paths
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:${PATH}"
+export PATH="/Library/Apple/usr/bin:/Library/TeX/texbin:${PATH}"
+
+# Ruby paths (macOS often has system Ruby)
+if command -v /opt/homebrew/opt/ruby/bin/ruby >/dev/null; then
+    export PATH="/opt/homebrew/opt/ruby/bin:${PATH}"
+elif command -v /usr/bin/ruby >/dev/null; then
+    export PATH="/usr/bin:${PATH}"
+fi
+{{- end }}
+
+# Language-specific default paths
+export PATH="${HOME}/.cargo/bin:${PATH}"      # Rust
+export PATH="${HOME}/go/bin:${PATH}"          # Go
+export PATH="${HOME}/.gem/ruby/bin:${PATH}"   # Ruby gems
+
+# Standard user paths
+{{- $homeDir := .chezmoi.homeDir }}
+{{- range $_, $relPath := list ".local/bin" "bin" }}
+{{    $path := joinPath $homeDir $relPath }}
+{{-   if stat $path }}
+export PATH="{{ $path }}:${PATH}"
+{{-   end }}
+{{- end }}

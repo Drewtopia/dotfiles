@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+# Post-installation tool configuration
+# Runs after tools are installed to set up configurations and integrations
+# Template hash: {{ include "dot_config/dotfile_source/shell-tools.sh.tmpl" | sha256sum }}
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+{{ if .dev_computer -}}
+# Configure fzf integration (silently to avoid Powerlevel10k warnings)
+if command -v fzf >/dev/null 2>&1; then
+    
+    {{- if eq .chezmoi.os "darwin" }}
+    # macOS homebrew fzf setup
+    if [[ -f /opt/homebrew/opt/fzf/install ]]; then
+        /opt/homebrew/opt/fzf/install --key-bindings --completion --no-update-rc --no-bash --no-fish >/dev/null 2>&1 || true
+    fi
+    {{- else }}
+    # Linux fzf setup
+    if [[ -f ~/.fzf/install ]]; then
+        ~/.fzf/install --key-bindings --completion --no-update-rc --no-bash --no-fish >/dev/null 2>&1 || true
+    fi
+    {{- end }}
+fi
+
+# Configure GitHub CLI
+if command -v gh >/dev/null 2>&1; then
+    # Set up common gh aliases
+    gh alias set co 'repo clone' 2>/dev/null || true
+    gh alias set pv 'pr view' 2>/dev/null || true
+    gh alias set pc 'pr create' 2>/dev/null || true
+    gh alias set pm 'pr merge' 2>/dev/null || true
+fi
+
+# Configure pnpm if available
+if command -v pnpm >/dev/null 2>&1; then
+    # Set pnpm configurations
+    pnpm config set auto-install-peers true 2>/dev/null || true
+    pnpm config set dedupe-peer-dependents true 2>/dev/null || true
+    pnpm config set prefer-frozen-lockfile true 2>/dev/null || true
+fi
+
+# Git + delta configuration removed - user has this configured in git/config.tmpl
+
+# Set up shell completions directory
+COMPLETIONS_DIR="$HOME/.oh-my-zsh/completions"
+if [[ ! -d "$COMPLETIONS_DIR" ]]; then
+    mkdir -p "$COMPLETIONS_DIR"
+fi
+
+# Generate completions for installed tools
+if command -v starship >/dev/null 2>&1; then
+    starship completions zsh > "$COMPLETIONS_DIR/_starship" 2>/dev/null || true
+fi
+
+if command -v gh >/dev/null 2>&1; then
+    gh completion -s zsh > "$COMPLETIONS_DIR/_gh" 2>/dev/null || true
+fi
+{{- else }}
+# Skipping tool configuration (not a dev computer)
+{{- end }}

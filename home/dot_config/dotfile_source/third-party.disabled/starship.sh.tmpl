@@ -1,0 +1,13 @@
+# Starship cross-shell prompt
+# Add starship paths - check common locations
+for starship_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$starship_path/starship" ]]; then
+        path_add "$starship_path"
+        break
+    fi
+done
+
+# Initialize starship if available
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init zsh)"
+fi

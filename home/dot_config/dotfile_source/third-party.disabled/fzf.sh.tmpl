@@ -1,0 +1,13 @@
+# fzf - fuzzy finder integration
+# Add fzf paths - check common locations
+for fzf_path in "$HOME/.fzf/bin" "/opt/homebrew/bin" "$HOME/.local/bin" "/usr/local/bin"; do
+    if [[ -f "$fzf_path/fzf" ]]; then
+        path_add "$fzf_path"
+        break
+    fi
+done
+
+# Load fzf integration if available
+if command -v fzf >/dev/null 2>&1; then
+    [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+fi

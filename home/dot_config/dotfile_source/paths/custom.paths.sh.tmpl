@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Custom paths - user-specific or project-specific paths
+# These are loaded after defaults but can still override system paths
+
+# Tool managers (loaded after priority tools)
+# mise - runtime version manager
+if [[ -d "$HOME/.local/share/mise/bin" ]]; then
+    export PATH="$HOME/.local/share/mise/bin:${PATH}"
+fi
+
+# Development environment paths
+# Add other development tools here as needed
+
+# Application-specific paths (customize as needed)
+{{- if eq .chezmoi.os "darwin" }}
+# macOS applications
+# export PATH="/Applications/SomeApp.app/Contents/Resources/bin:${PATH}"
+{{- end }}
+
+# Project-specific paths
+# export PATH="${HOME}/projects/my-tools/bin:${PATH}"

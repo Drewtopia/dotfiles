@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+# Version Managers Installation  
+# Installs mise for managing multiple language versions
+# Template hash: {{ include "dot_config/dotfile_source/version-managers.sh.tmpl" | sha256sum }}
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+{{ if .dev_computer -}}
+echo "🔧 Installing version managers..."
+
+# Install mise (formerly rtx) - modern asdf replacement
+if ! command -v mise >/dev/null 2>&1; then
+    echo "📦 Installing mise..."
+    
+    {{- if eq .chezmoi.os "darwin" }}
+    if command -v brew >/dev/null 2>&1; then
+        brew install mise || echo "⚠️  mise installation failed"
+    else
+        curl https://mise.run | sh || echo "⚠️  mise installation failed"
+    fi
+    {{- else if eq .chezmoi.os "linux" }}
+    curl https://mise.run | sh || echo "⚠️  mise installation failed"
+    {{- end }}
+    
+    # Add mise to PATH for this script
+    export PATH="$HOME/.local/share/mise/bin:$PATH"
+else
+    echo "✅ mise already installed"
+fi
+
+# Configure mise with essential tools
+if command -v mise >/dev/null 2>&1; then
+    echo "🔧 Configuring mise with default tools..."
+    
+    # Install latest LTS Node.js via mise (as backup to pnpm)
+    mise install node@lts 2>/dev/null || echo "⚠️  Node.js installation via mise failed"
+    
+    # Install Python latest
+    mise install python@latest 2>/dev/null || echo "⚠️  Python installation via mise failed"
+    
+    # Set global versions
+    mise global node@lts python@latest 2>/dev/null || echo "⚠️  Setting global versions failed"
+    
+    echo "✅ mise configuration completed"
+fi
+
+echo "✅ Version managers installation completed!"
+{{- else }}
+echo "🏠 Skipping version managers installation (not a dev computer)"
+{{- end }}
