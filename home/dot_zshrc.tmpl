@@ -11,8 +11,8 @@ export XDG_CONFIG_HOME=$HOME/.config
 export XDG_STATE_HOME=$HOME/.local/state
 export XDG_CACHE_HOME=$HOME/.cache
 
-# Enable profiling
-zmodload zsh/zprof
+# Enable profiling (controlled by ZPROF environment variable)
+[[ -n "$ZPROF" ]] && zmodload zsh/zprof
 
 # If not in tmux, start tmux.
 if [[ -z ${TMUX+X}${ZSH_SCRIPT+X}${ZSH_EXECUTION_STRING+X} ]]; then
@@ -113,7 +113,7 @@ plugins=(
 {{- end }}
 )
 # Add custom plugins
-{{- if lookPath "zsh-pnpm-completions" }}
+{{- if lookPath "pnpm" }}
 plugins+=(
     zsh-pnpm-completions
 )
@@ -183,6 +183,6 @@ fi
 typeset -U PATH
 
 # Display profiling results
-zprof
+[[ -n "$ZPROF" ]] && zprof
 
 {{- /* vim: set filetype=zsh: */}}
