@@ -3,9 +3,6 @@
 # Version Managers & Runtime Management
 # Tools for managing multiple versions of languages and runtimes
 
-## mise (formerly rtx) - runtime version manager
-# PATH setup handled in paths/custom.paths.sh
-
 # Lazy load mise to avoid 13s startup penalty - only if mise is available
 if command -v mise >/dev/null 2>&1; then
     mise() {
@@ -13,36 +10,4 @@ if command -v mise >/dev/null 2>&1; then
         eval "$(command mise activate zsh)"
         mise "$@"
     }
-
-# Mise aliases removed - user prefers no automatic aliases
-fi
-
-# Proto - alternative toolchain manager (DISABLED to avoid conflicts)
-# Uncomment if you prefer proto over mise:
-# if command -v proto >/dev/null 2>&1; then
-#     alias proto-list='proto list'
-#     alias proto-install='proto install'
-#     alias proto-use='proto use'
-#     alias proto-pin='proto pin'
-# fi
-
-## Node.js specific tools
-# Note: pnpm path is handled in paths/priority.paths.sh for highest priority
-
-if command -v pnpm >/dev/null 2>&1; then
-    # pnpm aliases
-    alias pn='pnpm'
-
-    # pnpm completions
-    if [[ -n ${ZSH_NAME} ]]; then
-        eval "$(pnpm completion zsh 2>/dev/null)" 2>/dev/null || true
-    elif [[ -n ${BASH} ]]; then
-        source <(pnpm completion bash 2>/dev/null) 2>/dev/null || true
-    fi
-fi
-
-## Moon - JavaScript build system (if available)
-if command -v moon >/dev/null 2>&1; then
-    # Moon typically manages itself, no special PATH setup needed
-    alias m='moon'
 fi

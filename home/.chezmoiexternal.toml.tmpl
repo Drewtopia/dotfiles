@@ -134,3 +134,16 @@
     url = "https://github.com/romkatv/powerlevel10k/archive/{{ (gitHubLatestRelease "romkatv/powerlevel10k").TagName }}.tar.gz"
     exact = true
     stripComponents = 1
+
+[".oh-my-zsh/custom/plugins/zsh-pnpm-completions"]
+    type = "archive"
+    url = "https://github.com/michakfromparis/zsh-pnpm-completions/archive/master.tar.gz"
+    exact = true
+    stripComponents = 1
+    refreshPeriod = "168h"
+    exclude = [
+        "*/.gitattributes",
+        "*/.github",
+        "*/.gitignore",
+        "*/README.md",
+    ]
