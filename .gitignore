@@ -5,4 +5,5 @@ home/dot_claude/*
 !home/dot_claude/commands/
 !home/dot_claude/agents/
 !home/dot_claude/mcp.json
+.claude
 CLAUDE.md
