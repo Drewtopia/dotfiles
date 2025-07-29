@@ -1,0 +1,23 @@
+{{ if .dev_computer -}}
+# mise - Modern runtime version manager
+# Handles: node, pnpm, deno, bun, uv, python, go, etc.
+
+if command -v mise >/dev/null 2>&1; then
+    # Activate mise - this handles PATH and completions for all tools
+    eval "$(mise activate zsh)"
+    
+    # Enable mise completions
+    if [[ -n ${ZSH_NAME} ]]; then
+        eval "$(mise completion zsh)"
+    elif [[ -n ${BASH} ]]; then
+        eval "$(mise completion bash)"
+    fi
+fi
+
+# pnpm global packages setup
+export PNPM_HOME="$HOME/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+{{- end }}

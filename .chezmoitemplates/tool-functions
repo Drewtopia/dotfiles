@@ -1,0 +1,136 @@
+install_deno() {
+    if ! command -v deno >/dev/null 2>&1; then
+        echo "📦 Installing Deno..."
+        curl -fsSL https://deno.land/install.sh | sh || {
+            echo "⚠️  Deno installation failed"
+            return 1
+        }
+    else
+        echo "✅ Deno already installed"
+    fi
+    
+    # Write deno shell configuration
+    write_tool_config "deno" '# Deno - JavaScript/TypeScript runtime
+export DENO_INSTALL="$HOME/.deno"
+path_add "$DENO_INSTALL/bin"
+
+if command -v deno >/dev/null 2>&1; then
+    # Deno completions (generated on demand)
+    if [[ -n ${ZSH_NAME} ]]; then
+        eval "$(deno completions zsh)"
+    elif [[ -n ${BASH} ]]; then
+        source <(deno completions bash)
+    fi
+fi'
+}
+
+install_pnpm() {
+    if ! command -v pnpm >/dev/null 2>&1; then
+        echo "📦 Installing pnpm..."
+        export PNPM_HOME="$HOME/.local/share/pnpm"
+        mkdir -p "$PNPM_HOME"
+        
+        # Protect shell configs from modification
+        chmod -w ~/.zshrc ~/.zprofile ~/.zshenv 2>/dev/null || true
+        curl -fsSL https://get.pnpm.io/install.sh | env SHELL=/bin/bash sh || {
+            echo "⚠️  pnpm installation failed"
+            # Restore write permissions
+            chmod +w ~/.zshrc ~/.zprofile ~/.zshenv 2>/dev/null || true
+            return 1
+        }
+        # Restore write permissions
+        chmod +w ~/.zshrc ~/.zprofile ~/.zshenv 2>/dev/null || true
+    else
+        echo "✅ pnpm already installed"
+    fi
+    
+    # Write pnpm shell configuration
+    write_tool_config "pnpm" '# pnpm - Fast Node.js package manager
+export PNPM_HOME="$HOME/.local/share/pnpm"
+path_add "$PNPM_HOME"
+
+if command -v pnpm >/dev/null 2>&1; then
+    # pnpm aliases
+    alias pn='\''pnpm'\''
+    # Note: completions handled by zsh-pnpm-completions plugin
+fi'
+}
+
+install_bun() {
+    if ! command -v bun >/dev/null 2>&1; then
+        echo "📦 Installing Bun..."
+        curl -fsSL https://bun.sh/install | bash || {
+            echo "⚠️  Bun installation failed"
+            return 1
+        }
+    else
+        echo "✅ Bun already installed"
+    fi
+    
+    # Write bun shell configuration (OS-aware)
+{{- if eq .chezmoi.os "darwin" }}
+    write_tool_config "bun" '# Bun - JavaScript runtime and package manager
+for bun_path in "$HOME/.bun" "/opt/homebrew/share/bun" "$HOME/.local/share/bun"; do
+    if [[ -d "$bun_path" ]]; then
+        export BUN_INSTALL="$bun_path"
+        path_add "$BUN_INSTALL/bin"
+        break
+    fi
+done
+
+# Fallback in case no valid path was found
+: "${BUN_INSTALL:=$HOME/.bun}"
+
+# Bun completions — load only if available
+if command -v bun >/dev/null 2>&1; then
+    [[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
+fi'
+{{- else }}
+    write_tool_config "bun" '# Bun - JavaScript runtime and package manager
+for bun_path in "$HOME/.bun" "$HOME/.local/share/bun" "/usr/local/share/bun"; do
+    if [[ -d "$bun_path" ]]; then
+        export BUN_INSTALL="$bun_path"
+        path_add "$BUN_INSTALL/bin"
+        break
+    fi
+done
+
+# Fallback in case no valid path was found
+: "${BUN_INSTALL:=$HOME/.bun}"
+
+# Bun completions — load only if available
+if command -v bun >/dev/null 2>&1; then
+    [[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
+fi'
+{{- end }}
+}
+
+install_uv() {
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "📦 Installing UV..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh || {
+            echo "⚠️  UV installation failed"
+            return 1
+        }
+    else
+        echo "✅ UV already installed"
+    fi
+    
+    # Write uv shell configuration
+    write_tool_config "uv" '# UV - Fast Python package manager
+for uv_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$uv_path/uv" ]]; then
+        path_add "$uv_path"
+        break
+    fi
+done
+
+if command -v uv >/dev/null 2>&1; then
+    # UV completions
+    if [[ -n ${ZSH_NAME} ]]; then
+        eval "$(uv generate-shell-completion zsh)"
+    elif [[ -n ${BASH} ]]; then
+        source <(uv generate-shell-completion bash)
+    fi
+fi'
+}

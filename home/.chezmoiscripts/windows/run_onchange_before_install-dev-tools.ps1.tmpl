@@ -1,0 +1,89 @@
+#!/usr/bin/env pwsh
+
+# Development Tools Installation for Windows
+# PowerShell script to install curl-based development tools
+
+{{ if .dev_computer -}}
+Write-Host "🪟 Installing curl-based development tools on Windows..." -ForegroundColor Green
+
+function Test-Command($cmdname) {
+    return [bool](Get-Command -Name $cmdname -ErrorAction SilentlyContinue)
+}
+
+# Deno (JavaScript/TypeScript runtime)
+if (-not (Test-Command deno)) {
+    Write-Host "📦 Installing Deno..." -ForegroundColor Blue
+    try {
+        irm https://deno.land/install.ps1 | iex
+    } catch {
+        Write-Host "⚠️  Deno installation failed: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✅ Deno already installed" -ForegroundColor Green
+}
+
+# Mise (modern runtime version manager)
+if (-not (Test-Command mise)) {
+    Write-Host "📦 Installing Mise..." -ForegroundColor Blue
+    try {
+        irm https://mise.run | iex
+    } catch {
+        Write-Host "⚠️  Mise installation failed: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✅ Mise already installed" -ForegroundColor Green
+}
+
+# Proto (unified toolchain manager)
+if (-not (Test-Command proto)) {
+    Write-Host "📦 Installing Proto..." -ForegroundColor Blue
+    try {
+        irm https://moonrepo.dev/install/proto.ps1 | iex
+    } catch {
+        Write-Host "⚠️  Proto installation failed: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✅ Proto already installed" -ForegroundColor Green
+}
+
+# Bun (JavaScript runtime and package manager)
+if (-not (Test-Command bun)) {
+    Write-Host "📦 Installing Bun..." -ForegroundColor Blue
+    try {
+        # Bun Windows installation
+        powershell -c "irm bun.sh/install.ps1|iex"
+    } catch {
+        Write-Host "⚠️  Bun installation failed: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✅ Bun already installed" -ForegroundColor Green
+}
+
+# UV (fast Python package manager)
+if (-not (Test-Command uv)) {
+    Write-Host "📦 Installing UV..." -ForegroundColor Blue
+    try {
+        powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+    } catch {
+        Write-Host "⚠️  UV installation failed: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✅ UV already installed" -ForegroundColor Green
+}
+
+# pnpm (fast Node.js package manager)
+if (-not (Test-Command pnpm)) {
+    Write-Host "📦 Installing pnpm..." -ForegroundColor Blue
+    try {
+        iwr https://get.pnpm.io/install.ps1 -useb | iex
+    } catch {
+        Write-Host "⚠️  pnpm installation failed: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✅ pnpm already installed" -ForegroundColor Green
+}
+
+Write-Host "✅ Windows curl-based development tools installation completed!" -ForegroundColor Green
+{{- else }}
+Write-Host "🏠 Skipping development tools installation (not a dev computer)" -ForegroundColor Yellow
+{{- end }}

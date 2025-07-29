@@ -1,0 +1,27 @@
+{{ if .dev_computer -}}
+# Global mise configuration - focused on core development tools
+# CLI utilities handled by homebrew/apt for better system integration
+
+[tools]
+# JavaScript/TypeScript ecosystem  
+# node managed by homebrew due to GPG keyring issues with mise
+pnpm = "latest"      # Fast Node.js package manager
+deno = "latest"      # Modern JS/TS runtime
+bun = "latest"       # Fast JS runtime & package manager
+
+# Python ecosystem
+python = "3.12"      # Latest stable Python
+uv = "latest"        # Fast Python package manager
+
+# Language runtimes
+go = "latest"        # Go programming language
+rust = "latest"      # Rust programming language
+
+# Container orchestration (version-sensitive)
+kubectl = "latest"   # Kubernetes CLI
+
+[settings]
+# Auto-activate mise in all directories
+activate_aggressive = true
+
+{{- end }}
