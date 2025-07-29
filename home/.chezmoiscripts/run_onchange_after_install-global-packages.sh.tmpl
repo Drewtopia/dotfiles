@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -eufo pipefail
+
+{{ if .dev_computer -}}
+echo "📦 Installing global packages via pnpm..."
+
+# Activate mise to make pnpm available
+if command -v mise >/dev/null 2>&1; then
+    eval "$(mise activate bash)"
+else
+    echo "⚠️  mise not found. Cannot activate development tools."
+    exit 1
+fi
+
+# Install specific mise tools (skip node to avoid GPG issues - using homebrew node)
+echo "📦 Installing mise tools (excluding node)..."
+mise install pnpm deno bun python uv go rust kubectl 2>/dev/null || echo "⚠️  Some mise tools failed to install"
+
+# Now check if pnpm is available
+if ! command -v pnpm >/dev/null 2>&1; then
+    echo "⚠️  pnpm still not found after mise install."
+    exit 1
+fi
+
+# Set up pnpm environment (hardcoded to avoid repeated .zshrc modifications)
+export PNPM_HOME="$HOME/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
+# Ensure pnpm directory exists
+mkdir -p "$PNPM_HOME"
+
+echo "✅ PNPM_HOME set to: $PNPM_HOME"
+
+# Global packages to install
+packages=(
+    "@anthropic-ai/claude-code"
+    "@google/gemini-cli"
+)
+
+for package in "${packages[@]}"; do
+    echo "📦 Installing $package globally..."
+    pnpm add -g "$package" || echo "⚠️  Failed to install $package"
+done
+
+echo "✅ Global package installation completed!"
+{{- else }}
+echo "🏠 Skipping global packages installation (not a dev computer)"
+{{- end }}
