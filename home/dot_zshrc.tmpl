@@ -4,10 +4,8 @@ export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 
-# Enable profiling (only if ZPROF_ENABLED is set)
-if [[ -n "${ZPROF_ENABLED:-}" ]]; then
-    zmodload zsh/zprof
-fi
+# Enable profiling
+zmodload zsh/zprof
 
 # export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
@@ -17,9 +15,17 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# Load PATH management utilities and structured paths
+# Load PATH management utilities first
 source "${XDG_CONFIG_HOME}/path-management.sh"
-load_paths
+
+# If you come from bash you might have to change your $PATH.
+{{- $homeDir := .chezmoi.homeDir }}
+{{- range $_, $relPath := list "bin" "go/bin" ".cargo/bin" ".local/bin" }}
+{{    $path := joinPath $homeDir $relPath }}
+{{-   if stat $path }}
+path_add "{{ $path }}"
+{{-   end }}
+{{- end }}
 
 # Path to your oh-my-zsh installation.
 export ZSH=$HOME/.oh-my-zsh
@@ -117,15 +123,11 @@ export EDITOR=nvim
 {{ else -}}
 export EDITOR=vim
 {{ end -}}
-{{ if and (lookPath "op") (not .ephemeral) (not .work) -}}
+{{ if and (not .ephemeral) (not .work) -}}
 export GITHUB_ACCESS_TOKEN={{ onepasswordRead "op://Private/GitHub Metadata Read-Only Access Token/token" | trim }}
 export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | trim }}
-{{ else if and (lookPath "op") (.work) -}}
+{{ else if .work -}}
 export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
-{{ else -}}
-# 1Password secrets - op command not available or not authenticated
-# export GITHUB_ACCESS_TOKEN="your_token_here"
-# export GEMINI_API_KEY="your_api_key_here"
 {{ end -}}
 
 export MANPATH="/usr/local/man:$MANPATH"
@@ -155,14 +157,24 @@ export LC_ALL=en_US.UTF-8
 # App-specific XDG configurations - configured in dotfile_source/000-xdg.sh
 
 
-# Load dotfiles efficiently - simplified approach
-if [[ -d "${XDG_CONFIG_HOME}/dotfile_source" ]]; then
-    # Use zsh glob with null_glob option for clean expansion
-    setopt local_options null_glob
-    for config_file in "${XDG_CONFIG_HOME}"/dotfile_source/*.{sh,zsh}; do
-        [[ -r "$config_file" ]] && source "$config_file"
-    done
-fi
+# Files containing files *.zsh or *.sh to be sourced to your environment
+configFileLocations=(
+    "${XDG_CONFIG_HOME}/dotfile_source"
+)
+
+for configFileLocation in "${configFileLocations[@]}"; do
+    if [ -d "${configFileLocation}" ]; then
+        while read -r configFile; do
+            source "${configFile}"
+        done < <(find "${configFileLocation}" \
+            -maxdepth 2 \
+            -type f \
+            -name '*.zsh' \
+            -o -name '*.sh' | sort)
+    fi
+done
+
+unset configFileLocations configFileLocation
 
 # Allow for local configuration not managed by chezmoi
 if [ -f "${HOME}/.dotfiles.local" ]; then
@@ -199,9 +211,7 @@ fi
 # Deduplicate PATH after all configurations are loaded
 typeset -U PATH
 
-# Display profiling results (only if enabled)
-if [[ -n "${ZPROF_ENABLED:-}" ]]; then
-    zprof
-fi
+# Display profiling results
+zprof
 
 {{- /* vim: set filetype=zsh: */}}
