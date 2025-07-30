@@ -1,0 +1,31 @@
+{{- if .dev_computer -}}
+# PowerShell Profile for mise activation
+
+# Add mise shims to PATH if mise is installed
+$miseShimPath = "$env:USERPROFILE\AppData\Local\mise\shims"
+if (Test-Path $miseShimPath) {
+    # Check if shims path is already in PATH
+    $currentPath = $env:PATH -split ';'
+    if ($miseShimPath -notin $currentPath) {
+        $env:PATH = "$miseShimPath;$env:PATH"
+    }
+    
+    # Initialize mise if available
+    if (Get-Command mise -ErrorAction SilentlyContinue) {
+        # Activate mise for current session
+        Invoke-Expression (& mise activate powershell)
+        
+        # Enable mise completions
+        Invoke-Expression (& mise completion powershell)
+    }
+}
+
+# pnpm global packages setup
+$pnpmHome = "$env:USERPROFILE\.local\share\pnpm"
+if (Test-Path $pnpmHome) {
+    $currentPath = $env:PATH -split ';'
+    if ($pnpmHome -notin $currentPath) {
+        $env:PATH = "$pnpmHome;$env:PATH"
+    }
+}
+{{- end }}
