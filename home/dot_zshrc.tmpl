@@ -14,12 +14,6 @@ export XDG_CACHE_HOME=$HOME/.cache
 # Enable profiling (controlled by ZPROF environment variable)
 [[ -n "$ZPROF" ]] && zmodload zsh/zprof
 
-# If not in tmux, start tmux.
-if [[ -z ${TMUX+X}${ZSH_SCRIPT+X}${ZSH_EXECUTION_STRING+X} ]]; then
-  exec tmux
-fi
-
-
 export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -34,10 +28,10 @@ source "${XDG_CONFIG_HOME}/path-management.sh"
 # If you come from bash you might have to change your $PATH.
 {{- $homeDir := .chezmoi.homeDir }}
 {{- range $_, $relPath := list "bin" "go/bin" ".cargo/bin" ".local/bin" }}
-{{    $path := joinPath $homeDir $relPath }}
+{{-   $path := joinPath $homeDir $relPath }}
 {{-   if stat $path }}
 path_add "{{ $path }}"
-{{- end }}
+{{-   end }}
 {{- end }}
 
 # Path to your oh-my-zsh installation.
