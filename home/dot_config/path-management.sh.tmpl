@@ -15,6 +15,22 @@ path_add() {
     fi
 }
 
+# Function to safely add to FPATH without duplicates (for zsh completions)
+fpath_add() {
+    local dir="$1"
+    # Remove trailing slash
+    dir="${dir%/}"
+
+    # Skip if directory doesn't exist or not in zsh
+    [[ -d "$dir" ]] || return 1
+    [[ -n "${ZSH_VERSION:-}" ]] || return 1
+
+    # Check for duplicates in fpath array
+    if [[ ! " ${fpath[*]} " =~ " ${dir} " ]]; then
+        fpath=("$dir" $fpath)
+    fi
+}
+
 # Deduplicate PATH entries (from sebastienrousseau/dotfiles)
 deduplicate_path() {
     PATH=$(echo "$PATH" | awk -v RS=':' '!seen[$0]++ {ORS=(NR>1?":":"")} {print}')
@@ -35,7 +51,17 @@ load_paths() {
     [[ -f "${XDG_CONFIG_HOME}/shell/paths/custom.paths.sh" ]] && \
         source "${XDG_CONFIG_HOME}/shell/paths/custom.paths.sh"
     
-    # 4. Deduplicate PATH after all additions
+    # 4. Load completion paths (zsh only)
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
+        # Oh My Zsh completions directory
+        fpath_add "$HOME/.oh-my-zsh/completions"
+        
+        # System completion directories (if they exist)
+        fpath_add "/usr/local/share/zsh/site-functions"
+        fpath_add "/opt/homebrew/share/zsh/site-functions"
+    fi
+    
+    # 5. Deduplicate PATH after all additions
     deduplicate_path
 }
 

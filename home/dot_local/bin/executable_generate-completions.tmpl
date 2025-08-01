@@ -4,6 +4,7 @@
 
 set -euo pipefail
 
+# Use Oh My Zsh completions directory (in fpath)
 COMPLETIONS_DIR="$HOME/.oh-my-zsh/completions"
 mkdir -p "$COMPLETIONS_DIR"
 
@@ -38,7 +39,7 @@ SUPPORTED TOOLS:
 EOF
 }
 
-# Generate completion for a tool with standard patterns
+# Generate completion for a tool with standard patterns (Oh My Zsh style)
 generate_completion() {
     local tool="$1"
     local output_file="$COMPLETIONS_DIR/_$tool"
@@ -52,17 +53,27 @@ generate_completion() {
     
     # Try different completion command patterns
     local patterns=(
-        "$tool completion zsh"
-        "$tool completions zsh"
-        "$tool --completion zsh"
-        "$tool --completions zsh"
+        "$tool completion -s zsh"      # GitHub CLI style
+        "$tool completion zsh"         # Standard pattern
+        "$tool completions zsh"        # Alternative pattern
+        "$tool --completion zsh"       # Flag style
+        "$tool --completions zsh"      # Alternative flag
         "$tool generate-completions zsh"
         "$tool shell-completion zsh"
     )
     
     for cmd in "${patterns[@]}"; do
-        if $cmd > "$output_file" 2>/dev/null && [[ -s "$output_file" ]]; then
+        # Use Oh My Zsh style background generation with error suppression
+        if $cmd >| "$output_file" 2>/dev/null && [[ -s "$output_file" ]]; then
             success "Generated $tool completions"
+            # Register with zsh completion system if in zsh context
+            if [[ -n "${ZSH_VERSION:-}" ]] && command -v autoload >/dev/null 2>&1; then
+                autoload -Uz "_$tool" 2>/dev/null || true
+                # Add to _comps if available
+                if [[ -n "${_comps:-}" ]]; then
+                    _comps[$tool]="_$tool"
+                fi
+            fi
             return 0
         fi
     done
@@ -72,7 +83,7 @@ generate_completion() {
     return 1
 }
 
-# Generate completion with specific command
+# Generate completion with specific command (Oh My Zsh style)
 generate_with_cmd() {
     local tool="$1"
     local cmd="$2"
@@ -85,8 +96,17 @@ generate_with_cmd() {
     
     log "Generating $tool completions..."
     
-    if eval "$cmd" > "$output_file" 2>/dev/null && [[ -s "$output_file" ]]; then
+    # Use Oh My Zsh style generation with >| operator
+    if eval "$cmd" >| "$output_file" 2>/dev/null && [[ -s "$output_file" ]]; then
         success "Generated $tool completions"
+        # Register with zsh completion system if in zsh context
+        if [[ -n "${ZSH_VERSION:-}" ]] && command -v autoload >/dev/null 2>&1; then
+            autoload -Uz "_$tool" 2>/dev/null || true
+            # Add to _comps if available
+            if [[ -n "${_comps:-}" ]]; then
+                _comps[$tool]="_$tool"
+            fi
+        fi
         return 0
     else
         rm -f "$output_file"
@@ -203,20 +223,27 @@ main() {
     # Generate common tools if --all
     if [[ $generate_all == true ]]; then
         local common_tools=(
-            "gh" "docker" "kubectl" "chezmoi" "bat" "eza" "jq" "lazygit" "mas"
-            "cargo" "rustup" "terraform" "aws" "gcloud"
+            # Tools that generate completions reliably
+            "gh" "docker" "kubectl" "chezmoi" "bat" "cargo" "rustup"
+            "terraform" "aws" "gcloud"
+            
+            # Note: eza, jq, lazygit, mas don't support standard completion patterns
+            # Add them manually if you find working completion commands
         )
         for tool in "${common_tools[@]}"; do
-            generate_tool "$tool"
+            generate_tool "$tool" || true
         done
     fi
     
     # Generate specific tools
-    for tool in "${tools[@]}"; do
-        generate_tool "$tool"
-    done
+    if [[ ${#tools[@]} -gt 0 ]]; then
+        for tool in "${tools[@]}"; do
+            generate_tool "$tool" || true
+        done
+    fi
     
-    log "Done! Run 'compinit' or restart your shell to activate new completions."
+    # Completion activation
+    log "✓ Completions generated! Run 'compinit' to activate or restart your shell."
 }
 
 main "$@"
