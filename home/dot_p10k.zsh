@@ -37,6 +37,11 @@
   # Zsh >= 5.1 is required.
   [[ $ZSH_VERSION == (5.<1->*|<6->.*) ]] || return
 
+  zmodload zsh/langinfo
+  if [[ ${langinfo[CODESET]:-} != (utf|UTF)(-|)8 ]]; then
+    local LC_ALL=${${(@M)$(locale -a):#*.(utf|UTF)(-|)8}[1]:-en_US.UTF-8}
+  fi
+
   # Prompt colors.
   local grey='242'
   local red='#FF5C57'
@@ -50,6 +55,7 @@
   typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
     # =========================[ Line #1 ]=========================
     # context                 # user@host
+    os_icon                   # OS icon
     dir                       # current directory
     vcs                       # git status
     # command_execution_time  # previous command duration
@@ -66,6 +72,7 @@
     virtualenv                # python virtual environment
     context                   # user@host
     # time                    # current time
+    node_version              # node version
     # =========================[ Line #2 ]=========================
     newline                   # \n
   )
