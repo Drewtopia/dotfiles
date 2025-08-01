@@ -1,10 +1,10 @@
 #!/usr/bin/env pwsh
 
 # Development Tools Installation for Windows
-# PowerShell script to install curl-based development tools
+# PowerShell script to install development tools via curl and package managers
 
 {{ if .dev_computer -}}
-Write-Host "🪟 Installing curl-based development tools on Windows..." -ForegroundColor Green
+Write-Host "🪟 Installing development tools on Windows..." -ForegroundColor Green
 
 function Test-Command($cmdname) {
     return [bool](Get-Command -Name $cmdname -ErrorAction SilentlyContinue)
@@ -24,16 +24,19 @@ if (-not (Test-Command mise)) {
     Write-Host "✅ Mise already installed" -ForegroundColor Green
 }
 
-# Proto (unified toolchain manager)
-if (-not (Test-Command proto)) {
-    Write-Host "📦 Installing Proto..." -ForegroundColor Blue
+# Note: Proto removed - standardized on Mise as the primary runtime manager
+
+# Atuin (shell history replacement)
+if (-not (Test-Command atuin)) {
+    Write-Host "📦 Installing Atuin..." -ForegroundColor Blue
     try {
-        irm https://moonrepo.dev/install/proto.ps1 | iex
+        irm https://setup.atuin.sh | iex
+        Write-Host "✅ Atuin installed successfully" -ForegroundColor Green
     } catch {
-        Write-Host "⚠️  Proto installation failed: $_" -ForegroundColor Yellow
+        Write-Host "⚠️  Atuin installation failed: $_" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "✅ Proto already installed" -ForegroundColor Green
+    Write-Host "✅ Atuin already installed" -ForegroundColor Green
 }
 
 # Install development tools via mise (from config.toml)
@@ -49,7 +52,7 @@ if (Test-Command mise) {
     Write-Host "⚠️  Mise not found - cannot install development tools" -ForegroundColor Red
 }
 
-Write-Host "✅ Windows curl-based development tools installation completed!" -ForegroundColor Green
+Write-Host "✅ Windows development tools installation completed!" -ForegroundColor Green
 {{- else }}
 Write-Host "🏠 Skipping development tools installation (not a dev computer)" -ForegroundColor Yellow
 {{- end }}

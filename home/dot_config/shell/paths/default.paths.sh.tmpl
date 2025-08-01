@@ -33,3 +33,12 @@ path_add "${HOME}/.gem/ruby/bin"   # Ruby gems
 {{-   $path := joinPath $homeDir $relPath }}
 path_add "{{ $path }}"
 {{- end }}
+
+# MANPATH configuration (modern array syntax)
+{{- if eq .chezmoi.os "darwin" }}
+# macOS manual paths
+manpath_add "/opt/homebrew/share/man"
+manpath_add "/usr/local/share/man"
+{{- end }}
+manpath_add "/usr/share/man"
+manpath_add "$HOME/.local/share/man"

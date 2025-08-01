@@ -26,6 +26,13 @@ done
 ## Shell Integration (only if tools are available)
 if command -v fzf >/dev/null 2>&1; then
     [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+    
+    # Universal fuzzy completion integration
+    if [[ -n ${ZSH_NAME} && -f "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh" ]]; then
+        source "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh"
+        # Enable for commands that don't have native completions
+        bindkey '^I' fzf_completion
+    fi
 fi
 
 if command -v zoxide >/dev/null 2>&1; then

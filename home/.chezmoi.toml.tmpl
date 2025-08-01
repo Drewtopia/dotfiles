@@ -91,15 +91,9 @@
   osid = {{ $osID | quote }}
   zshPlugins = [
       "git",
-      "zsh-syntax-highlighting",
       {{- if eq .chezmoi.os "darwin" }}
         "brew",
-        "macos",
       {{- end}}
-      {{- if lookPath "pnpm" }}
-        "zsh-pnpm-completions",
-      {{- end }}
-      "fzf-tab"
   ]
   xdgCacheDir = "{{ .chezmoi.homeDir }}/.cache"
   xdgConfigDir = "{{ .chezmoi.homeDir }}/.config"

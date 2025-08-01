@@ -2,6 +2,7 @@
 [[ -o interactive ]] || return
 
 # Optimize arrays (remove duplicates, prevent FPATH export)
+# -a: array, -U: unique elements, +x: prevent export
 typeset -aU fpath path manpath
 typeset +x FPATH
 
@@ -91,19 +92,41 @@ ZSH_DISABLE_COMPFIX=true
 
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(
-{{- range .zshPlugins }}
-  {{ . }}
+# Basic plugins loaded via .chezmoiexternal, advanced plugins via Zinit
+plugins=(zsh-syntax-highlighting zsh-active-cheatsheet)
+
+
+# Initialize Zinit for performance-critical plugins
+ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+source "$ZINIT_HOME/zinit.zsh"
+
+# Load essential plugins via Zinit (only what truly needs advanced features)
+zinit light zsh-users/zsh-completions  # Large completion database benefits from Zinit caching
+zinit light Aloxaf/fzf-tab             # Complex integration needs Zinit features
+
+# Note: Basic plugins (zsh-syntax-highlighting, zsh-active-cheatsheet) now via .chezmoiexternal
+# Note: zsh-autosuggestions removed (redundant with atuin + fzf-tab)
+
+
+# Load custom plugins via Zinit
+{{- if lookPath "pnpm" }}
+zinit light michakfromparis/zsh-pnpm-completions
 {{- end }}
-)
+
+# Load Oh My Zsh plugins via Zinit snippets
+{{- range .zshPlugins }}
+zinit snippet OMZP::{{ . }}
+{{- end }}
 
 
 # Load completions
 autoload -Uz compinit && compinit
 
+# Load Oh My Zsh framework (minimal - no plugins)
 source $ZSH/oh-my-zsh.sh
+
+# Replay Zinit completions after Oh My Zsh loads
+zinit cdreplay -q
 
 # User configuration
 
@@ -132,25 +155,12 @@ export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | t
 {{ else if .work -}}
 export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
 {{ end -}}
-export MANPATH="/usr/local/man:$MANPATH"
+# MANPATH is managed via array syntax and typeset -aU
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
 
-# Development tools configuration
-{{- if .dev_computer }}
-# mise - Modern runtime version manager
-if command -v mise >/dev/null 2>&1; then
-    eval "$(mise activate zsh)"
-
-    # Enable mise completions
-    if [[ -n ${ZSH_NAME} ]]; then
-        eval "$(mise completion zsh)"
-    elif [[ -n ${BASH} ]]; then
-        eval "$(mise completion bash)"
-    fi
-fi
-{{- end }}
+# Development tools configuration moved to shell/mise.sh.tmpl for consistency
 
 # Source remaining shell configurations
 # Load all shell configurations via shell-loader
@@ -165,8 +175,7 @@ fi
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-# Deduplicate PATH after all configurations are loaded
-typeset -U PATH
+# PATH deduplication is handled automatically by typeset -aU path at the top
 
 # Display profiling results
 [[ -n "$ZPROF" ]] && zprof

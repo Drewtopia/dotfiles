@@ -1,6 +1,6 @@
 # PATH management utilities
 
-# Function to safely add to PATH without duplicates
+# Function to safely add to PATH without duplicates (modern array syntax)
 path_add() {
     local dir="$1"
     # Remove trailing slash
@@ -9,9 +9,10 @@ path_add() {
     # Skip if directory doesn't exist
     [[ -d "$dir" ]] || return 1
 
-    # Simple duplicate check using grep (inspired by sebastienrousseau/dotfiles)
-    if ! echo "$PATH" | tr ":" "\n" | grep -qx "$dir"; then
-        export PATH="$dir:$PATH"
+    # Use array syntax for better performance and reliability
+    # Check if already in path array
+    if [[ ! " ${path[*]} " =~ " ${dir} " ]]; then
+        path=("$dir" $path)
     fi
 }
 
@@ -31,11 +32,22 @@ fpath_add() {
     fi
 }
 
-# Deduplicate PATH entries (from sebastienrousseau/dotfiles)
-deduplicate_path() {
-    PATH=$(echo "$PATH" | awk -v RS=':' '!seen[$0]++ {ORS=(NR>1?":":"")} {print}')
-    export PATH
+# Function to safely add to MANPATH without duplicates
+manpath_add() {
+    local dir="$1"
+    # Remove trailing slash
+    dir="${dir%/}"
+
+    # Skip if directory doesn't exist
+    [[ -d "$dir" ]] || return 1
+
+    # Use array syntax for better performance
+    if [[ ! " ${manpath[*]} " =~ " ${dir} " ]]; then
+        manpath=("$dir" $manpath)
+    fi
 }
+
+# Note: PATH deduplication is handled automatically by typeset -aU in .zshrc
 
 # Load paths in priority order
 load_paths() {
@@ -61,7 +73,6 @@ load_paths() {
         fpath_add "/opt/homebrew/share/zsh/site-functions"
     fi
     
-    # 5. Deduplicate PATH after all additions
-    deduplicate_path
+    # 5. PATH deduplication happens automatically via typeset -aU
 }
 
