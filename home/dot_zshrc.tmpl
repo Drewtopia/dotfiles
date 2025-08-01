@@ -98,12 +98,7 @@ plugins=(
   {{ . }}
 {{- end }}
 )
-# Add custom plugins
-{{- if lookPath "pnpm" }}
-plugins+=(
-    zsh-pnpm-completions
-)
-{{- end }}
+
 
 # Load completions
 autoload -Uz compinit && compinit
@@ -147,7 +142,7 @@ export LC_ALL=en_US.UTF-8
 # mise - Modern runtime version manager
 if command -v mise >/dev/null 2>&1; then
     eval "$(mise activate zsh)"
-    
+
     # Enable mise completions
     if [[ -n ${ZSH_NAME} ]]; then
         eval "$(mise completion zsh)"
