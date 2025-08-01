@@ -2,7 +2,7 @@
 
 # Post-installation tool configuration
 # Runs after tools are installed to set up configurations and integrations
-# Template hash: {{ include "dot_config/dotfile_source/shell-tools.sh.tmpl" | sha256sum }}
+# Template hash: {{ include "dot_config/shell/shell-tools.sh.tmpl" | sha256sum }}
 
 #!/usr/bin/env bash
 set -euo pipefail
@@ -50,12 +50,28 @@ if [[ ! -d "$COMPLETIONS_DIR" ]]; then
 fi
 
 # Generate completions for installed tools
-if command -v starship >/dev/null 2>&1; then
-    starship completions zsh > "$COMPLETIONS_DIR/_starship" 2>/dev/null || true
-fi
+# Starship removed - user preference
 
 if command -v gh >/dev/null 2>&1; then
     gh completion -s zsh > "$COMPLETIONS_DIR/_gh" 2>/dev/null || true
+fi
+
+# kubectl removed - not used
+
+if command -v docker >/dev/null 2>&1; then
+    docker completion zsh > "$COMPLETIONS_DIR/_docker" 2>/dev/null || true
+fi
+
+if command -v topgrade >/dev/null 2>&1; then
+    topgrade --gen-completion zsh > "$COMPLETIONS_DIR/_topgrade" 2>/dev/null || true
+fi
+
+if command -v chezmoi >/dev/null 2>&1; then
+    chezmoi completion zsh > "$COMPLETIONS_DIR/_chezmoi" 2>/dev/null || true
+fi
+
+if command -v mise >/dev/null 2>&1; then
+    mise completion zsh > "$COMPLETIONS_DIR/_mise" 2>/dev/null || true
 fi
 {{- else }}
 # Skipping tool configuration (not a dev computer)

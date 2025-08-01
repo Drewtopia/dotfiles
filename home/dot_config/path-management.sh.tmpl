@@ -24,16 +24,16 @@ deduplicate_path() {
 # Load paths in priority order
 load_paths() {
     # 1. Priority paths (highest priority - pnpm, critical tools)
-    [[ -f "${XDG_CONFIG_HOME}/dotfile_source/paths/priority.paths.sh" ]] && \
-        source "${XDG_CONFIG_HOME}/dotfile_source/paths/priority.paths.sh"
+    [[ -f "${XDG_CONFIG_HOME}/shell/paths/priority.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/shell/paths/priority.paths.sh"
     
     # 2. Default system paths (essential system directories)
-    [[ -f "${XDG_CONFIG_HOME}/dotfile_source/paths/default.paths.sh" ]] && \
-        source "${XDG_CONFIG_HOME}/dotfile_source/paths/default.paths.sh"
+    [[ -f "${XDG_CONFIG_HOME}/shell/paths/default.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/shell/paths/default.paths.sh"
     
     # 3. Custom paths (user-specific, tool managers)
-    [[ -f "${XDG_CONFIG_HOME}/dotfile_source/paths/custom.paths.sh" ]] && \
-        source "${XDG_CONFIG_HOME}/dotfile_source/paths/custom.paths.sh"
+    [[ -f "${XDG_CONFIG_HOME}/shell/paths/custom.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/shell/paths/custom.paths.sh"
     
     # 4. Deduplicate PATH after all additions
     deduplicate_path

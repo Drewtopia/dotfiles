@@ -22,7 +22,7 @@
      "wget"
      "xz-utils"
      "zsh" -}}
-{{- /* Core dev tools handled by mise: node, pnpm, deno, bun, python, uv, go, rust, kubectl */ -}}
+{{- /* Core dev tools handled by mise: node, pnpm, deno, bun, python, uv, go, rust */ -}}
 {{ $snaps := list -}}
 {{ $classicSnaps := list -}}
 
@@ -81,9 +81,9 @@ else
     echo "✅ Mise already installed"
 fi
 
-# Install development tools via mise (skip node if GPG issues)
+# Install development tools via mise (from config.toml)
 echo "📦 Installing development tools via mise..."
-mise install pnpm deno bun python uv go rust kubectl 2>/dev/null || echo "⚠️  Some mise tools failed to install"
+mise install 2>/dev/null || echo "⚠️  Some mise tools failed to install"
 
 # Install non-mise tools
 # Atuin (shell history replacement) 
