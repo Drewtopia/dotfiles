@@ -72,9 +72,10 @@
 
 [".local/bin/delta"]
     type = "archive-file"
-    url = {{ gitHubLatestReleaseAssetURL "dandavison/delta" "delta-*-x86_64-unknown-linux-gnu.tar.gz" | quote }}
+    url = {{ gitHubLatestReleaseAssetURL "dandavison/delta" (printf "delta-*-x86_64-unknown-linux-gnu.tar.gz") | quote }}
     executable = true
-    path = "delta-*-x86_64-unknown-linux-gnu/delta"
+    stripComponents = 1
+    path = "delta"
     refreshPeriod = "168h"
 
 {{- end }}

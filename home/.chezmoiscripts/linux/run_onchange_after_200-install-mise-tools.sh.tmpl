@@ -1,0 +1,10 @@
+#!/bin/bash
+{{- if .dev_computer }}
+
+# Install mise tools after config changes
+if command -v mise >/dev/null 2>&1; then
+    echo "Installing mise tools..."
+    mise install
+fi
+
+{{- end }}
