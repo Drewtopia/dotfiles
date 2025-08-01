@@ -55,7 +55,7 @@
   typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
     # =========================[ Line #1 ]=========================
     # context                 # user@host
-    os_icon                   # OS icon
+    # os_icon                 # OS icon
     dir                       # current directory
     vcs                       # git status
     # command_execution_time  # previous command duration
@@ -72,7 +72,7 @@
     virtualenv                # python virtual environment
     context                   # user@host
     # time                    # current time
-    node_version              # node version
+    # node_version            # node version
     # =========================[ Line #2 ]=========================
     newline                   # \n
   )
