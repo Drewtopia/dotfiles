@@ -142,7 +142,22 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
 
-# Source shell configurations
+# Development tools configuration
+{{- if .dev_computer }}
+# mise - Modern runtime version manager
+if command -v mise >/dev/null 2>&1; then
+    eval "$(mise activate zsh)"
+    
+    # Enable mise completions
+    if [[ -n ${ZSH_NAME} ]]; then
+        eval "$(mise completion zsh)"
+    elif [[ -n ${BASH} ]]; then
+        eval "$(mise completion bash)"
+    fi
+fi
+{{- end }}
+
+# Source remaining shell configurations
 # Load all shell configurations via shell-loader
 source "${XDG_CONFIG_HOME}/shell-loader.sh"
 
