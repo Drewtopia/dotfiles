@@ -5,9 +5,7 @@
 
 # Tool managers (loaded after priority tools)
 # mise - runtime version manager
-if [[ -d "$HOME/.local/share/mise/bin" ]]; then
-    export PATH="$HOME/.local/share/mise/bin:${PATH}"
-fi
+path_add "$HOME/.local/share/mise/bin"
 
 # Development environment paths
 # Add other development tools here as needed

@@ -13,24 +13,20 @@ else
     exit 1
 fi
 
-# Install specific mise tools (skip node to avoid GPG issues - using homebrew node)
-echo "📦 Installing mise tools (excluding node)..."
-mise install pnpm deno bun python uv go rust kubectl 2>/dev/null || echo "⚠️  Some mise tools failed to install"
-
+# Mise tools should already be installed by platform-specific scripts
 # Now check if pnpm is available
 if ! command -v pnpm >/dev/null 2>&1; then
     echo "⚠️  pnpm still not found after mise install."
     exit 1
 fi
 
-# Set up pnpm environment (hardcoded to avoid repeated .zshrc modifications)
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-
-# Ensure pnpm directory exists
-mkdir -p "$PNPM_HOME"
-
-echo "✅ PNPM_HOME set to: $PNPM_HOME"
+# PNPM environment is handled by shell/mise.sh permanently
+# Just ensure pnpm works for this session by activating mise
+if command -v pnpm >/dev/null 2>&1; then
+    echo "✅ pnpm is available via mise"
+else
+    echo "⚠️  pnpm not found - mise activation may have failed"
+fi
 
 # Global packages to install
 packages=(

@@ -13,16 +13,8 @@ for topgrade_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "
 done
 
 # chezmoi - dotfiles manager (should already be in PATH, but ensure it)
-if command -v chezmoi >/dev/null 2>&1; then
-    # Chezmoi completions
-    if [[ -n ${ZSH_NAME} ]]; then
-        eval "$(chezmoi completion zsh)"
-    elif [[ -n ${BASH} ]]; then
-        source <(chezmoi completion bash)
-    fi
-
+# Chezmoi completions are generated as files by configure-tools.sh script
 # Chezmoi aliases removed - user prefers no automatic aliases
-fi
 
 ## Security Tools
 # 1Password CLI
@@ -43,17 +35,8 @@ if [[ -f "${HOME}/.iterm2_shell_integration.zsh" ]]; then
 fi
 {{- end }}
 
-# thefuck - command correction (if available)
-if command -v thefuck >/dev/null 2>&1; then
-    eval "$(thefuck --alias)"
-    # Note: Default 'fuck' alias only, no additional aliases
-fi
+# thefuck removed - user preference
 
 # System tool aliases removed - user prefers no automatic aliases
 
-## System Tool Completions
-if [[ -n ${ZSH_NAME} ]]; then
-    command -v topgrade >/dev/null 2>&1 && eval "$(topgrade --gen-completion zsh)"
-elif [[ -n ${BASH} ]]; then
-    command -v topgrade >/dev/null 2>&1 && source <(topgrade --gen-completion bash)
-fi
+# System tool completions are generated as files by configure-tools.sh script

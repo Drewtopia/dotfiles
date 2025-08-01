@@ -29,25 +29,5 @@ done
 ## Development Aliases (only if tools are available)
 # Note: Bun and Deno aliases/completions are now handled in ~/.config/shell/ files
 
-if command -v docker >/dev/null 2>&1; then
-    # Docker completions
-    if [[ -n ${ZSH_NAME} ]]; then
-        eval "$(docker completion zsh)"
-    elif [[ -n ${BASH} ]]; then
-        source <(docker completion bash)
-    fi
-fi
-
-## Shell Completions (cached for performance)
-if [[ -n ${ZSH_NAME} ]]; then
-    command -v kubectl >/dev/null 2>&1 && eval "$(kubectl completion zsh)"
-    command -v gh >/dev/null 2>&1 && eval "$(gh completion -s zsh)"
-    # Note: UV completions now handled in ~/.config/shell/uv.sh
-    command -v topgrade >/dev/null 2>&1 && eval "$(topgrade --gen-completion zsh)"
-elif [[ -n ${BASH} ]]; then
-    # Bash completions
-    command -v kubectl >/dev/null 2>&1 && source <(kubectl completion bash)
-    command -v gh >/dev/null 2>&1 && source <(gh completion -s bash)
-    # Note: UV completions now handled in ~/.config/shell/uv.sh
-    command -v topgrade >/dev/null 2>&1 && source <(topgrade --gen-completion bash)
-fi
+# Shell completions are now generated as files in ~/.oh-my-zsh/completions/
+# by the configure-tools.sh script for better performance

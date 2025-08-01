@@ -10,17 +10,7 @@ function Test-Command($cmdname) {
     return [bool](Get-Command -Name $cmdname -ErrorAction SilentlyContinue)
 }
 
-# Deno (JavaScript/TypeScript runtime)
-if (-not (Test-Command deno)) {
-    Write-Host "📦 Installing Deno..." -ForegroundColor Blue
-    try {
-        irm https://deno.land/install.ps1 | iex
-    } catch {
-        Write-Host "⚠️  Deno installation failed: $_" -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "✅ Deno already installed" -ForegroundColor Green
-}
+# Development tools will be installed via mise after it's set up
 
 # Mise (modern runtime version manager)
 if (-not (Test-Command mise)) {
@@ -46,41 +36,17 @@ if (-not (Test-Command proto)) {
     Write-Host "✅ Proto already installed" -ForegroundColor Green
 }
 
-# Bun (JavaScript runtime and package manager)
-if (-not (Test-Command bun)) {
-    Write-Host "📦 Installing Bun..." -ForegroundColor Blue
+# Install development tools via mise (from config.toml)
+if (Test-Command mise) {
+    Write-Host "📦 Installing development tools via mise..." -ForegroundColor Blue
     try {
-        # Bun Windows installation
-        powershell -c "irm bun.sh/install.ps1|iex"
+        mise install
+        Write-Host "✅ Development tools installed via mise" -ForegroundColor Green
     } catch {
-        Write-Host "⚠️  Bun installation failed: $_" -ForegroundColor Yellow
+        Write-Host "⚠️  Some mise tools failed to install: $_" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "✅ Bun already installed" -ForegroundColor Green
-}
-
-# UV (fast Python package manager)
-if (-not (Test-Command uv)) {
-    Write-Host "📦 Installing UV..." -ForegroundColor Blue
-    try {
-        powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-    } catch {
-        Write-Host "⚠️  UV installation failed: $_" -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "✅ UV already installed" -ForegroundColor Green
-}
-
-# pnpm (fast Node.js package manager)
-if (-not (Test-Command pnpm)) {
-    Write-Host "📦 Installing pnpm..." -ForegroundColor Blue
-    try {
-        iwr https://get.pnpm.io/install.ps1 -useb | iex
-    } catch {
-        Write-Host "⚠️  pnpm installation failed: $_" -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "✅ pnpm already installed" -ForegroundColor Green
+    Write-Host "⚠️  Mise not found - cannot install development tools" -ForegroundColor Red
 }
 
 Write-Host "✅ Windows curl-based development tools installation completed!" -ForegroundColor Green

@@ -55,17 +55,6 @@ if command -v atuin >/dev/null 2>&1; then
     fi
 fi
 
-if command -v starship >/dev/null 2>&1; then
-    eval "$(starship init zsh)"
-fi
-
-## Shell Prompt & Theme
-# starship - cross-shell prompt
-for starship_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
-    if [[ -f "$starship_path/starship" ]]; then
-        path_add "$starship_path"
-        break
-    fi
-done
+# Starship removed - user preference
 
 # Shell tool aliases removed - user prefers no automatic aliases
