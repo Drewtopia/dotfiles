@@ -93,7 +93,10 @@ ZSH_DISABLE_COMPFIX=true
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Basic plugins loaded via .chezmoiexternal, advanced plugins via Zinit
-plugins=(zsh-syntax-highlighting zsh-active-cheatsheet)
+plugins=(zsh-syntax-highlighting)
+
+# Load zsh-active-cheatsheet only in interactive terminals (contains stty commands)
+[[ -t 0 ]] && plugins+=(zsh-active-cheatsheet)
 
 
 # Initialize Zinit for performance-critical plugins
