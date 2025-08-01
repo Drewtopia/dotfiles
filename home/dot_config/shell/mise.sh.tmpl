@@ -14,7 +14,5 @@ if command -v mise >/dev/null 2>&1; then
     fi
 fi
 
-# pnpm global packages setup
-export PNPM_HOME="$HOME/.local/share/pnpm"
-path_add "$PNPM_HOME"
+# pnpm now managed by mise - no manual PATH setup needed
 {{- end }}

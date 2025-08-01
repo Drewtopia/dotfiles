@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+{{- if .dev_computer }}
+# Auto-generate completions via generate-completions script
+
+set -euo pipefail
+
+log() {
+    echo -e "\033[0;34m[completions]\033[0m $1"
+}
+
+# Check if generate-completions script exists
+if [[ ! -x "$HOME/.local/bin/generate-completions" ]]; then
+    log "generate-completions script not found, skipping"
+    exit 0
+fi
+
+# Run completion generation (don't fail on warnings)
+if [[ "${1:-}" == "--manual" ]] || [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Manual execution - generate everything
+    log "Running manual completion generation..."
+    "$HOME/.local/bin/generate-completions" --all || true
+else
+    # Auto execution - just mise tools for speed
+    log "Auto-generating completions for mise tools..."
+    "$HOME/.local/bin/generate-completions" --mise || true
+fi
+
+log "Completion generation finished"
+
+{{- end }}

@@ -7,24 +7,7 @@
 # Note: Bun, Deno, UV, and pnpm are now managed by unified installation functions
 # Their PATH setup and completions are handled in ~/.config/shell/ files
 
-# Proto - toolchain manager
-{{- if eq .chezmoi.os "darwin" }}
-for proto_path in "$HOME/.proto" "$HOME/.local/share/proto"; do
-    if [[ -d "$proto_path/bin" ]]; then
-        export PROTO_HOME="$proto_path"
-        path_add "$PROTO_HOME/bin"
-        break
-    fi
-done
-{{- else }}
-for proto_path in "$HOME/.proto" "$HOME/.local/share/proto"; do
-    if [[ -d "$proto_path/bin" ]]; then
-        export PROTO_HOME="$proto_path"
-        path_add "$PROTO_HOME/bin"
-        break
-    fi
-done
-{{- end }}
+# Proto removed - now using mise for tool management
 
 ## Development Aliases (only if tools are available)
 # Note: Bun and Deno aliases/completions are now handled in ~/.config/shell/ files
