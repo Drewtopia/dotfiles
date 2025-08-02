@@ -78,6 +78,19 @@
     path = "delta"
     refreshPeriod = "168h"
 
+[".local/bin/lazygit"]
+    type = "archive-file"
+    url = {{ gitHubLatestReleaseAssetURL "jesseduffield/lazygit" "lazygit_*_Linux_x86_64.tar.gz" | quote }}
+    executable = true
+    path = "lazygit"
+    refreshPeriod = "168h"
+
+[".local/bin/yt-dlp"]
+    type = "file"
+    url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
+    executable = true
+    refreshPeriod = "168h"
+
 {{- end }}
 
 {{- if and (not .ephemeral) }}
