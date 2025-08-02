@@ -1,0 +1,350 @@
+# Tmux Cheat Sheet - Drew's Configuration
+
+# Session Management
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A d
+# Domain       tmux
+# Function     detach-client
+# Executable   no
+# Description  Detach from current session
+# Short        Detach session
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A o
+# Domain       tmux
+# Function     sessionx plugin - session switcher
+# Executable   no
+# Description  Open interactive session switcher with zoxide integration
+# Short        Session switcher
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A S
+# Domain       tmux
+# Function     choose-tree -s
+# Executable   no
+# Description  Choose session from tree view
+# Short        Choose session
+
+# Window Management
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A C-c
+# Domain       tmux
+# Function     new-window -c /Users/drew
+# Executable   no
+# Description  Create new window in home directory
+# Short        New window (home)
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A n
+# Domain       tmux
+# Function     next-window
+# Executable   no
+# Description  Go to next window
+# Short        Next window
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A C-n
+# Domain       tmux
+# Function     next-window
+# Executable   no
+# Description  Go to next window (alt binding)
+# Short        Next window
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A L
+# Domain       tmux
+# Function     next-window
+# Executable   no
+# Description  Go to next window (alt binding)
+# Short        Next window
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A C-p
+# Domain       tmux
+# Function     previous-window
+# Executable   no
+# Description  Go to previous window
+# Short        Previous window
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A H
+# Domain       tmux
+# Function     previous-window
+# Executable   no
+# Description  Go to previous window (alt binding)
+# Short        Previous window
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A a
+# Domain       tmux
+# Function     last-window
+# Executable   no
+# Description  Switch to last used window
+# Short        Last window
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A &
+# Domain       tmux
+# Function     confirm kill-window
+# Executable   no
+# Description  Kill current window (with confirmation)
+# Short        Kill window
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A (0-9)
+# Domain       tmux
+# Function     select-window -t :=N
+# Executable   no
+# Description  Switch to window by number
+# Short        Select window N
+
+# Pane Management
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A c
+# Domain       tmux
+# Function     kill-pane
+# Executable   no
+# Description  Kill current pane
+# Short        Kill pane
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A s
+# Domain       tmux
+# Function     split-window -v -c "#{pane_current_path}"
+# Executable   no
+# Description  Split window vertically (horizontal line)
+# Short        Split vertical
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A v
+# Domain       tmux
+# Function     split-window -h -c "#{pane_current_path}"
+# Executable   no
+# Description  Split window horizontally (vertical line)
+# Short        Split horizontal
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A h
+# Domain       tmux
+# Function     select-pane -L
+# Executable   no
+# Description  Navigate to left pane
+# Short        Left pane
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A j
+# Domain       tmux
+# Function     select-pane -D
+# Executable   no
+# Description  Navigate to bottom pane
+# Short        Down pane
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A k
+# Domain       tmux
+# Function     select-pane -U
+# Executable   no
+# Description  Navigate to top pane
+# Short        Up pane
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A l
+# Domain       tmux
+# Function     select-pane -R
+# Executable   no
+# Description  Navigate to right pane
+# Short        Right pane
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A z
+# Domain       tmux
+# Function     resize-pane -Z
+# Executable   no
+# Description  Toggle pane zoom
+# Short        Zoom pane
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A x
+# Domain       tmux
+# Function     swap-pane -D
+# Executable   no
+# Description  Swap pane down
+# Short        Swap pane down
+
+# Copy Mode
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A [
+# Domain       tmux
+# Function     copy-mode
+# Executable   no
+# Description  Enter copy mode (vi-style)
+# Short        Copy mode
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A ]
+# Domain       tmux
+# Function     paste-buffer -p
+# Executable   no
+# Description  Paste from tmux buffer
+# Short        Paste
+
+# Plugin Features
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A p
+# Domain       tmux
+# Function     tmux-floax floating terminal
+# Executable   no
+# Description  Open floating terminal window (80% size)
+# Short        Floating terminal
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A u
+# Domain       tmux
+# Function     tmux-fzf-url open URLs
+# Executable   no
+# Description  Open URLs with fzf selector
+# Short        URL selector
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A F
+# Domain       tmux
+# Function     tmux-fzf main menu
+# Executable   no
+# Description  Open tmux-fzf menu for windows/panes/sessions
+# Short        Fuzzy finder
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A Space
+# Domain       tmux
+# Function     tmux-thumbs
+# Executable   no
+# Description  Copy hinted text/URL with thumbs plugin
+# Short        Thumbs copy
+
+# Configuration & Sessions
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A R
+# Domain       tmux
+# Function     source-file ~/.config/tmux/tmux.conf
+# Executable   no
+# Description  Reload tmux configuration
+# Short        Reload config
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A C-s
+# Domain       tmux
+# Function     tmux-resurrect save
+# Executable   no
+# Description  Save tmux session state
+# Short        Save session
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A C-r
+# Domain       tmux
+# Function     tmux-resurrect restore
+# Executable   no
+# Description  Restore tmux session state
+# Short        Restore session
+
+# Resize Panes
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A ,
+# Domain       tmux
+# Function     resize-pane -L 20
+# Executable   no
+# Description  Resize pane left by 20
+# Short        Resize left
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A -
+# Domain       tmux
+# Function     resize-pane -D 7
+# Executable   no
+# Description  Resize pane down by 7
+# Short        Resize down
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A .
+# Domain       tmux
+# Function     resize-pane -R 20
+# Executable   no
+# Description  Resize pane right by 20
+# Short        Resize right
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A =
+# Domain       tmux
+# Function     resize-pane -U 7
+# Executable   no
+# Description  Resize pane up by 7
+# Short        Resize up
+
+# Quick Info
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A q
+# Domain       tmux
+# Function     display-panes
+# Executable   no
+# Description  Display pane numbers
+# Short        Show pane numbers
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A i
+# Domain       tmux
+# Function     display-message
+# Executable   no
+# Description  Display session information
+# Short        Show info
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A w
+# Domain       tmux
+# Function     list-windows
+# Executable   no
+# Description  List all windows
+# Short        List windows

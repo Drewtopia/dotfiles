@@ -95,8 +95,6 @@ ZSH_DISABLE_COMPFIX=true
 # Basic plugins loaded via .chezmoiexternal, advanced plugins via Zinit
 plugins=(zsh-syntax-highlighting)
 
-# Load zsh-active-cheatsheet only in interactive terminals (contains stty commands)
-[[ -t 0 ]] && plugins+=(zsh-active-cheatsheet)
 
 
 # Initialize Zinit for performance-critical plugins
@@ -168,6 +166,7 @@ export LC_ALL=en_US.UTF-8
 # Source remaining shell configurations
 # Load all shell configurations via shell-loader
 source "${XDG_CONFIG_HOME}/shell-loader.sh"
+
 
 
 # Allow for local configuration not managed by chezmoi

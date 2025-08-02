@@ -1,0 +1,342 @@
+# Shell Tools Cheat Sheet
+
+# fzf (Fuzzy Finder)
+
+# Cheat
+# Type         command
+# Trigger      fzf
+# Domain       shell
+# Function     fzf
+# Executable   yes
+# Description  Interactive fuzzy finder
+# Short        Fuzzy finder
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+R
+# Domain       shell
+# Function     fzf history search
+# Executable   no
+# Description  Search command history with fzf (via atuin)
+# Short        History search
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+T
+# Domain       shell
+# Function     fzf file finder
+# Executable   no
+# Description  Find and insert file path
+# Short        File finder
+
+# Cheat
+# Type         bindkey
+# Trigger      Alt+C
+# Domain       shell
+# Function     fzf directory finder
+# Executable   no
+# Description  Find and cd to directory
+# Short        Directory finder
+
+# Cheat
+# Type         command
+# Trigger      find | fzf
+# Domain       shell
+# Function     find . -type f | fzf
+# Executable   yes
+# Description  Find files with fuzzy search
+# Short        Find files
+# Example      find . -name "*.js" | fzf
+
+# zoxide (Smart cd)
+
+# Cheat
+# Type         command
+# Trigger      z
+# Domain       shell
+# Function     z <directory>
+# Executable   yes
+# Description  Jump to frequently used directory
+# Short        Smart cd
+# Example      z dotfiles
+
+# Cheat
+# Type         command
+# Trigger      zi
+# Domain       shell
+# Function     zi
+# Executable   yes
+# Description  Interactive directory selection
+# Short        Interactive cd
+
+# Cheat
+# Type         command
+# Trigger      zoxide query
+# Domain       shell
+# Function     zoxide query <term>
+# Executable   yes
+# Description  Query directory database
+# Short        Query dirs
+# Example      zoxide query work
+
+# Cheat
+# Type         command
+# Trigger      zoxide add
+# Domain       shell
+# Function     zoxide add <path>
+# Executable   yes
+# Description  Add directory to database
+# Short        Add directory
+# Example      zoxide add /path/to/project
+
+# atuin (History Management)
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+R
+# Domain       shell
+# Function     atuin search
+# Executable   no
+# Description  Search command history with context
+# Short        Search history
+
+# Cheat
+# Type         bindkey
+# Trigger      Up Arrow
+# Domain       shell
+# Function     atuin up-search
+# Executable   no
+# Description  Search history with current command prefix
+# Short        Prefix history
+
+# Cheat
+# Type         command
+# Trigger      atuin search
+# Domain       shell
+# Function     atuin search <term>
+# Executable   yes
+# Description  Search history from command line
+# Short        CLI history search
+# Example      atuin search git commit
+
+# Cheat
+# Type         command
+# Trigger      atuin stats
+# Domain       shell
+# Function     atuin stats
+# Executable   yes
+# Description  Show usage statistics
+# Short        History stats
+
+# Cheat
+# Type         command
+# Trigger      atuin history
+# Domain       shell
+# Function     atuin history list
+# Executable   yes
+# Description  List recent commands
+# Short        List history
+
+# ripgrep (rg)
+
+# Cheat
+# Type         command
+# Trigger      rg
+# Domain       shell
+# Function     rg <pattern>
+# Executable   yes
+# Description  Fast text search
+# Short        Text search
+# Example      rg "function.*search"
+
+# Cheat
+# Type         command
+# Trigger      rg -i
+# Domain       shell
+# Function     rg -i <pattern>
+# Executable   yes
+# Description  Case-insensitive search
+# Short        Case-insensitive
+# Example      rg -i "error"
+
+# Cheat
+# Type         command
+# Trigger      rg -A -B
+# Domain       shell
+# Function     rg -A <num> -B <num> <pattern>
+# Executable   yes
+# Description  Show context lines after/before match
+# Short        Context search
+# Example      rg -A 3 -B 3 "error"
+
+# Cheat
+# Type         command
+# Trigger      rg --type
+# Domain       shell
+# Function     rg --type <filetype> <pattern>
+# Executable   yes
+# Description  Search specific file types
+# Short        Type search
+# Example      rg --type js "function"
+
+# fd (Better find)
+
+# Cheat
+# Type         command
+# Trigger      fd
+# Domain       shell
+# Function     fd <pattern>
+# Executable   yes
+# Description  Fast file finder
+# Short        Find files
+# Example      fd "config"
+
+# Cheat
+# Type         command
+# Trigger      fd -t f
+# Domain       shell
+# Function     fd -t f <pattern>
+# Executable   yes
+# Description  Find files only (not directories)
+# Short        Find files only
+# Example      fd -t f "*.js"
+
+# Cheat
+# Type         command
+# Trigger      fd -t d
+# Domain       shell
+# Function     fd -t d <pattern>
+# Executable   yes
+# Description  Find directories only
+# Short        Find dirs only
+# Example      fd -t d config
+
+# Cheat
+# Type         command
+# Trigger      fd -e
+# Domain       shell
+# Function     fd -e <extension>
+# Executable   yes
+# Description  Find by file extension
+# Short        Find by extension
+# Example      fd -e js
+
+# bat (Better cat)
+
+# Cheat
+# Type         command
+# Trigger      bat
+# Domain       shell
+# Function     bat <file>
+# Executable   yes
+# Description  Syntax-highlighted file viewer
+# Short        View file
+# Example      bat config.json
+
+# Cheat
+# Type         command
+# Trigger      bat -p
+# Domain       shell
+# Function     bat -p <file>
+# Executable   yes
+# Description  Plain output (no line numbers/git info)
+# Short        Plain view
+# Example      bat -p script.sh
+
+# Cheat
+# Type         command
+# Trigger      bat -A
+# Domain       shell
+# Function     bat -A <file>
+# Executable   yes
+# Description  Show all characters including whitespace
+# Short        Show all chars
+# Example      bat -A config.yaml
+
+# eza/exa (Better ls)
+
+# Cheat
+# Type         command
+# Trigger      eza
+# Domain       shell
+# Function     eza
+# Executable   yes
+# Description  Modern ls replacement
+# Short        List files
+
+# Cheat
+# Type         command
+# Trigger      eza -la
+# Domain       shell
+# Function     eza -la
+# Executable   yes
+# Description  Long format with hidden files
+# Short        Detailed list
+# Example      eza -la
+
+# Cheat
+# Type         command
+# Trigger      eza --tree
+# Domain       shell
+# Function     eza --tree
+# Executable   yes
+# Description  Tree view of directories
+# Short        Tree view
+# Example      eza --tree -L 2
+
+# Cheat
+# Type         command
+# Trigger      eza --git
+# Domain       shell
+# Function     eza --git
+# Executable   yes
+# Description  Show git status for files
+# Short        Git status view
+# Example      eza -la --git
+
+# General Shell Shortcuts
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+A
+# Domain       shell
+# Function     Move to beginning of line
+# Executable   no
+# Description  Move cursor to start of line
+# Short        Line start
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+E
+# Domain       shell
+# Function     Move to end of line
+# Executable   no
+# Description  Move cursor to end of line
+# Short        Line end
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+U
+# Domain       shell
+# Function     Clear line before cursor
+# Executable   no
+# Description  Delete from cursor to beginning
+# Short        Clear left
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+K
+# Domain       shell
+# Function     Clear line after cursor
+# Executable   no
+# Description  Delete from cursor to end
+# Short        Clear right
+
+# Cheat
+# Type         bindkey
+# Trigger      Ctrl+L
+# Domain       shell
+# Function     Clear screen
+# Executable   no
+# Description  Clear terminal screen
+# Short        Clear screen
