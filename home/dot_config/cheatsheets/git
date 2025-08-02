@@ -1,0 +1,299 @@
+# Git Cheat Sheet
+
+# Basic Operations
+
+# Cheat
+# Type         command
+# Trigger      git status
+# Domain       git
+# Function     git status
+# Executable   yes
+# Description  Show working tree status
+# Short        Status
+
+# Cheat
+# Type         command
+# Trigger      git add
+# Domain       git
+# Function     git add <files>
+# Executable   yes
+# Description  Add files to staging area
+# Short        Add files
+# Example      git add .
+
+# Cheat
+# Type         command
+# Trigger      git commit
+# Domain       git
+# Function     git commit -m "<message>"
+# Executable   yes
+# Description  Commit staged changes
+# Short        Commit
+# Example      git commit -m "feat: add new feature"
+
+# Cheat
+# Type         command
+# Trigger      git push
+# Domain       git
+# Function     git push
+# Executable   yes
+# Description  Push commits to remote
+# Short        Push
+
+# Cheat
+# Type         command
+# Trigger      git pull
+# Domain       git
+# Function     git pull
+# Executable   yes
+# Description  Pull changes from remote
+# Short        Pull
+
+# Branch Management
+
+# Cheat
+# Type         command
+# Trigger      git branch
+# Domain       git
+# Function     git branch
+# Executable   yes
+# Description  List branches
+# Short        List branches
+
+# Cheat
+# Type         command
+# Trigger      git checkout
+# Domain       git
+# Function     git checkout <branch>
+# Executable   yes
+# Description  Switch to branch
+# Short        Switch branch
+# Example      git checkout main
+
+# Cheat
+# Type         command
+# Trigger      git checkout -b
+# Domain       git
+# Function     git checkout -b <new-branch>
+# Executable   yes
+# Description  Create and switch to new branch
+# Short        New branch
+# Example      git checkout -b feature/new-feature
+
+# Cheat
+# Type         command
+# Trigger      git merge
+# Domain       git
+# Function     git merge <branch>
+# Executable   yes
+# Description  Merge branch into current
+# Short        Merge
+# Example      git merge feature/new-feature
+
+# Cheat
+# Type         command
+# Trigger      git branch -d
+# Domain       git
+# Function     git branch -d <branch>
+# Executable   yes
+# Description  Delete merged branch
+# Short        Delete branch
+# Example      git branch -d feature/old-feature
+
+# Viewing Changes
+
+# Cheat
+# Type         command
+# Trigger      git log
+# Domain       git
+# Function     git log --oneline
+# Executable   yes
+# Description  Show commit history (one line per commit)
+# Short        Commit history
+
+# Cheat
+# Type         command
+# Trigger      git log --graph
+# Domain       git
+# Function     git log --graph --oneline --all
+# Executable   yes
+# Description  Show commit history with branch graph
+# Short        History graph
+
+# Cheat
+# Type         command
+# Trigger      git diff
+# Domain       git
+# Function     git diff
+# Executable   yes
+# Description  Show unstaged changes
+# Short        Show changes
+
+# Cheat
+# Type         command
+# Trigger      git diff --staged
+# Domain       git
+# Function     git diff --staged
+# Executable   yes
+# Description  Show staged changes
+# Short        Staged changes
+
+# Cheat
+# Type         command
+# Trigger      git show
+# Domain       git
+# Function     git show <commit>
+# Executable   yes
+# Description  Show commit details
+# Short        Show commit
+# Example      git show HEAD
+
+# Undoing Changes
+
+# Cheat
+# Type         command
+# Trigger      git reset
+# Domain       git
+# Function     git reset <file>
+# Executable   yes
+# Description  Unstage file
+# Short        Unstage
+# Example      git reset README.md
+
+# Cheat
+# Type         command
+# Trigger      git reset --hard
+# Domain       git
+# Function     git reset --hard HEAD
+# Executable   yes
+# Description  Reset to last commit (destructive)
+# Short        Hard reset
+
+# Cheat
+# Type         command
+# Trigger      git checkout --
+# Domain       git
+# Function     git checkout -- <file>
+# Executable   yes
+# Description  Discard changes in file
+# Short        Discard changes
+# Example      git checkout -- README.md
+
+# Cheat
+# Type         command
+# Trigger      git revert
+# Domain       git
+# Function     git revert <commit>
+# Executable   yes
+# Description  Create commit that undoes another commit
+# Short        Revert commit
+# Example      git revert HEAD
+
+# Remote Operations
+
+# Cheat
+# Type         command
+# Trigger      git remote
+# Domain       git
+# Function     git remote -v
+# Executable   yes
+# Description  Show remote repositories
+# Short        Show remotes
+
+# Cheat
+# Type         command
+# Trigger      git fetch
+# Domain       git
+# Function     git fetch
+# Executable   yes
+# Description  Fetch changes from remote (don't merge)
+# Short        Fetch
+
+# Cheat
+# Type         command
+# Trigger      git clone
+# Domain       git
+# Function     git clone <url>
+# Executable   yes
+# Description  Clone repository
+# Short        Clone repo
+# Example      git clone https://github.com/user/repo.git
+
+# Stashing
+
+# Cheat
+# Type         command
+# Trigger      git stash
+# Domain       git
+# Function     git stash
+# Executable   yes
+# Description  Stash current changes
+# Short        Stash
+
+# Cheat
+# Type         command
+# Trigger      git stash pop
+# Domain       git
+# Function     git stash pop
+# Executable   yes
+# Description  Apply and remove latest stash
+# Short        Pop stash
+
+# Cheat
+# Type         command
+# Trigger      git stash list
+# Domain       git
+# Function     git stash list
+# Executable   yes
+# Description  List all stashes
+# Short        List stashes
+
+# Cheat
+# Type         command
+# Trigger      git stash apply
+# Domain       git
+# Function     git stash apply
+# Executable   yes
+# Description  Apply stash without removing it
+# Short        Apply stash
+
+# Advanced Operations
+
+# Cheat
+# Type         command
+# Trigger      git rebase
+# Domain       git
+# Function     git rebase <branch>
+# Executable   yes
+# Description  Rebase current branch onto another
+# Short        Rebase
+# Example      git rebase main
+
+# Cheat
+# Type         command
+# Trigger      git cherry-pick
+# Domain       git
+# Function     git cherry-pick <commit>
+# Executable   yes
+# Description  Apply commit to current branch
+# Short        Cherry-pick
+# Example      git cherry-pick abc123
+
+# Cheat
+# Type         command
+# Trigger      git tag
+# Domain       git
+# Function     git tag <tagname>
+# Executable   yes
+# Description  Create lightweight tag
+# Short        Create tag
+# Example      git tag v1.0.0
+
+# Cheat
+# Type         command
+# Trigger      git clean
+# Domain       git
+# Function     git clean -fd
+# Executable   yes
+# Description  Remove untracked files and directories
+# Short        Clean untracked
