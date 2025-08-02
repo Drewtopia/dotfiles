@@ -14,6 +14,12 @@ alias mktar='tar -cvzf'                # Create a tar.gz file
 alias numfiles='echo $(ls -1 | wc -l)' # Count of non-hidden files in current dir
 alias listpaths='echo $PATH | tr ":" "\n" | uniq -c | sort -nr'
 
+####################### TOOL ALIASES #######################
+{{- if and (eq .chezmoi.os "linux") (lookPath "batcat") (not (lookPath "bat")) }}
+# Ubuntu installs bat as batcat due to name conflict
+alias bat='batcat'
+{{- end }}
+
 ####################### LIST DIRECTORY CONTENTS #######################
 {{- if lookPath "eza" }}
 # List filenames on one line
