@@ -1,0 +1,66 @@
+{{- if eq .chezmoi.os "windows" -}}
+# PowerShell script for Windows
+$PROTO_HOME = "$env:USERPROFILE\.proto"
+
+if (Test-Path "$PROTO_HOME\shims\moon.exe") {
+    Write-Host "Moon is already managed by Proto"
+    exit 0
+}
+
+if (!(Test-Path "$PROTO_HOME\bin\proto.exe")) {
+    Write-Host "Error: Proto is required but not installed. Please install Proto first."
+    exit 1
+}
+
+Write-Host "Installing Moon via Proto..."
+& $PROTO_HOME\bin\proto.exe install moon
+
+if (Test-Path "$PROTO_HOME\shims\moon.exe") {
+    Write-Host "Moon installed successfully via Proto"
+} else {
+    Write-Host "Error: Moon installation failed"
+    exit 1
+}
+{{- else -}}
+#!/bin/bash
+
+set -eufo pipefail
+
+# Install Moon via Proto
+echo "Installing Moon via Proto..."
+
+export PROTO_HOME="$HOME/.local/share/proto"
+
+# Check if Moon is already managed by Proto
+if [[ -f "$PROTO_HOME/shims/moon" ]]; then
+    echo "Moon is already managed by Proto"
+    exit 0
+fi
+
+# Ensure Proto is installed
+if [[ ! -f "$PROTO_HOME/bin/proto" ]]; then
+    echo "Error: Proto is required but not installed. Please install Proto first."
+    exit 1
+fi
+
+{{- if and (eq .chezmoi.os "linux") .is_wsl }}
+echo "Installing Moon on WSL2 via Proto..."
+{{- else }}
+echo "Installing Moon on {{ .chezmoi.os }} via Proto..."
+{{- end }}
+
+# Add Proto to PATH
+export PATH="$PROTO_HOME/bin:$PROTO_HOME/shims:$PATH"
+
+# Install Moon using Proto
+proto install moon
+
+# Verify installation
+if [[ -f "$PROTO_HOME/shims/moon" ]]; then
+    echo "Moon installed successfully via Proto"
+    echo "Moon will be available via Proto shims"
+else
+    echo "Error: Moon installation failed"
+    exit 1
+fi
+{{- end }}
