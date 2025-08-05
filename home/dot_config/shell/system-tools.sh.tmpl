@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# System Management Tools
+# Tools for system administration, maintenance, and configuration
+
+## System Administration
+# topgrade - upgrade everything
+for topgrade_path in "$HOME/.cargo/bin" "$HOME/.local/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [[ -f "$topgrade_path/topgrade" ]]; then
+        path_add "$topgrade_path"
+        break
+    fi
+done
+
+# chezmoi - dotfiles manager (should already be in PATH, but ensure it)
+# Chezmoi completions are generated as files by configure-tools.sh script
+# Chezmoi aliases removed - user prefers no automatic aliases
+
+## Security Tools
+# 1Password CLI
+# if command -v op >/dev/null 2>&1; then
+#    # 1Password completions
+#    if [[ -n ${ZSH_NAME} ]]; then
+#        eval "$(op completion zsh)"
+#    elif [[ -n ${BASH} ]]; then
+#        source <(op completion bash)
+#    fi
+#fi
+
+## Terminal & Interface
+{{- if eq .chezmoi.os "darwin" }}
+# iTerm2 integration (macOS only)
+if [[ -f "${HOME}/.iterm2_shell_integration.zsh" ]]; then
+    source "${HOME}/.iterm2_shell_integration.zsh"
+fi
+{{- end }}
+
+# thefuck removed - user preference
+
+# System tool aliases removed - user prefers no automatic aliases
+
+# System tool completions are generated as files by configure-tools.sh script

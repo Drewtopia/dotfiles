@@ -1,13 +1,21 @@
+# Early exit for non-interactive shells
+[[ -o interactive ]] || return
+
+# Optimize arrays (remove duplicates, prevent FPATH export)
+# -a: array, -U: unique elements, +x: prevent export
+typeset -aU fpath path manpath
+typeset +x FPATH
+
 # XDG Base Directory Specification
-export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
-export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME=$HOME/.local/share
+export XDG_CONFIG_HOME=$HOME/.config
+export XDG_STATE_HOME=$HOME/.local/state
+export XDG_CACHE_HOME=$HOME/.cache
 
-# Enable profiling
-zmodload zsh/zprof
+# Enable profiling (controlled by ZPROF environment variable)
+[[ -n "$ZPROF" ]] && zmodload zsh/zprof
 
-# export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
+export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block, everything else may go below.
@@ -15,17 +23,9 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# Load PATH management utilities first
+# Load PATH management utilities and configure paths
 source "${XDG_CONFIG_HOME}/path-management.sh"
-
-# If you come from bash you might have to change your $PATH.
-{{- $homeDir := .chezmoi.homeDir }}
-{{- range $_, $relPath := list "bin" "go/bin" ".cargo/bin" ".local/bin" }}
-{{    $path := joinPath $homeDir $relPath }}
-{{-   if stat $path }}
-path_add "{{ $path }}"
-{{-   end }}
-{{- end }}
+load_paths
 
 # Path to your oh-my-zsh installation.
 export ZSH=$HOME/.oh-my-zsh
@@ -50,7 +50,7 @@ DISABLE_AUTO_UPDATE="true"
 # zstyle ':omz:update' frequency 13
 
 # Uncomment the following line if pasting URLs and other text is messed up.
-DISABLE_MAGIC_FUNCTIONS="true"
+# DISABLE_MAGIC_FUNCTIONS="true"
 
 # Uncomment the following line to disable colors in ls.
 # DISABLE_LS_COLORS="true"
@@ -83,25 +83,51 @@ HIST_STAMPS="yyyy-mm-dd"
 ZSH_DISABLE_COMPFIX=true
 
 # Optimize completion system - only rebuild once per day
-autoload -Uz compinit
-if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
-    compinit -C
-else
-    compinit
-fi
+# autoload -Uz compinit
+# if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
+#     compinit -C
+#else
+#   compinit
+#fi
 
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(
-{{- range .zshPlugins }}
-  {{ . }}
+# Basic plugins loaded via .chezmoiexternal, advanced plugins via Zinit
+plugins=(zsh-syntax-highlighting)
+
+
+
+# Initialize Zinit for performance-critical plugins
+ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+source "$ZINIT_HOME/zinit.zsh"
+
+# Load essential plugins via Zinit (only what truly needs advanced features)
+zinit light zsh-users/zsh-completions  # Large completion database benefits from Zinit caching
+zinit light Aloxaf/fzf-tab             # Complex integration needs Zinit features
+
+# Note: Basic plugins (zsh-syntax-highlighting, zsh-active-cheatsheet) now via .chezmoiexternal
+# Note: zsh-autosuggestions removed (redundant with atuin + fzf-tab)
+
+
+# Load custom plugins via Zinit
+{{- if lookPath "pnpm" }}
+zinit light michakfromparis/zsh-pnpm-completions
 {{- end }}
-)
+
+# Load Oh My Zsh plugins via Zinit snippets
+{{- range .zshPlugins }}
+zinit snippet OMZP::{{ . }}
+{{- end }}
 
 
+# Load completions
+autoload -Uz compinit && compinit
+
+# Load Oh My Zsh framework (minimal - no plugins)
 source $ZSH/oh-my-zsh.sh
+
+# Replay Zinit completions after Oh My Zsh loads
+zinit cdreplay -q
 
 # User configuration
 
@@ -111,11 +137,12 @@ setopt autocd
 setopt histignorespace
 setopt rm_star_silent
 
-# Common aliases - configured in dotfile_source/060-common_aliases.sh
-
+# Common aliases - configured in shell/060-common_aliases.sh
 alias zshconfig="nvim ~/.zshrc"
 alias zshrc="source ~/.zshrc"
 
+
+# Set the default editor
 {{ if stat (printf "%s/.local/bin/nvim" .chezmoi.homeDir) -}}
 export EDITOR=$HOME/.local/bin/nvim
 {{ else if lookPath "nvim" -}}
@@ -129,89 +156,30 @@ export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | t
 {{ else if .work -}}
 export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
 {{ end -}}
-
-export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
+# MANPATH is managed via array syntax and typeset -aU
 export LANG=en_US.UTF-8
-{{- if eq .chezmoi.os "linux" }}
-# Fix locale on Linux systems - check once and cache result
-if command -v locale >/dev/null 2>&1; then
-    _available_locales=$(locale -a 2>/dev/null)
-    if echo "$_available_locales" | grep -q "en_US.UTF-8"; then
-        export LC_ALL=en_US.UTF-8
-    elif echo "$_available_locales" | grep -q "en_US.utf8"; then
-        export LC_ALL=en_US.utf8
-    else
-        export LC_ALL=C.UTF-8
-    fi
-    unset _available_locales
-else
-    export LC_ALL=C.UTF-8
-fi
-{{- else }}
 export LC_ALL=en_US.UTF-8
-{{- end }}
 
 
-# App-specific XDG configurations - configured in dotfile_source/000-xdg.sh
+# Development tools configuration moved to shell/mise.sh.tmpl for consistency
+
+# Source remaining shell configurations
+# Load all shell configurations via shell-loader
+source "${XDG_CONFIG_HOME}/shell-loader.sh"
 
 
-# Files containing files *.zsh or *.sh to be sourced to your environment
-configFileLocations=(
-    "${XDG_CONFIG_HOME}/dotfile_source"
-)
-
-for configFileLocation in "${configFileLocations[@]}"; do
-    if [ -d "${configFileLocation}" ]; then
-        while read -r configFile; do
-            source "${configFile}"
-        done < <(find "${configFileLocation}" \
-            -maxdepth 2 \
-            -type f \
-            -name '*.zsh' \
-            -o -name '*.sh' | sort)
-    fi
-done
-
-unset configFileLocations configFileLocation
 
 # Allow for local configuration not managed by chezmoi
 if [ -f "${HOME}/.dotfiles.local" ]; then
     source "${HOME}/.dotfiles.local"
 fi
 
-
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-
-
-
-
-
-
-
-# starship - configured in dotfile_source/third-party/starship.sh
-
-
-# iterm2 - configured in dotfile_source/third-party/iterm2.sh
-
-
-# CopilotCLI
-# github-copilot-cli - configured in dotfile_source/third-party/github-copilot-cli.sh
-
-
-# fzf - configured in dotfile_source/third-party/fzf.sh
-
-
-
-# 1password - configured in dotfile_source/third-party/1password.sh
-
-# Deduplicate PATH after all configurations are loaded
-typeset -U PATH
+# PATH deduplication is handled automatically by typeset -aU path at the top
 
 # Display profiling results
-zprof
+[[ -n "$ZPROF" ]] && zprof
 
 {{- /* vim: set filetype=zsh: */}}

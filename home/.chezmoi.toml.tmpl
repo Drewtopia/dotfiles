@@ -90,12 +90,10 @@
   personal = {{ $personal }}
   osid = {{ $osID | quote }}
   zshPlugins = [
-      "fzf-tab",
       "git",
       "zsh-syntax-highlighting",
       {{- if eq .chezmoi.os "darwin" }}
         "brew",
-        "macos",
       {{- end}}
   ]
   xdgCacheDir = "{{ .chezmoi.homeDir }}/.cache"

@@ -1,5 +1,6 @@
 {{- if eq .osid "linux-ubuntu" }}
 
+# Modern CLI Tools
 [".local/bin/age"]
     type = "archive-file"
     url = {{ gitHubLatestReleaseAssetURL "FiloSottile/age" (printf "age-*-%s-%s.tar.gz" .chezmoi.os .chezmoi.arch) | quote }}
@@ -69,6 +70,21 @@
     executable = true
     path = "uv-x86_64-unknown-linux-gnu/uv"
 
+[".local/bin/delta"]
+    type = "archive-file"
+    url = {{ gitHubLatestReleaseAssetURL "dandavison/delta" (printf "delta-*-x86_64-unknown-linux-gnu.tar.gz") | quote }}
+    executable = true
+    stripComponents = 1
+    path = "delta"
+    refreshPeriod = "168h"
+
+
+[".local/bin/yt-dlp"]
+    type = "file"
+    url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
+    executable = true
+    refreshPeriod = "168h"
+
 {{- end }}
 
 {{- if and (not .ephemeral) }}
@@ -103,6 +119,7 @@
         "*/themes",
     ]
 
+# Essential Zsh plugins via .chezmoiexternal (simpler than Zinit for basic plugins)
 [".oh-my-zsh/custom/plugins/zsh-syntax-highlighting"]
     type = "archive"
     url = "https://github.com/zsh-users/zsh-syntax-highlighting/archive/master.tar.gz"
@@ -114,11 +131,12 @@
         "*/.gitattributes",
         "*/.github",
         "*/.gitignore",
+        "*/README.md",
     ]
 
-[".oh-my-zsh/custom/plugins/fzf-tab"]
+[".oh-my-zsh/custom/plugins/zsh-active-cheatsheet"]
     type = "archive"
-    url = "https://github.com/Aloxaf/fzf-tab/archive/master.tar.gz"
+    url = "https://github.com/norsemangrey/zsh-active-cheatsheet/archive/master.tar.gz"
     exact = true
     stripComponents = 1
     refreshPeriod = "168h"
@@ -127,6 +145,7 @@
         "*/.gitattributes",
         "*/.github",
         "*/.gitignore",
+        "*/README.md",
     ]
 
 [".oh-my-zsh/custom/themes/powerlevel10k"]
@@ -134,3 +153,42 @@
     url = "https://github.com/romkatv/powerlevel10k/archive/{{ (gitHubLatestRelease "romkatv/powerlevel10k").TagName }}.tar.gz"
     exact = true
     stripComponents = 1
+
+[".oh-my-zsh/custom/plugins/zsh-pnpm-completions"]
+    type = "archive"
+    url = "https://github.com/michakfromparis/zsh-pnpm-completions/archive/master.tar.gz"
+    exact = true
+    stripComponents = 1
+    refreshPeriod = "168h"
+    exclude = [
+        "*/.gitattributes",
+        "*/.github",
+        "*/.gitignore",
+        "*/README.md",
+    ]
+
+[".config/tmux/plugins/tpm"]
+    type = "archive"
+    url = "https://github.com/tmux-plugins/tpm/archive/refs/heads/master.zip"
+    exact = true
+    stripComponents = 1
+    refreshPeriod = "168h"
+
+[".config/tmux/plugins/tmux-sensible"]
+    type = "archive"
+    url = "https://github.com/tmux-plugins/tmux-sensible/archive/refs/heads/master.zip"
+    exact = true
+    stripComponents = 1
+    refreshPeriod = "168h"
+
+# Universal fuzzy completion
+[".config/fzf-tab-completion"]
+    type = "git-repo"
+    url = "https://github.com/lincheney/fzf-tab-completion.git"
+    refreshPeriod = "168h"
+
+# Zsh Plugin Manager
+[".local/share/zinit/zinit.git"]
+    type = "git-repo"
+    url = "https://github.com/zdharma-continuum/zinit.git"
+    refreshPeriod = "168h"

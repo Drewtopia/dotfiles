@@ -1,14 +1,78 @@
 # PATH management utilities
 
-# Function to safely add to PATH without duplicates
+# Function to safely add to PATH without duplicates (modern array syntax)
 path_add() {
     local dir="$1"
     # Remove trailing slash
     dir="${dir%/}"
 
-    # Skip expensive realpath for absolute paths that already exist
-    if [[ "$dir" = /* ]] && [ -d "$dir" ] && [[ ":$PATH:" != *":$dir:"* ]]; then
-        export PATH="$dir:$PATH"
+    # Skip if directory doesn't exist
+    [[ -d "$dir" ]] || return 1
+
+    # Use array syntax for better performance and reliability
+    # Check if already in path array
+    if [[ ! " ${path[*]} " =~ " ${dir} " ]]; then
+        path=("$dir" $path)
     fi
+}
+
+# Function to safely add to FPATH without duplicates (for zsh completions)
+fpath_add() {
+    local dir="$1"
+    # Remove trailing slash
+    dir="${dir%/}"
+
+    # Skip if directory doesn't exist or not in zsh
+    [[ -d "$dir" ]] || return 1
+    [[ -n "${ZSH_VERSION:-}" ]] || return 1
+
+    # Check for duplicates in fpath array
+    if [[ ! " ${fpath[*]} " =~ " ${dir} " ]]; then
+        fpath=("$dir" $fpath)
+    fi
+}
+
+# Function to safely add to MANPATH without duplicates
+manpath_add() {
+    local dir="$1"
+    # Remove trailing slash
+    dir="${dir%/}"
+
+    # Skip if directory doesn't exist
+    [[ -d "$dir" ]] || return 1
+
+    # Use array syntax for better performance
+    if [[ ! " ${manpath[*]} " =~ " ${dir} " ]]; then
+        manpath=("$dir" $manpath)
+    fi
+}
+
+# Note: PATH deduplication is handled automatically by typeset -aU in .zshrc
+
+# Load paths in priority order
+load_paths() {
+    # 1. Priority paths (highest priority - pnpm, critical tools)
+    [[ -f "${XDG_CONFIG_HOME}/shell/paths/priority.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/shell/paths/priority.paths.sh"
+    
+    # 2. Default system paths (essential system directories)
+    [[ -f "${XDG_CONFIG_HOME}/shell/paths/default.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/shell/paths/default.paths.sh"
+    
+    # 3. Custom paths (user-specific, tool managers)
+    [[ -f "${XDG_CONFIG_HOME}/shell/paths/custom.paths.sh" ]] && \
+        source "${XDG_CONFIG_HOME}/shell/paths/custom.paths.sh"
+    
+    # 4. Load completion paths (zsh only)
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
+        # Oh My Zsh completions directory
+        fpath_add "$HOME/.oh-my-zsh/completions"
+        
+        # System completion directories (if they exist)
+        fpath_add "/usr/local/share/zsh/site-functions"
+        fpath_add "/opt/homebrew/share/zsh/site-functions"
+    fi
+    
+    # 5. PATH deduplication happens automatically via typeset -aU
 }
 

@@ -4,7 +4,6 @@ set -eufo pipefail
 
 {{ $brews := list
     "age"
-	"atuin"
     "bat"
     "btop"
     "curl"
@@ -21,13 +20,11 @@ set -eufo pipefail
 	"glow"
     "gnu-units"
     "gnupg"
-    "go"
     "golangci-lint"
     "jless"
     "jq"
 	"lazygit"
 	"mas"
-	"mise"
     "node"
     "pkg-config"
     "ripgrep"
@@ -35,9 +32,9 @@ set -eufo pipefail
     "tmux"
     "wget"
     "xz"
-    "yq"
     "yt-dlp"
     "zoxide" -}}
+{{- /* Node.js back to homebrew due to mise GPG issues */ -}}
 {{ $casks := list
 	"1password"
     "1password-cli"
@@ -104,6 +101,8 @@ set -eufo pipefail
     "quicklook-json"
     "webpquicklook" -}}
 
+echo "🍎 Installing system packages via Homebrew..."
+
 brew bundle --file=/dev/stdin <<EOF
 {{ range ($brews | sortAlpha | uniq) -}}
 brew "{{ . }}"
@@ -112,3 +111,40 @@ brew "{{ . }}"
 cask "{{ . }}"
 {{ end -}}
 EOF
+
+{{ if .dev_computer -}}
+echo "🍎 Installing development tools via mise..."
+
+# Install mise (modern runtime version manager)
+if ! command -v mise >/dev/null 2>&1; then
+    echo "📦 Installing mise..."
+    curl https://mise.run | sh || {
+        echo "⚠️  Mise installation failed"
+        exit 1
+    }
+    
+    # Add mise to PATH for this session
+    export PATH="$HOME/.local/bin:$PATH"
+else
+    echo "✅ Mise already installed"
+fi
+
+# Install development tools via mise (from config.toml)
+echo "📦 Installing development tools via mise..."
+mise install 2>/dev/null || echo "⚠️  Some mise tools failed to install"
+
+# Install non-mise tools
+# Atuin (shell history replacement)
+if ! command -v atuin >/dev/null 2>&1; then
+    echo "📦 Installing Atuin..."
+    curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh || echo "⚠️  Atuin installation failed"
+else
+    echo "✅ Atuin already installed"
+fi
+
+echo "✅ Development tools installation completed!"
+{{- else }}
+echo "🏠 Skipping development tools installation (not a dev computer)"
+{{- end }}
+
+echo "✅ macOS installation completed!"
