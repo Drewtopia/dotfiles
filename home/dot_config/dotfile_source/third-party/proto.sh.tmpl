@@ -1,0 +1,16 @@
+{{- if and (lookPath "proto") (or (not (eq .chezmoi.os "linux")) .is_wsl) -}}
+
+# Proto - Unified toolchain manager
+# Alternative to mise/rtx for managing tool versions
+
+# Add proto paths safely
+path_add "$HOME/.local/share/proto/shims"
+path_add "$HOME/.local/share/proto/bin"
+
+# Useful proto aliases
+alias proto-list='proto list'
+alias proto-install='proto install'
+alias proto-use='proto use'
+alias proto-pin='proto pin'
+
+{{- end }}

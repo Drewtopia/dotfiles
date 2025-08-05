@@ -1,0 +1,19 @@
+{{- if lookPath "gemini" -}}
+
+# Gemini CLI - Google's AI assistant CLI
+
+# Shell completions for Gemini CLI
+if [[ -n ${ZSH_NAME} ]]; then
+    # Check if gemini supports completions
+    if gemini completion zsh >/dev/null 2>&1; then
+        eval "$(gemini completion zsh)"
+    fi
+elif [[ -n ${BASH} ]]; then
+    # Check if gemini supports completions  
+    if gemini completion bash >/dev/null 2>&1; then
+        # shellcheck disable=SC1090
+        source <(gemini completion bash)
+    fi
+fi
+
+{{- end }}

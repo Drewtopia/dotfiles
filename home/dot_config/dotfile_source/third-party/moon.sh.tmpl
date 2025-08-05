@@ -1,0 +1,17 @@
+{{- if and (or (lookPath "moon") (stat (joinPath .chezmoi.homeDir ".proto/bin/moon"))) (or (not (eq .chezmoi.os "linux")) .is_wsl) -}}
+
+# Moon - Task runner and build system
+{{- if stat (joinPath .chezmoi.homeDir ".proto/bin/moon") }}
+# Moon installed via proto - already in PATH via proto shims
+{{- else }}
+# Moon standalone installation
+path_add "$HOME/.moon/bin"
+{{- end }}
+
+# Useful moon aliases
+alias moon-run='moon run'
+alias moon-check='moon check'
+alias moon-ci='moon ci'
+alias moon-install='proto install moon'  # For version management
+
+{{- end }}
