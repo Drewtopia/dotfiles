@@ -37,3 +37,5 @@ keybind = shift+enter=text:\n
 font-feature = -calt, -liga, -dlig
 window-inherit-working-directory = false
 working-directory = home
+macos-option-as-alt = true
+
