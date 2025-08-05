@@ -1,0 +1,242 @@
+# Chezmoi Cheat Sheet
+
+# Basic Operations
+
+# Cheat
+# Type         command
+# Trigger      chezmoi apply
+# Domain       chezmoi
+# Function     chezmoi apply
+# Executable   yes
+# Description  Apply configuration changes to home directory
+# Short        Apply config
+
+# Cheat
+# Type         command
+# Trigger      chezmoi diff
+# Domain       chezmoi
+# Function     chezmoi diff
+# Executable   yes
+# Description  Show what would change without applying
+# Short        Show diff
+
+# Cheat
+# Type         command
+# Trigger      chezmoi status
+# Domain       chezmoi
+# Function     chezmoi status
+# Executable   yes
+# Description  Show status of files managed by chezmoi
+# Short        Show status
+
+# Cheat
+# Type         command
+# Trigger      chezmoi update
+# Domain       chezmoi
+# Function     chezmoi update
+# Executable   yes
+# Description  Pull latest changes and apply them
+# Short        Update config
+
+# File Management
+
+# Cheat
+# Type         command
+# Trigger      chezmoi add
+# Domain       chezmoi
+# Function     chezmoi add <file>
+# Executable   yes
+# Description  Add file to chezmoi management
+# Short        Add file
+# Example      chezmoi add ~/.zshrc
+
+# Cheat
+# Type         command
+# Trigger      chezmoi edit
+# Domain       chezmoi
+# Function     chezmoi edit <file>
+# Executable   yes
+# Description  Edit file in chezmoi source directory
+# Short        Edit file
+# Example      chezmoi edit ~/.zshrc
+
+# Cheat
+# Type         command
+# Trigger      chezmoi remove
+# Domain       chezmoi
+# Function     chezmoi remove <file>
+# Executable   yes
+# Description  Remove file from chezmoi management
+# Short        Remove file
+# Example      chezmoi remove ~/.old-config
+
+# Cheat
+# Type         command
+# Trigger      chezmoi forget
+# Domain       chezmoi
+# Function     chezmoi forget <file>
+# Executable   yes
+# Description  Stop managing file but keep it
+# Short        Forget file
+# Example      chezmoi forget ~/.temporary-config
+
+# Source Directory
+
+# Cheat
+# Type         command
+# Trigger      chezmoi cd
+# Domain       chezmoi
+# Function     chezmoi cd
+# Executable   yes
+# Description  Change to chezmoi source directory
+# Short        Go to source
+
+# Cheat
+# Type         command
+# Trigger      chezmoi source-path
+# Domain       chezmoi
+# Function     chezmoi source-path <file>
+# Executable   yes
+# Description  Show source path of target file
+# Short        Source path
+# Example      chezmoi source-path ~/.zshrc
+
+# Cheat
+# Type         command
+# Trigger      chezmoi target-path
+# Domain       chezmoi
+# Function     chezmoi target-path <source-file>
+# Executable   yes
+# Description  Show target path of source file
+# Short        Target path
+# Example      chezmoi target-path dot_zshrc
+
+# Templates and Data
+
+# Cheat
+# Type         command
+# Trigger      chezmoi data
+# Domain       chezmoi
+# Function     chezmoi data
+# Executable   yes
+# Description  Show template data available
+# Short        Show data
+
+# Cheat
+# Type         command
+# Trigger      chezmoi execute-template
+# Domain       chezmoi
+# Function     echo '<template>' | chezmoi execute-template
+# Executable   yes
+# Description  Test template execution
+# Short        Test template
+# Example      echo '{{ .chezmoi.os }}' | chezmoi execute-template
+
+# Cheat
+# Type         command
+# Trigger      chezmoi cat
+# Domain       chezmoi
+# Function     chezmoi cat <file>
+# Executable   yes
+# Description  Show rendered template content
+# Short        Show rendered
+# Example      chezmoi cat ~/.zshrc
+
+# Git Integration
+
+# Cheat
+# Type         command
+# Trigger      chezmoi git
+# Domain       chezmoi
+# Function     chezmoi git <git-command>
+# Executable   yes
+# Description  Run git command in source directory
+# Short        Git command
+# Example      chezmoi git status
+
+# Cheat
+# Type         command
+# Trigger      chezmoi git add
+# Domain       chezmoi
+# Function     chezmoi git add .
+# Executable   yes
+# Description  Stage all changes in source directory
+# Short        Git add
+
+# Cheat
+# Type         command
+# Trigger      chezmoi git commit
+# Domain       chezmoi
+# Function     chezmoi git commit -m "<message>"
+# Executable   yes
+# Description  Commit changes in source directory
+# Short        Git commit
+# Example      chezmoi git commit -m "feat: add new config"
+
+# Cheat
+# Type         command
+# Trigger      chezmoi git push
+# Domain       chezmoi
+# Function     chezmoi git push
+# Executable   yes
+# Description  Push changes to remote repository
+# Short        Git push
+
+# Archive and Backup
+
+# Cheat
+# Type         command
+# Trigger      chezmoi archive
+# Domain       chezmoi
+# Function     chezmoi archive
+# Executable   yes
+# Description  Create tar archive of target state
+# Short        Create archive
+
+# Cheat
+# Type         command
+# Trigger      chezmoi dump
+# Domain       chezmoi
+# Function     chezmoi dump
+# Executable   yes
+# Description  Dump target state in JSON format
+# Short        Dump state
+
+# Cheat
+# Type         command
+# Trigger      chezmoi managed
+# Domain       chezmoi
+# Function     chezmoi managed
+# Executable   yes
+# Description  List all files managed by chezmoi
+# Short        List managed
+
+# Configuration
+
+# Cheat
+# Type         command
+# Trigger      chezmoi doctor
+# Domain       chezmoi
+# Function     chezmoi doctor
+# Executable   yes
+# Description  Check for common problems
+# Short        Check health
+
+# Cheat
+# Type         command
+# Trigger      chezmoi init
+# Domain       chezmoi
+# Function     chezmoi init <repo>
+# Executable   yes
+# Description  Initialize chezmoi with git repository
+# Short        Initialize
+# Example      chezmoi init https://github.com/user/dotfiles.git
+
+# Cheat
+# Type         command
+# Trigger      chezmoi re-add
+# Domain       chezmoi
+# Function     chezmoi re-add
+# Executable   yes
+# Description  Re-add all managed files (update source)
+# Short        Re-add all

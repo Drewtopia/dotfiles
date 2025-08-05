@@ -365,11 +365,11 @@ _hasJQ_() {
     if [[ ! $(command -v jq) ]]; then
         warning "Must instal jq prior to running script"
 
-        {{- if eq .chezmoi.os "linux" }}
-        run_as_root apt install -y jq
-        {{- else if eq .chezmoi.os "darwin" }}
-        brew install jq
-        {{ end }}
+        if [[ "$(uname -s)" == "Linux" ]]; then
+            run_as_root apt install -y jq
+        elif [[ "$(uname -s)" == "Darwin" ]]; then
+            brew install jq
+        fi
 
     fi
 
@@ -454,8 +454,8 @@ _uvBinaryPath_() {
         echo "$(command -v uv)"
     elif [ -f "${HOME}/.local/bin/uv" ]; then
         echo "${HOME}/.local/bin/uv"
-    elif [ -f "{{ .xdgDataDir }}/cargo/uv" ]; then
-        echo "{{ .xdgDataDir }}/cargo/uv"
+    elif [ -f "${HOME}/.local/share/cargo/uv" ]; then
+        echo "${HOME}/.local/share/cargo/uv"
     elif [ -f "${HOME}/.cargo/bin/uv" ]; then
         echo "${HOME}/.cargo/bin/uv"
     elif [[ ${pass_on_error} == "true" ]]; then

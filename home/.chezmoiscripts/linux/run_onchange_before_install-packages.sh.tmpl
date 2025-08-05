@@ -11,11 +11,9 @@
      "git"
      "git-lfs"
      "gnupg"
-     "golang-go"
      "jq"
+     "lazygit"
      "neovim"
-     "nodejs"
-     "npm"
      "pkg-config"
      "ripgrep"
      "shellcheck"
@@ -25,6 +23,7 @@
      "wget"
      "xz-utils"
      "zsh" -}}
+{{- /* Core dev tools handled by mise: node, pnpm, deno, bun, python, uv, go, rust */ -}}
 {{ $snaps := list -}}
 {{ $classicSnaps := list -}}
 
@@ -46,6 +45,8 @@
 
 set -eufo pipefail
 
+echo "🐧 Installing system packages on Linux..."
+
 {{ $sudo }}apt-get update
 {{ $sudo }}apt-get install -y {{ $packages | join " " }}
 
@@ -58,29 +59,47 @@ set -eufo pipefail
 {{   end }}
 {{ end }}
 
-# Install tools via their recommended installation methods
-if ! command -v atuin >/dev/null 2>&1; then
-    echo "Installing atuin..."
-    curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
-fi
-
+# Install zoxide (better cd command)
 if ! command -v zoxide >/dev/null 2>&1; then
-    echo "Installing zoxide..."
+    echo "📦 Installing zoxide..."
     curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
 fi
 
+{{ if .dev_computer -}}
+echo "🐧 Installing development tools via mise..."
+
+# Install mise (modern runtime version manager)
 if ! command -v mise >/dev/null 2>&1; then
-    echo "Installing mise..."
-    curl https://mise.run | sh
+    echo "📦 Installing mise..."
+    curl https://mise.run | sh || {
+        echo "⚠️  Mise installation failed"
+        exit 1
+    }
+    
+    # Add mise to PATH for this session
+    export PATH="$HOME/.local/bin:$PATH"
+else
+    echo "✅ Mise already installed"
 fi
 
-# Install yq
-if ! command -v yq >/dev/null 2>&1; then
-    echo "Installing yq..."
-    YQ_VERSION=$(curl -s "https://api.github.com/repos/mikefarah/yq/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-    wget -qO /tmp/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
-    chmod +x /tmp/yq
-    {{ $sudo }}mv /tmp/yq /usr/local/bin/yq
+# Install development tools via mise (from config.toml)
+echo "📦 Installing development tools via mise..."
+mise install 2>/dev/null || echo "⚠️  Some mise tools failed to install"
+
+# Install non-mise tools
+# Atuin (shell history replacement) 
+if ! command -v atuin >/dev/null 2>&1; then
+    echo "📦 Installing Atuin..."
+    curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh || echo "⚠️  Atuin installation failed"
+else
+    echo "✅ Atuin already installed"
 fi
+
+echo "✅ Development tools installation completed!"
+{{- else }}
+echo "🏠 Skipping development tools installation (not a dev computer)"
+{{- end }}
+
+echo "✅ Linux installation completed!"
 
 {{ end -}}

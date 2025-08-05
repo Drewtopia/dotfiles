@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -eufo pipefail
+
+{{ if .dev_computer -}}
+echo "📦 Installing global packages via pnpm..."
+
+# Activate mise to make pnpm available
+if command -v mise >/dev/null 2>&1; then
+    eval "$(mise activate bash)"
+else
+    echo "⚠️  mise not found. Cannot activate development tools."
+    exit 1
+fi
+
+# Mise tools should already be installed by platform-specific scripts
+# Now check if pnpm is available
+if ! command -v pnpm >/dev/null 2>&1; then
+    echo "⚠️  pnpm still not found after mise install."
+    exit 1
+fi
+
+# PNPM environment is handled by shell/mise.sh permanently
+# Just ensure pnpm works for this session by activating mise
+if command -v pnpm >/dev/null 2>&1; then
+    echo "✅ pnpm is available via mise"
+else
+    echo "⚠️  pnpm not found - mise activation may have failed"
+fi
+
+# Global packages to install
+packages=(
+    "@anthropic-ai/claude-code"
+    "@google/gemini-cli"
+)
+
+for package in "${packages[@]}"; do
+    echo "📦 Installing $package globally..."
+    pnpm add -g "$package" || echo "⚠️  Failed to install $package"
+done
+
+echo "✅ Global package installation completed!"
+{{- else }}
+echo "🏠 Skipping global packages installation (not a dev computer)"
+{{- end }}

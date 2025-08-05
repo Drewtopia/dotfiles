@@ -1,0 +1,116 @@
+#!/usr/bin/env zsh
+
+# Enhanced Cheat Sheet System with zsh-active-cheatsheet integration
+# Handles all the workarounds for zsh-active-cheatsheet in one place
+
+# Configuration for zsh-active-cheatsheet
+export ZSH_ACTIVE_CHEATSHEET_DIRS=("$HOME/.config/cheatsheets")
+export ZSH_ACTIVE_CHEATSHEET_HIGHLIGHTER="bat --language=sh --style=plain --color=always"
+export ZSH_ACTIVE_CHEATSHEET_AUTO_COMPILE=false
+
+# Function to compile cheat sheets with modern bash
+compile-cheats() {
+{{- $bashPath := "" }}
+{{- if eq .chezmoi.os "darwin" }}
+{{-   if stat "/opt/homebrew/bin/bash" }}
+{{-     $bashPath = "/opt/homebrew/bin/bash" }}
+{{-   else if lookPath "bash" }}
+{{-     $bashPath = lookPath "bash" }}
+{{-   end }}
+{{- else }}
+{{-   $bashPath = lookPath "bash" }}
+{{- end }}
+{{- if $bashPath }}
+    {{ $bashPath }} ~/.oh-my-zsh/custom/plugins/zsh-active-cheatsheet/cheats-compiler.sh ~/.config/cheatsheets
+{{- else }}
+    echo "✗ Bash not found"
+    return 1
+{{- end }}
+}
+
+# Load zsh-active-cheatsheet with proper workarounds
+# Be more forgiving about terminal conditions in actual zsh sessions
+if [[ -o interactive ]]; then
+    # Check if plugin files exist
+    local plugin_dir="$HOME/.oh-my-zsh/custom/plugins/zsh-active-cheatsheet"
+    
+    if [[ -f "$plugin_dir/zsh-active-cheatsheet.plugin.zsh" ]]; then
+        # Source the plugin with error handling (suppress stty errors)
+        if source "$plugin_dir/zsh-active-cheatsheet.plugin.zsh" 2>/dev/null; then
+            # Plugin loaded successfully, check if function exists
+            if (( $+functions[fzf_show_cheats] )); then
+                # Remove default Ctrl+S binding and set our own
+                bindkey -r '^S' 2>/dev/null || true
+                bindkey '^\' fzf_show_cheats
+                
+                # Create aliases
+                alias cheats='fzf_show_cheats'
+                
+                # Compile cheat sheets if metadata is empty or doesn't exist
+                if [[ ! -f "$HOME/.cache/cheats-metadata.jsonl" ]] || [[ ! -s "$HOME/.cache/cheats-metadata.jsonl" ]]; then
+                    compile-cheats >/dev/null 2>&1
+                fi
+                
+                # Success - silent loading
+            else
+                echo "✗ zsh-active-cheatsheet plugin loaded but function not found"
+            fi
+        else
+            echo "✗ Failed to load zsh-active-cheatsheet plugin"
+        fi
+    else
+        echo "✗ zsh-active-cheatsheet plugin files not found"
+    fi
+fi
+
+# Fallback functions if zsh-active-cheatsheet doesn't work
+if ! (( $+functions[fzf_show_cheats] )); then
+    
+    # Simple fallback cheat function
+    cheat() {
+        local cheat_file
+        local cheat_dir="$HOME/.config/cheatsheets"
+        
+        if [[ ! -d "$cheat_dir" ]]; then
+            echo "Cheat directory not found: $cheat_dir"
+            return 1
+        fi
+        
+        if ! command -v fzf >/dev/null 2>&1; then
+            echo "fzf is required for interactive cheat sheets"
+            return 1
+        fi
+        
+        cheat_file=$(find "$cheat_dir" -type f | \
+            sed "s|$cheat_dir/||g" | \
+            fzf --prompt="Select cheat sheet: " \
+                --preview="bat --style=numbers,changes --color=always $cheat_dir/{} 2>/dev/null || cat $cheat_dir/{}" \
+                --preview-window=right:60%:wrap \
+                --height=80%)
+        
+        if [[ -n "$cheat_file" ]]; then
+            echo "=== $cheat_file ==="
+            if command -v bat >/dev/null 2>&1; then
+                bat --style=numbers,changes --color=always "$cheat_dir/$cheat_file"
+            else
+                cat "$cheat_dir/$cheat_file"
+            fi
+        fi
+    }
+    
+    # Simple keybinding for fallback
+    if command -v fzf >/dev/null 2>&1; then
+        cheat-widget() {
+            BUFFER=""
+            CURSOR=0
+            cheat
+            zle reset-prompt
+        }
+        
+        zle -N cheat-widget
+        bindkey '^\' cheat-widget
+    fi
+    
+    alias cheats='cheat'
+    # Fallback loaded - no output needed
+fi
