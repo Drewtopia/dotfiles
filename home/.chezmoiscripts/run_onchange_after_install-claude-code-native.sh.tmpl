@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -eufo pipefail
+
+# Install Claude Code using the native installer (recommended approach)
+# This script runs when the hash changes (onchange)
+
+echo "Installing Claude Code using native installer..."
+
+# Check if claude is already available and working
+if command -v claude >/dev/null 2>&1 && claude --version >/dev/null 2>&1; then
+    echo "Claude Code is already installed: $(claude --version)"
+    exit 0
+fi
+
+{{- if eq .chezmoi.os "windows" }}
+# Windows PowerShell installation
+echo "Installing Claude Code for Windows via PowerShell..."
+powershell.exe -Command "irm https://claude.ai/install.ps1 | iex"
+{{- else }}
+# macOS, Linux, WSL installation
+echo "Installing Claude Code for Unix-like systems..."
+curl -fsSL https://claude.ai/install.sh | bash
+{{- end }}
+
+# Ensure ~/.local/bin is in PATH for the current session
+export PATH="$HOME/.local/bin:$PATH"
+
+# Verify installation
+if command -v claude >/dev/null 2>&1; then
+    echo "Claude Code installed successfully: $(claude --version)"
+    
+    # Run claude doctor to check installation health
+    echo "Running installation health check..."
+    claude doctor || echo "Doctor check completed with warnings"
+else
+    echo "Error: Claude Code installation failed or not found in PATH"
+    echo "Please ensure ~/.local/bin is in your PATH"
+    exit 1
+fi
