@@ -15,9 +15,10 @@ alias numfiles='echo $(ls -1 | wc -l)' # Count of non-hidden files in current di
 alias listpaths='echo $PATH | tr ":" "\n" | uniq -c | sort -nr'
 
 ####################### TOOL ALIASES #######################
-{{- if and (eq .chezmoi.os "linux") (lookPath "batcat") (not (lookPath "bat")) }}
-# Ubuntu installs bat as batcat due to name conflict
-alias bat='batcat'
+{{- if lookPath "bat" }}
+alias cat=bat
+{{- else if lookPath "batcat" }}
+alias cat=batcat
 {{- end }}
 
 ####################### LIST DIRECTORY CONTENTS #######################
