@@ -26,7 +26,8 @@ export PYTHON_HISTORY="${XDG_STATE_HOME}/python_history"
 export RUSTUP_HOME="${XDG_DATA_HOME}/rustup"
 export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
 
-# High-priority tool paths
+# High-priority tool paths - chezmoi-managed installations take precedence
+path_add "$HOME/.local/bin"  # Chezmoi-managed tools (claude, etc.)
+
 # pnpm PATH is handled by mise.sh
 # Other high-priority tools can be added here
-# Example: path_add "/path/to/priority/tool"

@@ -7,11 +7,9 @@ set -eufo pipefail
 
 echo "Installing Claude Code using native installer..."
 
-# Check if claude is already available and working
-if command -v claude >/dev/null 2>&1 && claude --version >/dev/null 2>&1; then
-    echo "Claude Code is already installed: $(claude --version)"
-    exit 0
-fi
+# Always run installation to ensure correct version and location
+# This ensures chezmoi-managed installation takes precedence over external installations
+echo "Ensuring Claude Code is installed/updated to ~/.local/bin/claude..."
 
 {{- if eq .chezmoi.os "windows" }}
 # Windows PowerShell installation

@@ -59,28 +59,23 @@ echo "🐧 Installing system packages on Linux..."
 {{   end }}
 {{ end }}
 
-# Install zoxide (better cd command)
-if ! command -v zoxide >/dev/null 2>&1; then
-    echo "📦 Installing zoxide..."
-    curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
-fi
+# Always install/update zoxide to ensure latest version and correct location
+echo "📦 Installing/updating zoxide..."
+curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
 
 {{ if .dev_computer -}}
 echo "🐧 Installing development tools via mise..."
 
 # Install mise (modern runtime version manager)
-if ! command -v mise >/dev/null 2>&1; then
-    echo "📦 Installing mise..."
-    curl https://mise.run | sh || {
-        echo "⚠️  Mise installation failed"
-        exit 1
-    }
-    
-    # Add mise to PATH for this session
-    export PATH="$HOME/.local/bin:$PATH"
-else
-    echo "✅ Mise already installed"
-fi
+# Always install/update mise to ensure latest version and correct location
+echo "📦 Installing/updating mise..."
+curl https://mise.run | sh || {
+    echo "⚠️  Mise installation failed"
+    exit 1
+}
+
+# Add mise to PATH for this session
+export PATH="$HOME/.local/bin:$PATH"
 
 # Install development tools via mise (from config.toml)
 echo "📦 Installing development tools via mise..."
@@ -88,12 +83,9 @@ mise install 2>/dev/null || echo "⚠️  Some mise tools failed to install"
 
 # Install non-mise tools
 # Atuin (shell history replacement) 
-if ! command -v atuin >/dev/null 2>&1; then
-    echo "📦 Installing Atuin..."
-    curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh || echo "⚠️  Atuin installation failed"
-else
-    echo "✅ Atuin already installed"
-fi
+# Always install/update Atuin to ensure latest version and correct location
+echo "📦 Installing/updating Atuin..."
+curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh || echo "⚠️  Atuin installation failed"
 
 echo "✅ Development tools installation completed!"
 {{- else }}

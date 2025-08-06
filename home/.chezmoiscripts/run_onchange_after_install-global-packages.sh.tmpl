@@ -24,6 +24,14 @@ fi
 # Just ensure pnpm works for this session by activating mise
 if command -v pnpm >/dev/null 2>&1; then
     echo "✅ pnpm is available via mise"
+    
+    # Configure PNPM_HOME for global packages (managed by shell/mise.sh template)
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    mkdir -p "$PNPM_HOME"
+    case ":$PATH:" in
+        *":$PNPM_HOME:"*) ;;
+        *) export PATH="$PNPM_HOME:$PATH" ;;
+    esac
 else
     echo "⚠️  pnpm not found - mise activation may have failed"
 fi
@@ -34,7 +42,8 @@ packages=(
 )
 
 for package in "${packages[@]}"; do
-    echo "📦 Installing $package globally..."
+    echo "📦 Installing/updating $package globally..."
+    # Always install to ensure updates and correct location
     pnpm add -g "$package" || echo "⚠️  Failed to install $package"
 done
 
