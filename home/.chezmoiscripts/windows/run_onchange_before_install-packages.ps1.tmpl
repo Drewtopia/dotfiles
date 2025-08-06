@@ -30,7 +30,7 @@ if (-not (Test-Command mise)) {
 if (-not (Test-Command atuin)) {
     Write-Host "📦 Installing Atuin..." -ForegroundColor Blue
     try {
-        irm https://setup.atuin.sh | iex
+        irm https://setup.atuin.sh | iex -ArgumentList '--no-modify-path'
         Write-Host "✅ Atuin installed successfully" -ForegroundColor Green
     } catch {
         Write-Host "⚠️  Atuin installation failed: $_" -ForegroundColor Yellow

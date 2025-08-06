@@ -134,7 +134,7 @@ mise install 2>/dev/null || echo "⚠️  Some mise tools failed to install"
 # Atuin (shell history replacement)
 # Always install/update Atuin to ensure latest version and correct location
 echo "📦 Installing/updating Atuin..."
-curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh || echo "⚠️  Atuin installation failed"
+curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh -s -- --no-modify-path || echo "⚠️  Atuin installation failed"
 
 echo "✅ Development tools installation completed!"
 {{- else }}
