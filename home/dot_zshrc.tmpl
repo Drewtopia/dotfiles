@@ -93,7 +93,7 @@ ZSH_DISABLE_COMPFIX=true
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Basic plugins loaded via .chezmoiexternal, advanced plugins via Zinit
-plugins=(zsh-syntax-highlighting)
+plugins=()
 
 
 
@@ -104,8 +104,9 @@ source "$ZINIT_HOME/zinit.zsh"
 # Load essential plugins via Zinit (only what truly needs advanced features)
 zinit light zsh-users/zsh-completions  # Large completion database benefits from Zinit caching
 zinit light Aloxaf/fzf-tab             # Complex integration needs Zinit features
+zinit light zsh-users/zsh-syntax-highlighting  # Must be loaded last
 
-# Note: Basic plugins (zsh-syntax-highlighting, zsh-active-cheatsheet) now via .chezmoiexternal
+# Note: zsh-active-cheatsheet via .chezmoiexternal, other plugins via Zinit
 # Note: zsh-autosuggestions removed (redundant with atuin + fzf-tab)
 
 
@@ -180,6 +181,6 @@ fi
 # PATH deduplication is handled automatically by typeset -aU path at the top
 
 # Display profiling results
-[[ -n "$ZPROF" ]] && zprof
+[[ -n "$ZPROF" ]] && zprof || true
 
 {{- /* vim: set filetype=zsh: */}}
