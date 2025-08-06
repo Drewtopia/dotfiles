@@ -5,7 +5,13 @@
 
 # Configuration for zsh-active-cheatsheet
 export ZSH_ACTIVE_CHEATSHEET_DIRS=("$HOME/.config/cheatsheets")
-export ZSH_ACTIVE_CHEATSHEET_HIGHLIGHTER="cat --language=sh --style=plain --color=always"
+{{- if lookPath "bat" }}
+export ZSH_ACTIVE_CHEATSHEET_HIGHLIGHTER="bat --language=sh --style=plain --color=always"
+{{- else if lookPath "batcat" }}
+export ZSH_ACTIVE_CHEATSHEET_HIGHLIGHTER="batcat --language=sh --style=plain --color=always"
+{{- else }}
+export ZSH_ACTIVE_CHEATSHEET_HIGHLIGHTER="cat"
+{{- end }}
 export ZSH_ACTIVE_CHEATSHEET_AUTO_COMPILE=false
 
 # Function to compile cheat sheets with modern bash
@@ -84,17 +90,25 @@ if ! (( $+functions[fzf_show_cheats] )); then
         cheat_file=$(find "$cheat_dir" -type f | \
             sed "s|$cheat_dir/||g" | \
             fzf --prompt="Select cheat sheet: " \
+{{- if lookPath "bat" }}
                 --preview="bat --style=numbers,changes --color=always $cheat_dir/{} 2>/dev/null || cat $cheat_dir/{}" \
+{{- else if lookPath "batcat" }}
+                --preview="batcat --style=numbers,changes --color=always $cheat_dir/{} 2>/dev/null || cat $cheat_dir/{}" \
+{{- else }}
+                --preview="cat $cheat_dir/{}" \
+{{- end }}
                 --preview-window=right:60%:wrap \
                 --height=80%)
         
         if [[ -n "$cheat_file" ]]; then
             echo "=== $cheat_file ==="
-            if command -v bat >/dev/null 2>&1; then
-                bat --style=numbers,changes --color=always "$cheat_dir/$cheat_file"
-            else
-                cat "$cheat_dir/$cheat_file"
-            fi
+{{- if lookPath "bat" }}
+            bat --style=numbers,changes --color=always "$cheat_dir/$cheat_file"
+{{- else if lookPath "batcat" }}
+            batcat --style=numbers,changes --color=always "$cheat_dir/$cheat_file"
+{{- else }}
+            cat "$cheat_dir/$cheat_file"
+{{- end }}
         fi
     }
     

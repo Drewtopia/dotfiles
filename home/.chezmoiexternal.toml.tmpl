@@ -80,7 +80,7 @@
 
 [".local/bin/lazygit"]
     type = "archive-file"
-    url = {{ gitHubLatestReleaseAssetURL "jesseduffield/lazygit" (printf "lazygit_*_%s_%s.tar.gz" .chezmoi.os .chezmoi.arch) | quote }}
+    url = {{ gitHubLatestReleaseAssetURL "jesseduffield/lazygit" (printf "lazygit_*_%s_%s.tar.gz" .chezmoi.os (eq .chezmoi.arch "amd64" | ternary "x86_64" .chezmoi.arch)) | quote }}
     executable = true
     path = "lazygit"
     refreshPeriod = "168h"
