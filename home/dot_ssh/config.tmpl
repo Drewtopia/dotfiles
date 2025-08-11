@@ -1,5 +1,8 @@
 HashKnownHosts no
 
+# Include local machine-specific configs (not in git)
+Include config.local
+
 {{- if eq .chezmoi.os "darwin" }}
 
 Host *
@@ -26,4 +29,11 @@ Host github.com
 # Host ssh.dev.azure.com
 #  IdentityFile ~/.ssh/id_rsa
 #  IdentitiesOnly yes
+
+{{- if .is_wsl }}
+# Short alias for work WSL2 machine
+Host work-wsl
+  HostName {{ .hostname }}
+  User {{ .chezmoi.username }}
+{{- end }}
 {{ end -}}
