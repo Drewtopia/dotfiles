@@ -19,9 +19,12 @@ rust = "latest"      # Rust programming language
 
 # CLI utilities for mise functionality
 usage = "latest"     # Required for mise completions
+node = "latest"
 
 [settings]
 # Auto-activate mise in all directories
 activate_aggressive = true
+[settings.node]
+gpg_verify = false
 
 {{- end }}
