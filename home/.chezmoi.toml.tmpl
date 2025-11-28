@@ -50,8 +50,23 @@
 {{-   $hostname = output "scutil" "--get" "LocalHostName" | trim | lower -}}
 {{- end -}}
 
+{{/* Windows: Check for known personal hostnames, otherwise prompt or default to ephemeral */}}
 {{- if eq .chezmoi.os "windows" -}}
-{{-   $ephemeral = true -}}
+{{-   $personalWindowsHosts := list "andrews-desktop" "drew-pc" -}}
+{{-   if has ($hostname | lower) $personalWindowsHosts -}}
+{{-     $personal = true -}}
+{{-     $opVault = "Private" -}}
+{{-   else if stdinIsATTY -}}
+{{-     $ephemeral = promptBoolOnce . "ephemeral" "Is this an ephemeral/work Windows machine? (true/false)" -}}
+{{-     if not $ephemeral -}}
+{{-       $personal = promptBoolOnce . "personal" "Is this your personal Windows machine? (true/false)" -}}
+{{-       if $personal -}}
+{{-         $opVault = "Private" -}}
+{{-       end -}}
+{{-     end -}}
+{{-   else -}}
+{{-     $ephemeral = true -}}
+{{-   end -}}
 {{- end -}}
 
 {{- if not $ephemeral -}}
