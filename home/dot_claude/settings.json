@@ -39,6 +39,16 @@
       "Bash(cat /tmp/claude-*)"
     ],
     "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.production)",
+      "Read(./secrets/**)",
+      "Read(./node_modules/**)",
+      "Bash(rm -rf:*)",
+      "Bash(git push:*)",
+      "Write(./.env)",
+      "Write(./.env.local)",
+      "Write(./.env.production)",
       "Bash(rm -rf /)",
       "Bash(:(){ :|:& };:)",
       "Bash(dd if=/dev/zero of=/dev/*)",

@@ -1,5 +1,26 @@
 # PATH management utilities
 
+{{- if .is_wsl }}
+# WSL2: Prioritize Linux tools over Windows tools while keeping both available
+prioritize_wsl_paths() {
+    local wsl_paths=()
+    local windows_paths=()
+    local dir
+    
+    for dir in $path; do
+        # Separate Windows paths from WSL paths
+        if [[ "$dir" =~ ^/mnt/[a-zA-Z]/ ]]; then
+            windows_paths+=("$dir")
+        else
+            wsl_paths+=("$dir")
+        fi
+    done
+    
+    # Rebuild path with WSL paths first, then Windows paths
+    path=($wsl_paths $windows_paths)
+}
+{{- end }}
+
 # Function to safely add to PATH without duplicates (modern array syntax)
 path_add() {
     local dir="$1"
@@ -74,5 +95,10 @@ load_paths() {
     fi
     
     # 5. PATH deduplication happens automatically via typeset -aU
+    
+{{- if .is_wsl }}
+    # 6. WSL2: Reorder PATH to prioritize Linux tools over Windows tools
+    prioritize_wsl_paths
+{{- end }}
 }
 
