@@ -29,5 +29,11 @@ export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
 # High-priority tool paths - chezmoi-managed installations take precedence
 path_add "$HOME/.local/bin"  # Chezmoi-managed tools (claude, etc.)
 
+{{- if .is_wsl }}
+# WSL2: Prioritize Linux system directories
+path_add "/usr/local/bin"    # Linux system tools
+path_add "/usr/bin"          # Core Linux utilities
+{{- end }}
+
 # pnpm PATH is handled by mise.sh
 # Other high-priority tools can be added here
