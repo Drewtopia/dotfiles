@@ -6,7 +6,7 @@ prioritize_wsl_paths() {
     local wsl_paths=()
     local windows_paths=()
     local dir
-    
+
     for dir in $path; do
         # Separate Windows paths from WSL paths
         if [[ "$dir" =~ ^/mnt/[a-zA-Z]/ ]]; then
@@ -15,9 +15,27 @@ prioritize_wsl_paths() {
             wsl_paths+=("$dir")
         fi
     done
-    
+
     # Rebuild path with WSL paths first, then Windows paths
     path=($wsl_paths $windows_paths)
+}
+
+# WSL2: Filter out Windows tool paths that conflict with Linux tools
+# This prevents Windows mise, scoop, and node_modules from polluting WSL2 PATH
+filter_windows_tool_paths() {
+    # Remove Windows mise paths (shims and bin)
+    path=(${path:#/mnt/c/*/mise/*})
+    path=(${path:#/mnt/c/*/AppData/Local/mise/*})
+
+    # Remove Windows scoop paths
+    path=(${path:#/mnt/c/*/scoop/*})
+
+    # Remove Windows npm/node_modules global paths
+    path=(${path:#/mnt/c/*/node_modules/*})
+    path=(${path:#/mnt/c/*/npm/*})
+
+    # Remove Windows pnpm global paths
+    path=(${path:#/mnt/c/*/pnpm/*})
 }
 {{- end }}
 
@@ -97,7 +115,10 @@ load_paths() {
     # 5. PATH deduplication happens automatically via typeset -aU
     
 {{- if .is_wsl }}
-    # 6. WSL2: Reorder PATH to prioritize Linux tools over Windows tools
+    # 6. WSL2: Filter out conflicting Windows tool paths
+    filter_windows_tool_paths
+
+    # 7. WSL2: Reorder remaining PATH to prioritize Linux tools over Windows tools
     prioritize_wsl_paths
 {{- end }}
 }
