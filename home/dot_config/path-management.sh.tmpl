@@ -21,21 +21,34 @@ prioritize_wsl_paths() {
 }
 
 # WSL2: Filter out Windows tool paths that conflict with Linux tools
-# This prevents Windows mise, scoop, and node_modules from polluting WSL2 PATH
+# Keep: VS Code, Docker, Windows system, 1Password CLI
+# Remove: All dev tools that have Linux equivalents
 filter_windows_tool_paths() {
-    # Remove Windows mise paths (shims and bin)
-    path=(${path:#/mnt/c/*/mise/*})
-    path=(${path:#/mnt/c/*/AppData/Local/mise/*})
+    local filtered_path=()
+    local dir
 
-    # Remove Windows scoop paths
-    path=(${path:#/mnt/c/*/scoop/*})
+    for dir in "${path[@]}"; do
+        # Skip if not a Windows path
+        if [[ ! "$dir" =~ ^/mnt/[a-zA-Z]/ ]]; then
+            filtered_path+=("$dir")
+            continue
+        fi
 
-    # Remove Windows npm/node_modules global paths
-    path=(${path:#/mnt/c/*/node_modules/*})
-    path=(${path:#/mnt/c/*/npm/*})
+        # KEEP these Windows paths (useful integrations)
+        if [[ "$dir" =~ "Microsoft VS Code" ]] ||
+           [[ "$dir" =~ "Docker" ]] ||
+           [[ "$dir" =~ "1Password" ]] ||
+           [[ "$dir" =~ "/mnt/c/Windows" ]]; then
+            filtered_path+=("$dir")
+            continue
+        fi
 
-    # Remove Windows pnpm global paths
-    path=(${path:#/mnt/c/*/pnpm/*})
+        # REMOVE everything else from Windows (dev tools that conflict)
+        # This includes: mise, scoop, pnpm, node, fzf, deno, go, etc.
+        # They all have Linux equivalents via mise/apt/brew
+    done
+
+    path=("${filtered_path[@]}")
 }
 {{- end }}
 
