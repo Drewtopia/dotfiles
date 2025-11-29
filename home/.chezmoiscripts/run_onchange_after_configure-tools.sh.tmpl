@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 # Post-installation tool configuration
 # Runs after tools are installed to set up configurations and integrations
 # Template hash: {{ include "dot_config/shell/shell-tools.sh.tmpl" | sha256sum }}
-
-#!/usr/bin/env bash
-set -euo pipefail
 
 {{ if .dev_computer -}}
 # Configure fzf integration (silently to avoid Powerlevel10k warnings)
@@ -66,9 +64,7 @@ if command -v topgrade >/dev/null 2>&1; then
     topgrade --gen-completion zsh > "$COMPLETIONS_DIR/_topgrade" 2>/dev/null || true
 fi
 
-if command -v chezmoi >/dev/null 2>&1; then
-    chezmoi completion zsh > "$COMPLETIONS_DIR/_chezmoi" 2>/dev/null || true
-fi
+# Note: chezmoi and jj completions managed via .tmpl files in completions/
 
 if command -v mise >/dev/null 2>&1; then
     mise completion zsh > "$COMPLETIONS_DIR/_mise" 2>/dev/null || true

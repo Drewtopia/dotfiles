@@ -1,5 +1,8 @@
 --glob=!vendor
+--glob=!node_modules
+--glob=!.git
 --hidden
 --line-number
 --no-heading
 --sort=path
+--smart-case
