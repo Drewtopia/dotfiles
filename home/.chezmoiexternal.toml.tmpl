@@ -93,10 +93,9 @@
 
 [".local/bin/jj"]
     type = "archive-file"
-    url = {{ gitHubLatestReleaseAssetURL "jj-vcs/jj" "jj-*-x86_64-unknown-linux-musl.tar.gz" | quote }}
+    url = {{ gitHubLatestReleaseAssetURL "jj-vcs/jj" "jj-*.0-x86_64-unknown-linux-musl.tar.gz" | quote }}
     executable = true
-    path = "jj-*/jj"
-    refreshPeriod = "168h"
+    path = "./jj"
 
 {{- end }}
 
