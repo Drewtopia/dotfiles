@@ -4,7 +4,7 @@
 # Install Scoop package manager and essential tools
 # This script runs when its content changes
 
-Write-Host "🪟 Setting up Scoop package manager..." -ForegroundColor Green
+Write-Host "[Windows] Setting up Scoop package manager..." -ForegroundColor Green
 
 function Test-Command($cmdname) {
     return [bool](Get-Command -Name $cmdname -ErrorAction SilentlyContinue)
@@ -12,43 +12,39 @@ function Test-Command($cmdname) {
 
 # Install Scoop if not already installed
 if (-not (Test-Command scoop)) {
-    Write-Host "📦 Installing Scoop..." -ForegroundColor Blue
+    Write-Host "[Install] Installing Scoop..." -ForegroundColor Blue
     try {
         # Set execution policy for current user
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        
+
         # Install Scoop
         irm get.scoop.sh | iex
-        
-        Write-Host "✅ Scoop installed successfully" -ForegroundColor Green
+
+        Write-Host "[OK] Scoop installed successfully" -ForegroundColor Green
     } catch {
-        Write-Host "⚠️  Scoop installation failed: $_" -ForegroundColor Red
+        Write-Host "[ERROR] Scoop installation failed: $($_.Exception.Message)" -ForegroundColor Red
         exit 1
     }
 } else {
-    Write-Host "✅ Scoop already installed" -ForegroundColor Green
+    Write-Host "[OK] Scoop already installed" -ForegroundColor Green
 }
 
 # Add extra buckets for more packages
 $buckets = @('extras', 'nerd-fonts')
 foreach ($bucket in $buckets) {
-    try {
-        scoop bucket list | Where-Object { $_ -match $bucket } | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "📦 Adding Scoop bucket: $bucket" -ForegroundColor Blue
-            scoop bucket add $bucket
-        } else {
-            Write-Host "✅ Scoop bucket '$bucket' already added" -ForegroundColor Green
-        }
-    } catch {
-        Write-Host "⚠️  Failed to add bucket '$bucket': $_" -ForegroundColor Yellow
+    $bucketList = scoop bucket list 2>$null
+    if ($bucketList -notcontains $bucket) {
+        Write-Host "[Install] Adding Scoop bucket: $bucket" -ForegroundColor Blue
+        scoop bucket add $bucket
+    } else {
+        Write-Host "[OK] Scoop bucket '$bucket' already added" -ForegroundColor Green
     }
 }
 
 # Install essential CLI tools via Scoop
 $scoopPackages = @(
     'fzf',
-    'fd', 
+    'fd',
     'zoxide',
     'ripgrep',
     'bat',
@@ -57,19 +53,15 @@ $scoopPackages = @(
     'jq'
 )
 
-Write-Host "📦 Installing essential CLI tools via Scoop..." -ForegroundColor Blue
+Write-Host "[Install] Installing essential CLI tools via Scoop..." -ForegroundColor Blue
 foreach ($package in $scoopPackages) {
-    try {
-        if (-not (Test-Command $package)) {
-            Write-Host "Installing $package..." -ForegroundColor Cyan
-            scoop install $package
-        } else {
-            Write-Host "✅ $package already installed" -ForegroundColor Green
-        }
-    } catch {
-        Write-Host "⚠️  Failed to install $package: $_" -ForegroundColor Yellow
+    if (-not (Test-Command $package)) {
+        Write-Host "Installing $package..." -ForegroundColor Cyan
+        scoop install $package
+    } else {
+        Write-Host "[OK] $package already installed" -ForegroundColor Green
     }
 }
 
-Write-Host "✅ Scoop setup completed!" -ForegroundColor Green
+Write-Host "[OK] Scoop setup completed!" -ForegroundColor Green
 {{- end }}
