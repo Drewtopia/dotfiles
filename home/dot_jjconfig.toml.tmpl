@@ -4,9 +4,10 @@ name = {{ .name | quote }}
 email = {{ .email | quote }}
 
 [ui]
-# Use delta for diffs (same as git config)
+# Use delta for diffs and paging (same as git config)
 diff-formatter = ["delta", "--dark", "--line-numbers"]
-pager = "delta"
+pager = ["delta"]
+paginate = "auto"
 
 [git]
 # Auto-import git refs
