@@ -1,3 +1,4 @@
+{{- if ne .chezmoi.os "windows" -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -71,4 +72,5 @@ if command -v mise >/dev/null 2>&1; then
 fi
 {{- else }}
 # Skipping tool configuration (not a dev computer)
+{{- end }}
 {{- end }}
