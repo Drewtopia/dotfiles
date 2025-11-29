@@ -133,3 +133,8 @@
         {{ printf "%q" "{{ .Source }}" }},
         {{ printf "%q" "{{ .Target }}" }},
     ]
+
+{{ if eq .chezmoi.os "windows" -}}
+[cd]
+    command = "pwsh"
+{{- end }}
