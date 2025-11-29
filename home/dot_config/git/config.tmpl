@@ -58,6 +58,8 @@
 	sort = -committerdate
 [color]
 	ui = auto
+[column]
+	ui = auto
 [core]
 	editor = nvim
 	whitespace = trailing-space,space-before-tab
@@ -120,9 +122,16 @@
 [url "git@github.com:Drewtopia/"]
 	insteadOf = https://github.com/Drewtopia/
 {{- end }}
+{{- $ghPath := lookPath "gh" }}
+{{- if $ghPath }}
+[credential "https://github.com"]
+	helper = !{{ $ghPath }} auth git-credential
+[credential "https://gist.github.com"]
+	helper = !{{ $ghPath }} auth git-credential
+{{- end }}
 {{ if eq .chezmoi.os "darwin" -}}
 [credential]
-       helper = osxkeychain
+	helper = osxkeychain
 [gpg]
        format = ssh
 [gpg "ssh"]

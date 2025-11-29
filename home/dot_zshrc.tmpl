@@ -161,6 +161,13 @@ export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password"
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
+# Pager configuration (jj compatibility)
+export LESS=FRX
+export PAGER=less
+
+# Tool configurations
+export RIPGREP_CONFIG_PATH=$XDG_CONFIG_HOME/ripgrep/config
+
 
 # Development tools configuration moved to shell/mise.sh.tmpl for consistency
 

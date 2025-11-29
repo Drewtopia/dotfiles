@@ -1,9 +1,10 @@
 #!/bin/bash
+# Re-run when mise config changes: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
 {{- if .dev_computer }}
 
 # Install mise tools after config changes
 if command -v mise >/dev/null 2>&1; then
-    echo "Installing mise tools..."
+    echo "📦 Installing mise tools..."
     mise install
 fi
 

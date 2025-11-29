@@ -15,6 +15,7 @@
       "Bash(git :*)",
       "Bash(git worktree :*)",
       "Bash(gh :*)",
+      "Bash(jj :*)",
       "Bash(docker :*)",
       "Bash(kubectl :*)",
       "Bash(terraform :*)",
