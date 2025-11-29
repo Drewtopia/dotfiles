@@ -1,12 +1,5 @@
-{{- if eq .chezmoi.os "windows" -}}
-# PowerShell 7 Profile
-
-# Oh-My-Posh prompt
-if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
-    oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/spaceship.omp.json" | Invoke-Expression
-}
-
-{{- if .dev_computer }}
+{{- if and (eq .chezmoi.os "windows") .dev_computer -}}
+# PowerShell Profile - Dev Tools (sourced from OneDrive profile)
 
 # Add mise shims to PATH if mise is installed
 $miseShimPath = "$env:USERPROFILE\AppData\Local\mise\shims"
@@ -42,51 +35,9 @@ if (Get-Command carapace -ErrorAction SilentlyContinue) {
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (zoxide init powershell | Out-String) })
 }
-{{- end }}
-
-# Chocolatey tab completion
-$ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-if (Test-Path($ChocolateyProfile)) {
-    Import-Module "$ChocolateyProfile"
-}
 
 # PowerToys CommandNotFound module
 if (Get-Module -ListAvailable -Name Microsoft.WinGet.CommandNotFound) {
     Import-Module -Name Microsoft.WinGet.CommandNotFound
 }
-
-{{- if .work }}
-
-# Work-specific functions
-
-# Sync WSL to Windows
-function sync-wsl {
-    & "$HOME\scripts\sync-wsl\sync-wsl.ps1"
-}
-
-# Sync and navigate to project
-function pw-setup {
-    Write-Host "`n=== SYNCING ===" -ForegroundColor Magenta
-    sync-wsl
-
-    if ($LASTEXITCODE -gt 3) {
-        Write-Host "Sync failed" -ForegroundColor Red
-        return
-    }
-
-    Write-Host "`n=== READY ===" -ForegroundColor Green
-    Set-Location C:\dev\AutomatedTesting
-}
-
-# View sync log
-function sync-log {
-    Get-Content "$HOME\sync-wsl.log.txt" -Tail 50
-}
-
-# View sync events
-function sync-events {
-    Get-EventLog -Source "Sync-WSL" -LogName Application -Newest 10 |
-        Format-Table TimeGenerated, Message -AutoSize
-}
-{{- end }}
 {{- end }}
