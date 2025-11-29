@@ -1,22 +1,16 @@
 {{- if .dev_computer -}}
-# PowerShell Profile for mise activation
+# PowerShell Profile for development environment
 
 # Add mise shims to PATH if mise is installed
 $miseShimPath = "$env:USERPROFILE\AppData\Local\mise\shims"
 if (Test-Path $miseShimPath) {
-    # Check if shims path is already in PATH
     $currentPath = $env:PATH -split ';'
     if ($miseShimPath -notin $currentPath) {
         $env:PATH = "$miseShimPath;$env:PATH"
     }
-    
-    # Initialize mise if available
+
     if (Get-Command mise -ErrorAction SilentlyContinue) {
-        # Activate mise for current session
-        Invoke-Expression (& mise activate powershell)
-        
-        # Enable mise completions
-        Invoke-Expression (& mise completion powershell)
+        mise activate pwsh | Out-String | Invoke-Expression
     }
 }
 
@@ -27,5 +21,23 @@ if (Test-Path $pnpmHome) {
     if ($pnpmHome -notin $currentPath) {
         $env:PATH = "$pnpmHome;$env:PATH"
     }
+}
+
+# Carapace - multi-shell completion engine
+if (Get-Command carapace -ErrorAction SilentlyContinue) {
+    $env:CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense'
+    Set-PSReadLineOption -Colors @{ "Selection" = "`e[7m" }
+    Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
+    carapace _carapace | Out-String | Invoke-Expression
+}
+
+# Zoxide - smarter cd command
+if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+    Invoke-Expression (& { (zoxide init powershell | Out-String) })
+}
+
+# PowerToys CommandNotFound module
+if (Get-Module -ListAvailable -Name Microsoft.WinGet.CommandNotFound) {
+    Import-Module -Name Microsoft.WinGet.CommandNotFound
 }
 {{- end }}
