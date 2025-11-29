@@ -1,3 +1,4 @@
+{{- if ne .chezmoi.os "windows" -}}
 #!/bin/bash
 
 set -eufo pipefail
@@ -11,15 +12,9 @@ echo "Installing Claude Code using native installer..."
 # This ensures chezmoi-managed installation takes precedence over external installations
 echo "Ensuring Claude Code is installed/updated to ~/.local/bin/claude..."
 
-{{- if eq .chezmoi.os "windows" }}
-# Windows PowerShell installation
-echo "Installing Claude Code for Windows via PowerShell..."
-powershell.exe -Command "irm https://claude.ai/install.ps1 | iex"
-{{- else }}
 # macOS, Linux, WSL installation
 echo "Installing Claude Code for Unix-like systems..."
 curl -fsSL https://claude.ai/install.sh | bash
-{{- end }}
 
 # Ensure ~/.local/bin is in PATH for the current session
 export PATH="$HOME/.local/bin:$PATH"
@@ -27,7 +22,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # Verify installation
 if command -v claude >/dev/null 2>&1; then
     echo "Claude Code installed successfully: $(claude --version)"
-    
+
     # Run claude doctor to check installation health
     echo "Running installation health check..."
     claude doctor || echo "Doctor check completed with warnings"
@@ -36,3 +31,4 @@ else
     echo "Please ensure ~/.local/bin is in your PATH"
     exit 1
 fi
+{{- end -}}

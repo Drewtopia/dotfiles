@@ -1,7 +1,7 @@
-{{ if (or .personal .work) -}}
+{{- if and (or .personal .work) (ne .chezmoi.os "windows") -}}
 #!/bin/bash
 
 set -eufo pipefail
 
 git -C "${CHEZMOI_WORKING_TREE}" remote set-url origin git@github.com:Drewtopia/dotfiles.git
-{{ end -}}
+{{- end -}}
