@@ -120,7 +120,7 @@
 
 [git]
     autoCommit = true
-    commitMessageTemplate = "{{ promptString \"Commit message\" }}"
+    commitMessageTemplate = {{ printf "%q" "{{ promptString `Commit message` }}" }}
 
 [diff]
     pager = "delta"
