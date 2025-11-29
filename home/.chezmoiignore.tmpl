@@ -32,12 +32,22 @@
 .config/windows_terminal
 Documents
 {{ else }}
+# Windows: Ignore Unix/Linux-specific files
 **/.DS_Store
 .bash_aliases
+.config/fzf-tab-completion
+.config/fzf-tab-completion/**
 .config/ghostty
 .config/git/cookies
+.config/shell
+.config/shell/**
 .config/tmux
+.config/tmux/**
+.config/zsh
+.config/zsh/**
 .inputrc
+.local/share/zinit
+.local/share/zinit/**
 .oh-my-zsh
 .oh-my-zsh/**
 .p10k.zsh
