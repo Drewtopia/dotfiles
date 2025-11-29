@@ -49,14 +49,17 @@ $scoopPackages = @(
     'ripgrep',
     'bat',
     'eza',
-    'git-delta',
+    'delta',
     'jq',
     'carapace-bin'
 )
 
+# Get list of installed packages once
+$installedPackages = scoop list 2>$null | ForEach-Object { $_.Name }
+
 Write-Host "[Install] Installing essential CLI tools via Scoop..." -ForegroundColor Blue
 foreach ($package in $scoopPackages) {
-    if (-not (Test-Command $package)) {
+    if ($package -notin $installedPackages) {
         Write-Host "Installing $package..." -ForegroundColor Cyan
         scoop install $package
     } else {
