@@ -1,0 +1,33 @@
+{{- if .dev_computer -}}
+[user]
+name = {{ .name | quote }}
+email = {{ .email | quote }}
+
+[ui]
+# Use delta for diffs (same as git config)
+diff-formatter = ["delta", "--dark", "--line-numbers"]
+pager = "delta"
+
+[git]
+# Auto-import git refs
+auto-local-bookmark = true
+
+[aliases]
+# Common shortcuts
+l = ["log", "-r", "@-10::@"]
+s = ["status"]
+d = ["diff"]
+c = ["commit"]
+n = ["new"]
+e = ["edit"]
+sq = ["squash"]
+# Show operation log (for undo)
+opl = ["op", "log"]
+# Undo last operation
+u = ["op", "undo"]
+
+[revset-aliases]
+# Useful revsets
+"trunk()" = 'latest(remote_bookmarks(exact:"origin/main") | remote_bookmarks(exact:"origin/master"))'
+"mine" = 'author(exact:"{{ .email }}")'
+{{- end }}
