@@ -97,6 +97,13 @@
     executable = true
     path = "./jj"
 
+[".local/bin/carapace"]
+    type = "archive-file"
+    url = {{ gitHubLatestReleaseAssetURL "carapace-sh/carapace-bin" "carapace-bin_linux_amd64.tar.gz" | quote }}
+    executable = true
+    path = "carapace"
+    refreshPeriod = "168h"
+
 {{- end }}
 
 {{- if and (not .ephemeral) (not .headless) }}
@@ -157,19 +164,6 @@
     exact = true
     stripComponents = 1
 
-[".oh-my-zsh/custom/plugins/zsh-pnpm-completions"]
-    type = "archive"
-    url = "https://github.com/michakfromparis/zsh-pnpm-completions/archive/master.tar.gz"
-    exact = true
-    stripComponents = 1
-    refreshPeriod = "168h"
-    exclude = [
-        "*/.gitattributes",
-        "*/.github",
-        "*/.gitignore",
-        "*/README.md",
-    ]
-
 [".config/tmux/plugins/tpm"]
     type = "archive"
     url = "https://github.com/tmux-plugins/tpm/archive/refs/heads/master.zip"
@@ -182,12 +176,6 @@
     url = "https://github.com/tmux-plugins/tmux-sensible/archive/refs/heads/master.zip"
     exact = true
     stripComponents = 1
-    refreshPeriod = "168h"
-
-# Universal fuzzy completion
-[".config/fzf-tab-completion"]
-    type = "git-repo"
-    url = "https://github.com/lincheney/fzf-tab-completion.git"
     refreshPeriod = "168h"
 
 # Zsh Plugin Manager

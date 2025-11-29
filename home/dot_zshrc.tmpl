@@ -101,31 +101,27 @@ plugins=()
 ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
 source "$ZINIT_HOME/zinit.zsh"
 
-# Load essential plugins via Zinit (only what truly needs advanced features)
-zinit light zsh-users/zsh-completions  # Large completion database benefits from Zinit caching
-zinit light Aloxaf/fzf-tab             # Complex integration needs Zinit features
+# Load essential plugins via Zinit
+zinit light Aloxaf/fzf-tab             # Fuzzy completion UI (works with carapace)
 zinit light zsh-users/zsh-syntax-highlighting  # Must be loaded last
 
-# Note: zsh-active-cheatsheet via .chezmoiexternal, other plugins via Zinit
+# Note: zsh-active-cheatsheet via .chezmoiexternal
 # Note: zsh-autosuggestions removed (redundant with atuin + fzf-tab)
-
-
-# Load custom plugins via Zinit
-{{- if lookPath "pnpm" }}
-zinit light michakfromparis/zsh-pnpm-completions
-{{- end }}
+# Note: zsh-completions removed (carapace replaces it)
 
 # Load Oh My Zsh plugins via Zinit snippets
 {{- range .zshPlugins }}
 zinit snippet OMZP::{{ . }}
 {{- end }}
 
-
-# Load completions
-autoload -Uz compinit && compinit
-
 # Load Oh My Zsh framework (minimal - no plugins)
+# This loads compinit which is required before carapace
 source $ZSH/oh-my-zsh.sh
+
+# Initialize carapace for completions (after oh-my-zsh loads compinit)
+export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
+zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
+source <(carapace _carapace)
 
 # Replay Zinit completions after Oh My Zsh loads
 zinit cdreplay -q
