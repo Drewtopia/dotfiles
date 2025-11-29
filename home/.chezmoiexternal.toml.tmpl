@@ -99,7 +99,7 @@
 
 [".local/bin/carapace"]
     type = "archive-file"
-    url = {{ gitHubLatestReleaseAssetURL "carapace-sh/carapace-bin" "carapace-bin_linux_amd64.tar.gz" | quote }}
+    url = {{ gitHubLatestReleaseAssetURL "carapace-sh/carapace-bin" "carapace-bin_*_linux_amd64.tar.gz" | quote }}
     executable = true
     path = "carapace"
     refreshPeriod = "168h"
