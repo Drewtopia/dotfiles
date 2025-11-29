@@ -6,6 +6,21 @@
 
 Write-Host "[Install] Installing Claude Code using native installer..." -ForegroundColor Green
 
+# Ensure ~/.local/bin is in user PATH
+$localBin = "$env:USERPROFILE\.local\bin"
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+
+if ($currentPath -notlike "*$localBin*") {
+    Write-Host "[Setup] Adding $localBin to user PATH..." -ForegroundColor Blue
+    $newPath = "$localBin;$currentPath"
+    [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+    # Also update current session
+    $env:Path = "$localBin;$env:Path"
+    Write-Host "[OK] Added $localBin to PATH" -ForegroundColor Green
+} else {
+    Write-Host "[OK] $localBin already in PATH" -ForegroundColor Green
+}
+
 # Windows PowerShell installation
 Write-Host "[Install] Installing Claude Code for Windows via PowerShell..." -ForegroundColor Blue
 try {
