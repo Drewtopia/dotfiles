@@ -6,18 +6,18 @@
 ## Navigation & Search Tools
 # fzf - fuzzy finder
 for fzf_path in "$HOME/.fzf/bin" "/opt/homebrew/bin" "$HOME/.local/bin" "/usr/local/bin"; do
-    if [[ -f "$fzf_path/fzf" ]]; then
-        path_add "$fzf_path"
-        break
-    fi
+	if [[ -f "$fzf_path/fzf" ]]; then
+		path_add "$fzf_path"
+		break
+	fi
 done
 
 # zoxide - smarter cd command
 for zoxide_path in "$HOME/.local/bin" "$HOME/.cargo/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
-    if [[ -f "$zoxide_path/zoxide" ]]; then
-        path_add "$zoxide_path"
-        break
-    fi
+	if [[ -f "$zoxide_path/zoxide" ]]; then
+		path_add "$zoxide_path"
+		break
+	fi
 done
 
 # atuin - shell history enhancement (if available)
@@ -25,18 +25,18 @@ done
 
 ## Shell Integration (only if tools are available)
 if command -v fzf >/dev/null 2>&1; then
-    [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
-    
-    # Universal fuzzy completion integration
-    if [[ -n ${ZSH_NAME} && -f "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh" ]]; then
-        source "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh"
-        # Enable for commands that don't have native completions
-        bindkey '^I' fzf_completion
-    fi
+	[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+
+	# Universal fuzzy completion integration
+	if [[ -n ${ZSH_NAME} && -f "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh" ]]; then
+		source "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh"
+		# Enable for commands that don't have native completions
+		bindkey '^I' fzf_completion
+	fi
 fi
 
 if command -v zoxide >/dev/null 2>&1; then
-        eval "$(zoxide init zsh)"
+	eval "$(zoxide init zsh)"
 fi
 
 # atuin - shell history enhancement
@@ -46,20 +46,29 @@ path_add "${HOME}/.atuin/bin"
 {{- end }}
 
 if command -v atuin >/dev/null 2>&1; then
-    if [[ -n ${ZSH_NAME} ]]; then
-        export ATUIN_NOBIND="true"
-        eval "$(atuin init zsh)"
-        bindkey '^r' _atuin_search_widget
-        bindkey '^[[A' atuin-up-search
-        bindkey '^[OA' atuin-up-search
-    elif [[ -n ${BASH} ]]; then
-        # shellcheck disable=SC1091
-        [[ -f ~/.bash-preexec.sh ]] && source "${HOME}/.bash-preexec.sh"
-        eval "$(atuin init bash)"
-        bind -x '"\C-r": __atuin_history'
-        bind -x '"\e[A": __atuin_history --shell-up-key-binding'
-        bind -x '"\eOA": __atuin_history --shell-up-key-binding'
-    fi
+	if [[ -n ${ZSH_NAME} ]]; then
+		export ATUIN_NOBIND="true"
+		eval "$(atuin init zsh)"
+		bindkey '^r' atuin-search
+		bindkey '^[[A' atuin-up-search
+		bindkey '^[OA' atuin-up-search
+	elif [[ -n ${BASH} ]]; then
+		# shellcheck disable=SC1091
+		[[ -f ~/.bash-preexec.sh ]] && source "${HOME}/.bash-preexec.sh"
+		eval "$(atuin init bash)"
+		bind -x '"\C-r": __atuin_history'
+		bind -x '"\e[A": __atuin_history --shell-up-key-binding'
+		bind -x '"\eOA": __atuin_history --shell-up-key-binding'
+	fi
+fi
+
+# fnox - secrets manager with shell integration
+if command -v fnox >/dev/null 2>&1; then
+	if [[ -n ${ZSH_NAME} ]]; then
+		eval "$(fnox activate zsh)"
+	elif [[ -n ${BASH} ]]; then
+		eval "$(fnox activate bash)"
+	fi
 fi
 
 # Starship removed - user preference
