@@ -16,9 +16,9 @@ backend = "ssh"
 key = "~/.ssh/id_rsa.pub"
 {{- end }}
 
-[git]
+[remotes.origin]
 # Auto-import git refs
-auto-local-bookmark = true
+auto-track-bookmarks = "glob:*"
 
 [aliases]
 # Common shortcuts
