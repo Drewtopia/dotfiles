@@ -26,9 +26,10 @@ Host github.com
 #  User twpay
 
 {{ if .work -}}
-# Host ssh.dev.azure.com
-#  IdentityFile ~/.ssh/id_rsa
-#  IdentitiesOnly yes
+# Azure DevOps doesn't support ed25519 yet
+Host ssh.dev.azure.com
+  IdentityFile ~/.ssh/id_rsa
+  IdentitiesOnly yes
 
 {{- if .is_wsl }}
 # Short alias for work WSL2 machine
