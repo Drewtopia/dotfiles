@@ -59,6 +59,7 @@ ready = ["log", "-r", "ready()"]
 wip = ["log", "-r", "wip()"]
 stale = ["log", "-r", "stale()"]
 recent = ["log", "-r", "recent()"]
+local = ["log", "-r", "local()"]
 
 [revset-aliases]
 "trunk()" = 'latest(remote_bookmarks(exact:"origin/main") | remote_bookmarks(exact:"origin/master"))'
