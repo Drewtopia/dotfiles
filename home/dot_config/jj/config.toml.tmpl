@@ -16,9 +16,15 @@ backend = "ssh"
 key = "~/.ssh/id_rsa.pub"
 {{- end }}
 
+[git]
+private-commits = "wip()"
+
 [remotes.origin]
-# Auto-import git refs
 auto-track-bookmarks = "glob:*"
+
+[template-aliases]
+# Shorter change IDs in log output
+'format_short_change_id(id)' = 'id.shortest()'
 
 [aliases]
 # Common shortcuts
@@ -29,13 +35,46 @@ c = ["commit"]
 n = ["new"]
 e = ["edit"]
 sq = ["squash"]
-# Show operation log (for undo)
+ci = ["commit", "--interactive"]
+si = ["squash", "--interactive"]
+
+# Operation log / undo
 opl = ["op", "log"]
-# Undo last operation
 u = ["op", "undo"]
 
+# Git operations
+pull = ["git", "fetch"]
+push = ["git", "push"]
+
+# Start new work from develop
+start = ["new", "develop()"]
+feat = ["new", "develop()", "-m"]
+
+# Bookmark management
+tug = ["bookmark", "move", "--from", "closest_bookmark(@-)", "--to", "@-"]
+nb = ["bookmark", "create", "-r", "@-"]
+
+# View helpers
+ready = ["log", "-r", "ready()"]
+wip = ["log", "-r", "wip()"]
+stale = ["log", "-r", "stale()"]
+recent = ["log", "-r", "recent()"]
+
 [revset-aliases]
-# Useful revsets
 "trunk()" = 'latest(remote_bookmarks(exact:"origin/main") | remote_bookmarks(exact:"origin/master"))'
+"develop()" = 'latest(remote_bookmarks(exact:"origin/develop"))'
 "mine" = 'author(exact:"{{ .email }}")'
-{{- end }}
+
+# Private/wip detection
+"wip()" = 'description(glob:"wip:*") | description(glob:"claude:*") | (empty() & mutable()) | description(exact:"")'
+"ready()" = "(mine & mutable()) ~ wip() ~ @"
+
+# For tug alias - find nearest bookmark
+"closest_bookmark(to)" = "heads(::to & bookmarks())"
+
+# Useful filters
+"stack()" = "ancestors(@, 2) & mutable()"
+"recent()" = 'committer_date(after:"1 month ago")'
+"local()" = "mine & mutable()"
+"stale()" = "mine & mutable() ~ descendants(trunk())"
+{{- end }} 
