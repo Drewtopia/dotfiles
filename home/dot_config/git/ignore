@@ -1,12 +1,26 @@
+# Editor/IDE
 .*.sw*
-*.pyc
-.DS_Store
-**/.DS_Store
-.Python
-.envrc
 .idea
+.vscode
+
+# OS
+.DS_Store
+
+# Python
+*.pyc
+.Python
+
+# Environment
+.envrc
+
+# VCS
 .jj
 .pc
 .svn
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Temp
 /tmp
-**/.claude/settings.local.json
