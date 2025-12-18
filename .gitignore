@@ -1,9 +1,6 @@
-**/.DS_Store
-.DS_Store
+# Repo-specific ignores (common patterns in ~/.config/git/ignore)
 home/dot_claude/*
 !home/dot_claude/settings.json
 !home/dot_claude/commands/
 !home/dot_claude/agents/
 !home/dot_claude/mcp.json
-.claude
-CLAUDE.md
