@@ -1,6 +1,6 @@
 {{- $name := "Andrew Cliff" -}}
 
-{{- $dev_computer := promptBoolOnce . "dev_computer" "Do you want development on this computer? (true/false)" -}}
+{{- $dev_computer := promptBoolOnce . "dev_computer" "Install dev tools on this machine?" -}}
 
 
 {{/* set up 1Password vaults */}}
@@ -57,11 +57,14 @@
 {{-     $personal = true -}}
 {{-     $opVault = "Private" -}}
 {{-   else if stdinIsATTY -}}
-{{-     $ephemeral = promptBoolOnce . "ephemeral" "Is this an ephemeral/work Windows machine? (true/false)" -}}
+{{-     $ephemeral = promptBoolOnce . "ephemeral" "Is this an ephemeral machine (no secrets)?" -}}
 {{-     if not $ephemeral -}}
-{{-       $personal = promptBoolOnce . "personal" "Is this your personal Windows machine? (true/false)" -}}
+{{-       $personal = promptBoolOnce . "personal" "Is this your personal machine?" -}}
 {{-       if $personal -}}
 {{-         $opVault = "Private" -}}
+{{-       else -}}
+{{-         $work = true -}}
+{{-         $opVault = "Employee" -}}
 {{-       end -}}
 {{-     end -}}
 {{-   else -}}
@@ -78,8 +81,17 @@
 {{-     $personal = false -}}
 {{-     $work = true -}}
 {{-   else if stdinIsATTY -}}
-{{-     $headless = promptBoolOnce . "headless" "headless" -}}
-{{-     $ephemeral = promptBoolOnce . "ephemeral" "ephemeral" -}}
+{{-     $ephemeral = promptBoolOnce . "ephemeral" "Is this an ephemeral machine (no secrets)?" -}}
+{{-     if not $ephemeral -}}
+{{-       $headless = promptBoolOnce . "headless" "Is this a headless server (no GUI)?" -}}
+{{-       $personal = promptBoolOnce . "personal" "Is this your personal machine?" -}}
+{{-       if $personal -}}
+{{-         $opVault = "Private" -}}
+{{-       else -}}
+{{-         $work = true -}}
+{{-         $opVault = "Employee" -}}
+{{-       end -}}
+{{-     end -}}
 {{-   else -}}
 {{-     $ephemeral = true -}}
 {{-     $headless = true -}}
