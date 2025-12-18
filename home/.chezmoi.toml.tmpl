@@ -122,7 +122,7 @@
     autoCommit = true
     commitMessageTemplate = {{ printf "%q" "{{ promptString `Commit message` }}" }}
 
-{{- if lookPath "delta" }}
+{{- if and (lookPath "delta") (ne .chezmoi.os "windows") }}
 [diff]
     pager = "delta"
 {{- end }}
