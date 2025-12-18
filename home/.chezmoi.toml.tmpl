@@ -72,14 +72,10 @@
 {{-   end -}}
 {{- end -}}
 
-{{- if not $ephemeral -}}
+{{- if and (not $ephemeral) (ne .chezmoi.os "windows") -}}
 {{-   if eq $hostname "andrews-macbook-pro" -}}
 {{-     $personal = true -}}
 {{-     $opVault = "Private" -}}
-{{-   else if eq $osID "linux-ubuntu" -}}
-{{-     $headless = true -}}
-{{-     $personal = false -}}
-{{-     $work = true -}}
 {{-   else if stdinIsATTY -}}
 {{-     $ephemeral = promptBoolOnce . "ephemeral" "Is this an ephemeral machine (no secrets)?" -}}
 {{-     if not $ephemeral -}}
