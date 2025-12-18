@@ -1,6 +1,6 @@
 {{- /* Only generate SSH key if 1Password is available and authenticated */ -}}
 {{- if and (lookPath "op") (.work) -}}
-{{-   onepasswordRead "op://Employee/SSH Key/private key" -}}
+{{-   onepasswordRead "op://Employee/SSH Key - RSA/private key" -}}
 {{- else if and (lookPath "op") (.personal) -}}
 {{-   onepasswordRead "op://Private/SSH Key - RSA/private key" -}}
 {{- else -}}
