@@ -112,9 +112,8 @@
 {{-     $fontDir = "Library/Fonts" }}
 {{-   else if eq .chezmoi.os "linux" }}
 {{-     $fontDir = ".local/share/fonts" }}
-{{-   else if eq .chezmoi.os "windows" }}
-{{-     $fontDir = "AppData/Local/Microsoft/Windows/Fonts" }}
 {{-   end }}
+{{- /* Windows: fonts installed via Scoop in run_onchange_before_01-install-scoop.ps1 */ -}}
 {{-   if ne $fontDir "" }}
 {{-   range (list
         "MesloLGS NF Regular.ttf"
