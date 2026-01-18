@@ -37,6 +37,13 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
 }
 
 # Atuin - shell history (requires atuin 18.11+)
+$atuinPath = "$env:USERPROFILE\.atuin\bin"
+if (Test-Path $atuinPath) {
+    $currentPath = $env:PATH -split ';'
+    if ($atuinPath -notin $currentPath) {
+        $env:PATH = "$atuinPath;$env:PATH"
+    }
+}
 if (Get-Command atuin -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (atuin init powershell | Out-String) })
 }
