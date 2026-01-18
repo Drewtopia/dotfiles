@@ -23,21 +23,7 @@ if (-not (Test-Command mise)) {
     Write-Host "[OK] Mise already installed" -ForegroundColor Green
 }
 
-# Atuin (shell history replacement)
-if (-not (Test-Command atuin)) {
-    Write-Host "[Install] Installing Atuin..." -ForegroundColor Blue
-    try {
-        $env:ATUIN_NO_MODIFY_PATH = "1"
-        irm https://setup.atuin.sh | iex
-        Write-Host "[OK] Atuin installed successfully" -ForegroundColor Green
-    } catch {
-        Write-Host "[WARN] Atuin installation failed: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "[OK] Atuin already installed" -ForegroundColor Green
-}
-
-# Install development tools via mise (from config.toml)
+# Install development tools via mise (including atuin)
 if (Test-Command mise) {
     Write-Host "[Install] Installing development tools via mise..." -ForegroundColor Blue
     try {
