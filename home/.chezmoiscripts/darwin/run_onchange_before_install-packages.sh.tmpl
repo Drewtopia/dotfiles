@@ -4,6 +4,7 @@ set -eufo pipefail
 
 {{ $brews := list
     "age"
+    "atuin"
     "bat"
     "btop"
     "carapace"
@@ -125,7 +126,7 @@ curl https://mise.run | sh || {
 # Add mise to PATH for this session
 export PATH="$HOME/.local/bin:$PATH"
 
-# Install development tools via mise (including atuin)
+# Install development tools via mise
 echo "📦 Installing development tools via mise..."
 mise install 2>/dev/null || echo "⚠️  Some mise tools failed to install"
 

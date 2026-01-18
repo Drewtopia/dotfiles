@@ -23,7 +23,7 @@ if (-not (Test-Command mise)) {
     Write-Host "[OK] Mise already installed" -ForegroundColor Green
 }
 
-# Install development tools via mise (including atuin)
+# Install development tools via mise
 if (Test-Command mise) {
     Write-Host "[Install] Installing development tools via mise..." -ForegroundColor Blue
     try {
