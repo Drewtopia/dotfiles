@@ -36,6 +36,19 @@ if (Test-Command mise) {
     Write-Host "[ERROR] Mise not found - cannot install development tools" -ForegroundColor Red
 }
 
+# Atuin (shell history) - install via official PowerShell installer
+Write-Host "[Install] Installing/updating Atuin..." -ForegroundColor Blue
+try {
+    # Get latest release version from GitHub API
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/atuinsh/atuin/releases/latest"
+    $version = $release.tag_name
+    $installerUrl = "https://github.com/atuinsh/atuin/releases/download/$version/atuin-installer.ps1"
+    Invoke-RestMethod -Uri $installerUrl | Invoke-Expression
+    Write-Host "[OK] Atuin installed successfully" -ForegroundColor Green
+} catch {
+    Write-Host "[WARN] Atuin installation failed: $($_.Exception.Message)" -ForegroundColor Yellow
+}
+
 Write-Host "[OK] Windows development tools installation completed!" -ForegroundColor Green
 {{- else }}
 Write-Host "[Skip] Skipping development tools installation (not a dev computer)" -ForegroundColor Yellow
