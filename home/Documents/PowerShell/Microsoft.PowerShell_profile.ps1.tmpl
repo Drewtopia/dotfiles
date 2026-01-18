@@ -36,6 +36,11 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (zoxide init powershell | Out-String) })
 }
 
+# Atuin - shell history (requires atuin 18.11+)
+if (Get-Command atuin -ErrorAction SilentlyContinue) {
+    Invoke-Expression (& { (atuin init powershell | Out-String) })
+}
+
 # PowerToys CommandNotFound module
 if (Get-Module -ListAvailable -Name Microsoft.WinGet.CommandNotFound) {
     Import-Module -Name Microsoft.WinGet.CommandNotFound
