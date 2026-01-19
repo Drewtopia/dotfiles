@@ -182,3 +182,34 @@
     type = "git-repo"
     url = "https://github.com/zdharma-continuum/zinit.git"
     refreshPeriod = "168h"
+
+# Claude Code - Hooks from claude-code-mastery
+[".claude/hooks"]
+    type = "archive"
+    url = "https://github.com/TheDecipherist/claude-code-mastery/archive/main.tar.gz"
+    stripComponents = 2
+    include = ["*/hooks/*"]
+    refreshPeriod = "168h"
+
+# Claude Code - Skills from claude-code-mastery (security-audit, commit-messages)
+[".claude/skills"]
+    type = "archive"
+    url = "https://github.com/TheDecipherist/claude-code-mastery/archive/main.tar.gz"
+    stripComponents = 2
+    include = ["*/skills/**"]
+    refreshPeriod = "168h"
+
+# Claude Code - JJ skills from edmundmiller/dotfiles (merges into skills/)
+[".claude/skills/jj-history-investigation"]
+    type = "archive"
+    url = "https://github.com/edmundmiller/dotfiles/archive/main.tar.gz"
+    stripComponents = 4
+    include = ["*/.claude/skills/jj-history-investigation/**"]
+    refreshPeriod = "168h"
+
+[".claude/skills/using-jj-workspaces"]
+    type = "archive"
+    url = "https://github.com/edmundmiller/dotfiles/archive/main.tar.gz"
+    stripComponents = 4
+    include = ["*/.claude/skills/using-jj-workspaces/**"]
+    refreshPeriod = "168h"
