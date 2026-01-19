@@ -1,0 +1,197 @@
+# Global CLAUDE.md
+
+This file applies to ALL your projects. Define your identity, security rules, and scaffolding standards once.
+
+## Identity & Accounts
+
+- **GitHub**: {{ .github.username }} (SSH: `git@github.com:{{ .github.username }}/<repo>.git`)
+- **Version Control**: jj (Jujutsu) preferred
+- **Tooling**: mise for runtime management
+
+---
+
+## NEVER EVER DO (Security Gatekeeper)
+
+These rules are **ABSOLUTE**. No exceptions.
+
+### NEVER Publish Sensitive Data
+- NEVER commit passwords, API keys, tokens to git/npm/docker
+- NEVER hardcode credentials in source files
+- NEVER include secrets in error messages or logs
+
+### NEVER Commit .env Files
+- NEVER commit `.env` to git
+- ALWAYS verify `.env` is in `.gitignore`
+- ALWAYS use `.env.example` with placeholder values
+
+### NEVER Skip Verification
+- Before ANY commit: verify no secrets included
+- Before ANY push: check staged files for sensitive data
+- Before ANY publish: audit package contents
+
+---
+
+## New Project Setup (Scaffolding Rules)
+
+When creating ANY new project, ALWAYS do the following:
+
+### 1. Required Files (Create Immediately)
+
+| File | Purpose | Notes |
+|------|---------|-------|
+| `.env` | Environment variables | NEVER commit |
+| `.env.example` | Template with placeholders | Commit this |
+| `.gitignore` | Ignore patterns | Must include .env |
+| `.dockerignore` | Docker ignore patterns | Mirror .gitignore |
+| `README.md` | Project overview | Reference env vars, don't hardcode |
+| `CLAUDE.md` | Project instructions | Required sections below |
+
+### 2. Required Directory Structure
+
+```
+project-root/
+├── src/               # Source code
+├── tests/             # Test files
+├── docs/              # Documentation
+├── .claude/           # Claude configuration
+│   ├── commands/      # Custom slash commands
+│   ├── skills/        # Project-specific skills
+│   └── settings.json  # Project settings
+└── scripts/           # Build/deploy scripts
+```
+
+### 3. Required .gitignore Entries
+
+```gitignore
+# Environment
+.env
+.env.*
+.env.local
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+__pycache__/
+.venv/
+target/
+
+# Build outputs
+dist/
+build/
+.next/
+*.pyc
+
+# Claude local files
+.claude/settings.local.json
+CLAUDE.local.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+```
+
+### 4. Required CLAUDE.md Sections
+
+Every project `CLAUDE.md` must include:
+
+```markdown
+# Project Name
+
+## Overview
+[What this project does]
+
+## Tech Stack
+- Language: [e.g., TypeScript]
+- Framework: [e.g., Next.js]
+- Database: [e.g., PostgreSQL]
+
+## Commands
+- `npm run dev` — Start development server
+- `npm run build` — Build for production
+- `npm test` — Run tests
+- `npm run lint` — Check code style
+
+## Architecture
+[High-level overview of the codebase structure]
+
+## Environment Variables
+[List required env vars WITHOUT values]
+```
+
+---
+
+## Framework-Specific Rules
+
+### Node.js Projects
+- Add error handlers to entry point
+- Use TypeScript strict mode
+- Configure ESLint + Prettier
+- Prefer pnpm
+
+### Python Projects
+- Create `pyproject.toml` (not setup.py)
+- Use `src/` layout
+- Include `requirements.txt` AND `requirements-dev.txt`
+- Configure Ruff for linting
+
+### Rust Projects
+- Run `cargo fmt` before commits
+- Run `cargo clippy` for linting
+- Keep `Cargo.lock` in version control for binaries
+
+### Go Projects
+- Run `gofmt` before commits
+- Run `go vet` and `staticcheck`
+- Follow standard Go project layout
+
+### Docker Projects
+- Multi-stage builds ALWAYS
+- Never run as root
+- Include health checks
+- `.dockerignore` must include `.git/`
+
+---
+
+## Quality Gates
+
+### File Size Limits
+- No file > 300 lines (split if larger)
+- No function > 50 lines
+
+### Required Before Commit
+- [ ] All tests pass
+- [ ] TypeScript compiles with no errors
+- [ ] Linter passes with no warnings
+- [ ] No secrets in staged files
+
+### CI/CD Requirements
+- GitHub Actions workflow for CI
+- Pre-commit hooks via Husky (Node.js) or pre-commit (Python)
+
+---
+
+## Global Skills
+
+Available in `~/.claude/skills/`:
+
+| Skill | Purpose |
+|-------|---------|
+| `security-audit` | Scan for vulnerabilities |
+| `jj-history-investigation` | Split commits, handle immutability, clean history |
+| `using-jj-workspaces` | Parallel development with jj workspaces |
+
+## Global Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/commit` | Generate conventional commit message |
+
+---
+
+*Last updated: 2025-01-19*
