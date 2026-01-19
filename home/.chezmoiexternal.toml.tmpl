@@ -191,15 +191,22 @@
     include = ["*/hooks/*"]
     refreshPeriod = "168h"
 
-# Claude Code - Skills from claude-code-mastery (security-audit, commit-messages)
-[".claude/skills"]
+# Claude Code - Skills from claude-code-mastery
+[".claude/skills/commit-messages"]
     type = "archive"
     url = "https://github.com/TheDecipherist/claude-code-mastery/archive/main.tar.gz"
-    stripComponents = 2
-    include = ["*/skills/**"]
+    stripComponents = 3
+    include = ["*/skills/commit-messages/**"]
     refreshPeriod = "168h"
 
-# Claude Code - JJ skills from edmundmiller/dotfiles (merges into skills/)
+[".claude/skills/security-audit"]
+    type = "archive"
+    url = "https://github.com/TheDecipherist/claude-code-mastery/archive/main.tar.gz"
+    stripComponents = 3
+    include = ["*/skills/security-audit/**"]
+    refreshPeriod = "168h"
+
+# Claude Code - JJ skills from edmundmiller/dotfiles
 [".claude/skills/jj-history-investigation"]
     type = "archive"
     url = "https://github.com/edmundmiller/dotfiles/archive/main.tar.gz"
