@@ -38,7 +38,7 @@ set -eufo pipefail
     "zoxide" -}}
 {{- /* Node.js back to homebrew due to mise GPG issues */ -}}
 {{ $casks := list
-	"1password"
+	"1password@nightly"
     "1password-cli"
     "applite"
 	"arc"
@@ -84,22 +84,16 @@ set -eufo pipefail
     "spotify"
     "soundsource"
     "syntax-highlight"
-    "tailscale"
+    "tailscale-app"
     "telegram"
     "transmission"
     "unclack"
     "visual-studio-code"
     "vlc"
     "wezterm"
-    "zen-browser"
-    "qlcolorcode"
+    "zen"
     "qlmarkdown"
-    "qlprettypatch"
-    "qlstephen"
-    "qlvideo"
-    "quicklook-csv"
-    "quicklook-json"
-    "webpquicklook" -}}
+    "qlvideo" -}}
 
 echo "🍎 Installing system packages via Homebrew..."
 
