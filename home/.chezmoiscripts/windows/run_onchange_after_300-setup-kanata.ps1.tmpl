@@ -1,0 +1,68 @@
+{{- if eq .chezmoi.os "windows" -}}
+#!/usr/bin/env pwsh
+
+# Setup Kanata on Windows
+# hash: {{ include "dot_config/kanata/kanata.kbd" | sha256sum }}
+#
+# Windows doesn't need a special driver - kanata uses native Windows hooks.
+# This script creates a scheduled task to run kanata at login.
+
+Write-Host "[Windows] Setting up Kanata..." -ForegroundColor Green
+
+$kanataPath = (Get-Command kanata -ErrorAction SilentlyContinue).Source
+$configPath = "{{ .chezmoi.homeDir }}\.config\kanata\kanata.kbd"
+$taskName = "Kanata"
+
+# Check if kanata is installed
+if (-not $kanataPath) {
+    Write-Host "[WARN] Kanata not installed, skipping setup" -ForegroundColor Yellow
+    Write-Host "       Install with: scoop install kanata" -ForegroundColor Yellow
+    exit 0
+}
+
+# Check if config exists
+if (-not (Test-Path $configPath)) {
+    Write-Host "[WARN] Kanata config not found at $configPath" -ForegroundColor Yellow
+    exit 0
+}
+
+Write-Host "[Info] Kanata binary: $kanataPath" -ForegroundColor Cyan
+Write-Host "[Info] Config file: $configPath" -ForegroundColor Cyan
+
+# Remove existing scheduled task if it exists
+$existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+if ($existingTask) {
+    Write-Host "[Info] Removing existing Kanata task..." -ForegroundColor Cyan
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+}
+
+# Create the scheduled task
+Write-Host "[Install] Creating Kanata startup task..." -ForegroundColor Blue
+
+$action = New-ScheduledTaskAction -Execute $kanataPath -Argument "--cfg `"$configPath`""
+$trigger = New-ScheduledTaskTrigger -AtLogon
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+
+try {
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+    Write-Host "[OK] Kanata scheduled task created" -ForegroundColor Green
+} catch {
+    Write-Host "[ERROR] Failed to create scheduled task: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}
+
+# Start kanata now
+Write-Host "[Info] Starting Kanata..." -ForegroundColor Cyan
+Start-ScheduledTask -TaskName $taskName
+
+Write-Host ""
+Write-Host "[OK] Kanata setup complete!" -ForegroundColor Green
+Write-Host ""
+Write-Host "   Commands:" -ForegroundColor Cyan
+Write-Host "   - Check status: Get-ScheduledTask -TaskName Kanata"
+Write-Host "   - Start:        Start-ScheduledTask -TaskName Kanata"
+Write-Host "   - Stop:         Stop-ScheduledTask -TaskName Kanata"
+Write-Host "   - Restart:      Stop-ScheduledTask -TaskName Kanata; Start-ScheduledTask -TaskName Kanata"
+Write-Host ""
+{{- end }}

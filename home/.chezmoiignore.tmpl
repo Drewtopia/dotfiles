@@ -16,6 +16,12 @@
 .hammerspoon
 .config/iterm
 .Brewfile
+Library
+{{ end }}
+
+# Ignore kanata on Linux only (works on macOS and Windows)
+{{ if eq .chezmoi.os "linux" }}
+.config/kanata
 {{ end }}
 
 # Ignore non-Linux files.

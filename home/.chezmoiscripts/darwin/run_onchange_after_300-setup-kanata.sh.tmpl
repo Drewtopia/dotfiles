@@ -1,0 +1,230 @@
+#!/bin/bash
+# Setup Kanata with Karabiner VirtualHIDDevice driver on macOS
+# hash: {{ include "dot_config/kanata/kanata.kbd" | sha256sum }}
+#
+# This script:
+# 1. Installs Karabiner-DriverKit-VirtualHIDDevice (just the driver, not full Karabiner-Elements)
+# 2. Creates LaunchDaemons for the driver services
+# 3. Creates LaunchDaemon for Kanata
+#
+# Manual steps still required (macOS security):
+# - Approve System Extension in System Settings → Privacy & Security
+# - May require reboot after first install
+
+set -euo pipefail
+
+KANATA_BIN="/opt/homebrew/bin/kanata"
+KANATA_CFG="{{ .chezmoi.homeDir }}/.config/kanata/kanata.kbd"
+KANATA_LOG="/tmp/kanata.log"
+
+DRIVER_DAEMON="/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Daemon"
+DRIVER_MANAGER="/Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager"
+
+PLIST_DIR="/Library/LaunchDaemons"
+DAEMON_PLIST="$PLIST_DIR/com.chezmoi.karabiner-vhid-daemon.plist"
+MANAGER_PLIST="$PLIST_DIR/com.chezmoi.karabiner-vhid-manager.plist"
+KANATA_PLIST="$PLIST_DIR/com.chezmoi.kanata.plist"
+
+# Check if kanata is installed
+if [[ ! -x "$KANATA_BIN" ]]; then
+    echo "⚠️  Kanata not installed, skipping setup"
+    echo "   Install with: brew install kanata"
+    exit 0
+fi
+
+# Check if config exists
+if [[ ! -f "$KANATA_CFG" ]]; then
+    echo "⚠️  Kanata config not found at $KANATA_CFG"
+    exit 0
+fi
+
+echo "🎹 Setting up Kanata..."
+
+# =============================================================================
+# Step 1: Install Karabiner-DriverKit-VirtualHIDDevice if not present
+# =============================================================================
+if [[ ! -f "$DRIVER_MANAGER" ]]; then
+    echo "📦 Installing Karabiner-DriverKit-VirtualHIDDevice..."
+
+    # Get latest release URL
+    DRIVER_URL=$(curl -s "https://api.github.com/repos/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/latest" \
+        | grep -o '"browser_download_url": "[^"]*\.pkg"' \
+        | cut -d'"' -f4)
+
+    if [[ -z "$DRIVER_URL" ]]; then
+        echo "❌ Failed to get driver download URL"
+        exit 1
+    fi
+
+    echo "   Downloading from: $DRIVER_URL"
+    curl -L -o /tmp/karabiner-driverkit.pkg "$DRIVER_URL"
+
+    echo "   Installing driver (requires sudo)..."
+    sudo installer -pkg /tmp/karabiner-driverkit.pkg -target /
+    rm /tmp/karabiner-driverkit.pkg
+
+    echo ""
+    echo "   ⚠️  IMPORTANT: You need to approve the System Extension"
+    echo ""
+    read -p "   Press Enter to open System Settings → Privacy & Security..."
+    open "x-apple.systempreferences:com.apple.preference.security?Privacy"
+    echo ""
+    echo "   Look for 'System software from Fumihiko Takayama was blocked'"
+    echo "   Click 'Allow' to enable the Karabiner driver"
+    echo ""
+    read -p "   Press Enter after you've approved the extension..."
+fi
+
+# Check driver is now installed
+if [[ ! -f "$DRIVER_DAEMON" ]]; then
+    echo "❌ Driver daemon not found after install"
+    echo "   Expected: $DRIVER_DAEMON"
+    exit 1
+fi
+
+# =============================================================================
+# Step 2: Create LaunchDaemons
+# =============================================================================
+
+create_plist() {
+    local plist_path="$1"
+    local label="$2"
+    local program="$3"
+    local args="${4:-}"
+    local keep_alive="${5:-false}"
+    local log_path="${6:-}"
+
+    echo "   Creating $label..."
+
+    # Build plist content
+    local plist='<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>'"$label"'</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>'"$program"'</string>'
+
+    # Add arguments if provided
+    if [[ -n "$args" ]]; then
+        for arg in $args; do
+            plist+='
+        <string>'"$arg"'</string>'
+        done
+    fi
+
+    plist+='
+    </array>
+    <key>RunAtLoad</key>
+    <true/>'
+
+    if [[ "$keep_alive" == "true" ]]; then
+        plist+='
+    <key>KeepAlive</key>
+    <true/>'
+    fi
+
+    if [[ -n "$log_path" ]]; then
+        plist+='
+    <key>StandardOutPath</key>
+    <string>'"$log_path"'</string>
+    <key>StandardErrorPath</key>
+    <string>'"$log_path"'</string>'
+    fi
+
+    plist+='
+</dict>
+</plist>'
+
+    # Write plist
+    echo "$plist" | sudo tee "$plist_path" > /dev/null
+    sudo chown root:wheel "$plist_path"
+    sudo chmod 644 "$plist_path"
+}
+
+load_service() {
+    local plist_path="$1"
+    local label="$2"
+
+    # Unload if already loaded
+    sudo launchctl bootout system "$plist_path" 2>/dev/null || true
+
+    # Load and enable
+    sudo launchctl bootstrap system "$plist_path"
+    sudo launchctl enable "system/$label"
+}
+
+# Clean up old plists from previous attempts
+for old_plist in \
+    "/Library/LaunchDaemons/com.github.jtroo.kanata.plist" \
+    ; do
+    if [[ -f "$old_plist" ]]; then
+        echo "   Cleaning up old plist: $old_plist"
+        sudo launchctl bootout system "$old_plist" 2>/dev/null || true
+        sudo rm -f "$old_plist"
+    fi
+done
+
+# 1. Karabiner VirtualHIDDevice Daemon
+create_plist "$DAEMON_PLIST" \
+    "com.chezmoi.karabiner-vhid-daemon" \
+    "$DRIVER_DAEMON" \
+    "" \
+    "true"
+
+load_service "$DAEMON_PLIST" "com.chezmoi.karabiner-vhid-daemon"
+sleep 2
+
+# 2. Karabiner VirtualHIDDevice Manager (activates the driver)
+create_plist "$MANAGER_PLIST" \
+    "com.chezmoi.karabiner-vhid-manager" \
+    "$DRIVER_MANAGER" \
+    "activate"
+
+load_service "$MANAGER_PLIST" "com.chezmoi.karabiner-vhid-manager"
+sleep 3
+
+# 3. Kanata
+create_plist "$KANATA_PLIST" \
+    "com.chezmoi.kanata" \
+    "$KANATA_BIN" \
+    "--cfg $KANATA_CFG" \
+    "true" \
+    "$KANATA_LOG"
+
+load_service "$KANATA_PLIST" "com.chezmoi.kanata"
+
+# =============================================================================
+# Step 3: Prompt for Input Monitoring permission (if needed)
+# =============================================================================
+echo ""
+echo "📋 Kanata needs Input Monitoring permission to intercept keyboard input"
+echo ""
+read -p "   Press Enter to open System Settings → Input Monitoring..."
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
+# Get the actual binary path (not the symlink)
+KANATA_REAL_BIN=$(readlink -f "$KANATA_BIN" 2>/dev/null || realpath "$KANATA_BIN" 2>/dev/null || echo "$KANATA_BIN")
+echo ""
+echo "   Click '+', press Cmd+Shift+G, and paste:"
+echo "   $KANATA_REAL_BIN"
+echo ""
+read -p "   Press Enter after you've added kanata to Input Monitoring..."
+
+echo ""
+echo "✅ Kanata setup complete!"
+echo ""
+echo "   Services:"
+echo "   - com.chezmoi.karabiner-vhid-daemon"
+echo "   - com.chezmoi.karabiner-vhid-manager"
+echo "   - com.chezmoi.kanata"
+echo ""
+echo "   Check logs: tail -f $KANATA_LOG"
+echo "   Restart:    sudo launchctl kickstart -k system/com.chezmoi.kanata"
+echo ""
+echo "   If kanata fails with 'driver not activated':"
+echo "   1. Open System Settings → Privacy & Security"
+echo "   2. Approve the Karabiner system extension"
+echo "   3. Reboot"
+echo "   4. Run: chezmoi apply"

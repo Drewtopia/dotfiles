@@ -1,0 +1,219 @@
+;; Kanata configuration for macOS (MacBook keyboard)
+;; ================================================
+;;
+;; Features:
+;; - Caps Lock: tap = Escape, hold = Hyper (Ctrl+Shift+Alt+Cmd)
+;; - Right Option: tap = Option, hold = Meh (Ctrl+Shift+Alt)
+;; - Both Cmd keys together = F18
+;; - Home row mods (A=Ctrl, S=Alt, D=Cmd, F=Shift / J=Shift, K=Cmd, L=Alt, ;=Ctrl)
+;; - Space (hold) = Symbols layer
+;; - Return (hold) = Navigation layer
+;; - Tab (hold) = Apps layer
+;;
+;; Layer switching:
+;;   Hold Space  → Symbols (!@#$%^&*() on home row)
+;;   Hold Return → Navigation (arrows, page up/down)
+;;   Hold Tab    → Apps (quick launch)
+
+(defcfg
+  ;; macOS requires the Karabiner VirtualHIDDevice driver
+  ;; Exclude external keyboards (like Voyager) by name:
+  ;; macos-dev-names-exclude (
+  ;;   "ZSA Technology Labs Voyager"
+  ;; )
+
+  process-unmapped-keys yes
+  concurrent-tap-hold yes
+  log-layer-changes no
+
+  ;; Enable shell commands (needed for app launching with `open -a`)
+  ;; Note: Homebrew kanata is compiled without cmd support, so this is ignored
+  danger-enable-cmd yes
+
+  ;; Emergency exit is hardcoded to: lctl+spc+esc (physical keys, before remapping)
+  ;; On your keyboard: hold physical Ctrl + Space + Esc
+)
+
+;; ============================================================
+;; Timing Variables - adjust these to tune tap vs hold feel
+;; ============================================================
+(defvar
+  tap-time 200      ;; Max time (ms) for a tap
+  hold-time 200     ;; Min time (ms) to trigger hold
+  chord-time 80     ;; Window (ms) for chord detection
+
+  ;; Separate timing for home row mods (can be more forgiving)
+  hrm-tap 200
+  hrm-hold 200
+)
+
+;; ============================================================
+;; Aliases - reusable key behaviors
+;; ============================================================
+(defalias
+  ;; ----- Hyper & Meh (Voyager compatibility) -----
+  hyp (tap-hold $tap-time $hold-time esc (multi lctl lsft lalt lmet))
+  meh (tap-hold $tap-time $hold-time ralt (multi lctl lsft lalt))
+
+  ;; ----- Home Row Mods (left hand) -----
+  hm-a (tap-hold $hrm-tap $hrm-hold a lctl)
+  hm-s (tap-hold $hrm-tap $hrm-hold s lalt)
+  hm-d (tap-hold $hrm-tap $hrm-hold d lmet)
+  hm-f (tap-hold $hrm-tap $hrm-hold f lsft)
+
+  ;; ----- Home Row Mods (right hand) -----
+  hm-j (tap-hold $hrm-tap $hrm-hold j rsft)
+  hm-k (tap-hold $hrm-tap $hrm-hold k rmet)
+  hm-l (tap-hold $hrm-tap $hrm-hold l ralt)
+  hm-; (tap-hold $hrm-tap $hrm-hold ; rctl)
+
+  ;; ----- Layer Access -----
+  spc-sym (tap-hold $tap-time $hold-time spc (layer-while-held symbols))
+  ret-nav (tap-hold $tap-time $hold-time ret (layer-while-held navigation))
+  tab-app (tap-hold $tap-time $hold-time tab (layer-while-held apps))
+)
+
+;; ============================================================
+;; Source Layout - MacBook keyboard
+;; ============================================================
+(defsrc
+  esc   f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
+  grv   1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  tab   q    w    e    r    t    y    u    i    o    p    [    ]    \
+  caps  a    s    d    f    g    h    j    k    l    ;    '    ret
+  lsft  z    x    c    v    b    n    m    ,    .    /    rsft up
+  fn    lctl lalt lmet           spc            rmet ralt left down rght
+)
+
+;; ============================================================
+;; Base Layer
+;; ============================================================
+(deflayer base
+  esc   f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
+  grv   1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  @tab-app q w  e    r    t    y    u    i    o    p    [    ]    \
+  @hyp  @hm-a @hm-s @hm-d @hm-f g  h  @hm-j @hm-k @hm-l @hm-; '  @ret-nav
+  lsft  z    x    c    v    b    n    m    ,    .    /    rsft up
+  fn    lctl lalt lmet         @spc-sym         rmet @meh left down rght
+)
+
+;; ============================================================
+;; Symbols Layer (hold Space)
+;; Numbers on home row, symbols above
+;; ============================================================
+(deflayer symbols
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  _     S-1  S-2  S-3  S-4  S-5  S-6  S-7  S-8  S-9  S-0  _    _    _
+  _     1    2    3    4    5    6    7    8    9    0    _    _
+  _     grv  S-grv S-[ S-]  S-\  -    =    S--  S-=  \    _    _
+  _     _    _    _              _              _    _    _    _    _
+)
+;; Left home:  1 2 3 4 5     Right home: 6 7 8 9 0
+;; Top row:    ! @ # $ %                 ^ & * ( )
+;; Bottom:     ` ~ { } |                 - = _ + \
+
+;; ============================================================
+;; Navigation Layer (hold Return)
+;; Arrows on HJKL, page/home/end nearby
+;; ============================================================
+(deflayer navigation
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    del
+  _     _    _    _    _    _    home pgup up   pgdn _    _    _    _
+  _     _    _    _    _    _    end  left down rght _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _              _              _    _    _    _    _
+)
+;; YUIO row: Home PgUp ↑ PgDn
+;; HJKL row: End  ←    ↓ →
+;; Backspace becomes Delete
+
+;; ============================================================
+;; Apps Layer (hold Tab)
+;; Quick launch frequently used apps
+;;
+;; HOW TO ADD APPS:
+;; 1. Create an alias in the "App Aliases" section below:
+;;      app-name (cmd open -a "App Name")
+;;
+;;    Examples:
+;;      arc   (cmd open -a "Arc")
+;;      ghost (cmd open -a "Ghostty")
+;;      spotify (cmd open -a "Spotify")
+;;      vscode (cmd open -a "Visual Studio Code")
+;;      finder (cmd open -a "Finder")
+;;
+;;    For apps with spaces, use quotes:
+;;      word (cmd open -a "Microsoft Word")
+;;
+;; 2. Add @alias-name to the apps layer below on the key you want:
+;;      Replace _ with @arc to launch Arc when Tab+A is pressed
+;;
+;; TIP: Use the first letter of the app as the key (A=Arc, G=Ghostty, etc.)
+;; ============================================================
+(deflayer apps
+  ;;    f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  ;;    1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  ;;    q    w    e    r    t    y    u    i    o    p    [    ]    \
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  ;;    a    s    d    f    g    h    j    k    l    ;    '    ret
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  ;;    z    x    c    v    b    n    m    ,    .    /    rsft up
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  ;;    lctl lalt lmet      spc            rmet ralt left down rght
+  _     _    _    _              _              _    _    _    _    _
+)
+
+;; ============================================================
+;; App Aliases
+;; Add your apps here using:  name (cmd open -a "App Name")
+;; ============================================================
+(defalias
+  ;; ----- Example apps (uncomment and modify as needed) -----
+  ;;
+  ;; arc     (cmd open -a "Arc")
+  ;; brave   (cmd open -a "Brave Browser")
+  ;; chrome  (cmd open -a "Google Chrome")
+  ;; discord (cmd open -a "Discord")
+  ;; finder  (cmd open -a "Finder")
+  ;; ghost   (cmd open -a "Ghostty")
+  ;; mail    (cmd open -a "Mail")
+  ;; music   (cmd open -a "Music")
+  ;; notes   (cmd open -a "Notes")
+  ;; obsdn   (cmd open -a "Obsidian")
+  ;; safari  (cmd open -a "Safari")
+  ;; slack   (cmd open -a "Slack")
+  ;; spotify (cmd open -a "Spotify")
+  ;; vscode  (cmd open -a "Visual Studio Code")
+  ;; wezterm (cmd open -a "WezTerm")
+  ;; zen     (cmd open -a "Zen Browser")
+  ;;
+  ;; ----- Raycast commands (if you use Raycast) -----
+  ;; ray-emoji (cmd open "raycast://extensions/raycast/emoji-symbols/search-emoji-symbols")
+  ;; ray-files (cmd open "raycast://extensions/raycast/file-search/search-files")
+  ;; ray-clip  (cmd open "raycast://extensions/raycast/clipboard-history/clipboard-history")
+)
+
+;; ============================================================
+;; Chords - simultaneous key presses
+;; ============================================================
+(defchordsv2
+  ;; Both Cmd keys = F18 (matches Voyager)
+  (lmet rmet) f18 $chord-time all-released ()
+
+  ;; ----- Example chords (uncomment and modify as needed) -----
+  ;;
+  ;; Volume controls:
+  ;; (q w e) volu $chord-time first-release ()  ;; Q+W+E = Volume up
+  ;; (a s d) vold $chord-time first-release ()  ;; A+S+D = Volume down
+  ;;
+  ;; Quick symbols (Space + keys):
+  ;; (spc j k) - $chord-time first-release ()   ;; Space+J+K = -
+  ;; (spc m ,) = $chord-time first-release ()   ;; Space+M+, = =
+  ;;
+  ;; Lock screen:
+  ;; (spc s c) M-C-q $chord-time first-release ()  ;; Space+S+C = Lock
+)
