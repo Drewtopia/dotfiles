@@ -74,3 +74,171 @@ fi
 # Starship removed - user preference
 
 # Shell tool aliases removed - user prefers no automatic aliases
+
+## Tmux - Terminal Multiplexer
+if command -v tmux >/dev/null 2>&1; then
+	# Smart tmux starter - the main command you'll use
+	# Usage: t [session-name | help]
+	t() {
+		# Show help
+		if [[ "$1" == "help" || "$1" == "-h" || "$1" == "--help" ]]; then
+			local dim=$'\e[2m'
+			local reset=$'\e[0m'
+			local yellow=$'\e[33m'
+			local bold=$'\e[1m'
+			cat <<EOF
+${bold}tmux commands${reset}
+
+${yellow}t${reset}           attach to last session (or create "main")
+${yellow}t ${dim}<name>${reset}    attach/create named session
+${yellow}t help${reset}      this help
+
+${yellow}th${reset}          session named after current dir
+${yellow}tp ${dim}[dir]${reset}    project layout (code + terminal split)
+${yellow}ta ${dim}<name>${reset}   attach only (fail if doesn't exist)
+${yellow}tn ${dim}<name>${reset}   new only (fail if exists)
+${yellow}tl${reset}          list sessions
+${yellow}tk ${dim}<name>${reset}   kill session
+${yellow}tq${reset}          kill current session
+${yellow}tka${reset}         kill ALL sessions
+
+${yellow}tmuxkeys${reset}    keybinding reference
+${yellow}tmuxflow${reset}    workflow examples
+${yellow}thelp${reset}       show both
+EOF
+			return
+		fi
+
+		if [[ -n "$TMUX" ]]; then
+			# Inside tmux - trigger sessionx (prefix+o equivalent)
+			tmux run-shell -b "~/.config/tmux/plugins/tmux-sessionx/scripts/sessionx.sh"
+		elif [[ $# -eq 0 ]]; then
+			# Outside tmux, no args - attach to existing or create "main"
+			tmux attach 2>/dev/null || tmux new-session -s main
+		else
+			# Outside tmux, with session name
+			tmux new-session -A -s "$1"
+		fi
+	}
+
+	# Quick aliases
+	alias ta='tmux attach -t'         # Attach to named session
+	alias tl='tmux list-sessions'     # List sessions
+	alias tk='tmux kill-session -t'   # Kill named session
+	alias tka='tmux kill-server'      # Kill ALL sessions
+	alias tn='tmux new-session -s'    # New named session
+	alias th='t $(basename "$PWD")'   # Tmux here - session named after current dir
+	alias tq='tmux kill-session'      # Kill current session (switches to another)
+
+	# Project launcher - creates session with standard layout
+	# Usage: tp [directory] [session-name]
+	tp() {
+		local dir="${1:-.}"
+		local name="${2:-$(basename "$(cd "$dir" && pwd)")}"
+
+		if [[ -n "$TMUX" ]]; then
+			echo "Already in tmux. Detach first or use: tn $name"
+			return 1
+		fi
+
+		# Create session in directory with standard layout
+		tmux new-session -d -s "$name" -c "$dir"
+		tmux rename-window -t "$name:1" "code"
+		tmux split-window -h -t "$name" -c "$dir" -l 40%
+		tmux select-pane -t "$name:1.0"
+
+		# Attach
+		tmux attach -t "$name"
+	}
+
+	# Quick reference for essential tmux keybindings
+	tmuxkeys() {
+		local dim=$'\e[2m'
+		local reset=$'\e[0m'
+		local cyan=$'\e[36m'
+		local yellow=$'\e[33m'
+		local green=$'\e[32m'
+		local magenta=$'\e[35m'
+		local bold=$'\e[1m'
+
+		cat <<EOF
+${bold}TMUX${reset} ${dim}prefix = Ctrl+A${reset}
+
+${cyan}Sessions & Windows${reset}
+  ${yellow}o${reset}   session picker    ${yellow}d${reset}   detach           ${yellow}S${reset}   session tree
+  ${yellow}^C${reset}  new window        ${yellow}H/L${reset} prev/next win    ${yellow}^A${reset}  last window
+  ${yellow}0-9${reset} jump to window    ${yellow}r${reset}   rename window
+
+${green}Panes${reset}
+  ${yellow}s${reset}   split ─           ${yellow}v${reset}   split │          ${yellow}c${reset}   kill pane
+  ${yellow}hjkl${reset} navigate         ${yellow}z${reset}   zoom toggle      ${yellow}x${reset}   swap pane
+  ${yellow},.-=${reset} resize ${dim}(L/R/D/U)${reset}
+
+${magenta}Power Features${reset}
+  ${yellow}p${reset}   floating terminal ${yellow}u${reset}   URL picker       ${yellow}F${reset}   fzf menu
+  ${yellow}[${reset}   copy mode (vi)    ${yellow}Space${reset} thumbs copy   ${yellow}R${reset}   reload config
+
+${dim}Shell: t (start) · ta (attach) · tl (list) · tn (new) · tk (kill)${reset}
+EOF
+	}
+
+	# Common tmux workflows and patterns
+	tmuxflow() {
+		local dim=$'\e[2m'
+		local reset=$'\e[0m'
+		local cyan=$'\e[36m'
+		local yellow=$'\e[33m'
+		local green=$'\e[32m'
+		local magenta=$'\e[35m'
+		local bold=$'\e[1m'
+		local arrow="${dim}→${reset}"
+
+		cat <<EOF
+${bold}TMUX WORKFLOWS${reset}
+
+${cyan}Start a Project${reset}
+  ${yellow}t myproject${reset} ${arrow} creates/attaches session
+  ${yellow}^A v${reset}        ${arrow} split for terminal
+  ${yellow}^A r${reset}        ${arrow} rename window to "code"
+  ${yellow}^A ^C${reset}       ${arrow} new window for server
+
+${green}Dev Server + Code${reset}
+  ${yellow}^A ^C${reset}       ${arrow} new window
+  ${dim}npm run dev${reset}   ${arrow} start server
+  ${yellow}^A H${reset}        ${arrow} back to code window
+  ${yellow}^A ^A${reset}       ${arrow} toggle between windows
+
+${magenta}Quick Command (stay focused)${reset}
+  ${yellow}^A p${reset}        ${arrow} floating terminal pops up
+  ${dim}git status${reset}   ${arrow} do your thing
+  ${yellow}^D${reset}          ${arrow} close popup, back to work
+
+${cyan}Run Tests While Coding${reset}
+  ${yellow}^A v${reset}        ${arrow} vertical split
+  ${dim}npm test${reset}     ${arrow} tests in right pane
+  ${yellow}^A h${reset}        ${arrow} back to code (left)
+  ${yellow}^A z${reset}        ${arrow} zoom code pane to focus
+  ${yellow}^A z${reset}        ${arrow} unzoom to check tests
+
+${green}Multiple Projects${reset}
+  ${yellow}^A o${reset}        ${arrow} sessionx picker
+  ${dim}or${reset} ${yellow}^A d${reset}   ${arrow} detach
+  ${yellow}t other${reset}     ${arrow} switch to other project
+
+${magenta}Copy Text${reset}
+  ${yellow}^A [${reset}        ${arrow} enter copy mode
+  ${dim}hjkl${reset}        ${arrow} navigate, ${yellow}v${reset} select
+  ${yellow}y${reset}           ${arrow} yank to clipboard
+  ${dim}or${reset} ${yellow}^A Space${reset} ${arrow} thumbs mode (quick copy)
+
+${dim}Tip: ^A = Ctrl+A (your prefix key)${reset}
+EOF
+	}
+
+	# Show all tmux help (keys + workflows)
+	thelp() {
+		tmuxkeys
+		echo ""
+		tmuxflow
+	}
+fi
