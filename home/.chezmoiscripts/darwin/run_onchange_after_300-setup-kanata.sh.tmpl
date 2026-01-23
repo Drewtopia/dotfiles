@@ -38,12 +38,44 @@ if [[ ! -f "$KANATA_CFG" ]]; then
     exit 0
 fi
 
+# =============================================================================
+# Check if already fully set up (skip interactive prompts)
+# =============================================================================
+_service_check_prompted=false
+is_service_running() {
+    if [[ "$_service_check_prompted" == "false" ]]; then
+        echo "🎹 Checking Kanata status... (sudo needed to check system services)"
+        _service_check_prompted=true
+    fi
+    sudo launchctl list "$1" &>/dev/null
+}
+
+NEEDS_DRIVER_INSTALL=false
+NEEDS_INPUT_MONITORING=false
+
+if [[ ! -f "$DRIVER_MANAGER" ]]; then
+    NEEDS_DRIVER_INSTALL=true
+fi
+
+# Check if kanata is running successfully
+if ! is_service_running "com.chezmoi.kanata"; then
+    NEEDS_INPUT_MONITORING=true
+fi
+
+# If everything is already set up and running, just reload kanata config
+if [[ "$NEEDS_DRIVER_INSTALL" == "false" ]] && is_service_running "com.chezmoi.kanata"; then
+    echo "   Config changed, reloading..."
+    sudo launchctl kickstart -k system/com.chezmoi.kanata
+    echo "✅ Kanata config reloaded"
+    exit 0
+fi
+
 echo "🎹 Setting up Kanata..."
 
 # =============================================================================
 # Step 1: Install Karabiner-DriverKit-VirtualHIDDevice if not present
 # =============================================================================
-if [[ ! -f "$DRIVER_MANAGER" ]]; then
+if [[ "$NEEDS_DRIVER_INSTALL" == "true" ]]; then
     echo "📦 Installing Karabiner-DriverKit-VirtualHIDDevice..."
 
     # Get latest release URL
@@ -156,6 +188,8 @@ load_service() {
     sudo launchctl enable "system/$label"
 }
 
+echo "   (sudo needed to create/update system services)"
+
 # Clean up old plists from previous attempts
 for old_plist in \
     "/Library/LaunchDaemons/com.github.jtroo.kanata.plist" \
@@ -197,20 +231,22 @@ create_plist "$KANATA_PLIST" \
 load_service "$KANATA_PLIST" "com.chezmoi.kanata"
 
 # =============================================================================
-# Step 3: Prompt for Input Monitoring permission (if needed)
+# Step 3: Prompt for Input Monitoring permission (only on first setup)
 # =============================================================================
-echo ""
-echo "📋 Kanata needs Input Monitoring permission to intercept keyboard input"
-echo ""
-read -p "   Press Enter to open System Settings → Input Monitoring..."
-open "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
-# Get the actual binary path (not the symlink)
-KANATA_REAL_BIN=$(readlink -f "$KANATA_BIN" 2>/dev/null || realpath "$KANATA_BIN" 2>/dev/null || echo "$KANATA_BIN")
-echo ""
-echo "   Click '+', press Cmd+Shift+G, and paste:"
-echo "   $KANATA_REAL_BIN"
-echo ""
-read -p "   Press Enter after you've added kanata to Input Monitoring..."
+if [[ "$NEEDS_INPUT_MONITORING" == "true" ]]; then
+    echo ""
+    echo "📋 Kanata needs Input Monitoring permission to intercept keyboard input"
+    echo ""
+    read -p "   Press Enter to open System Settings → Input Monitoring..."
+    open "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
+    # Get the actual binary path (not the symlink)
+    KANATA_REAL_BIN=$(readlink -f "$KANATA_BIN" 2>/dev/null || realpath "$KANATA_BIN" 2>/dev/null || echo "$KANATA_BIN")
+    echo ""
+    echo "   Click '+', press Cmd+Shift+G, and paste:"
+    echo "   $KANATA_REAL_BIN"
+    echo ""
+    read -p "   Press Enter after you've added kanata to Input Monitoring..."
+fi
 
 echo ""
 echo "✅ Kanata setup complete!"
