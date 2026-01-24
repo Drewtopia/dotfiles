@@ -114,6 +114,7 @@
   osid = {{ $osID | quote }}
   zshPlugins = [
       "git",
+      "tmux",
       {{- if eq .chezmoi.os "darwin" }}
         "brew",
       {{- end}}
