@@ -17,10 +17,10 @@
 
 (defcfg
   ;; macOS requires the Karabiner VirtualHIDDevice driver
-  ;; Exclude external keyboards (like Voyager) by name:
-  ;; macos-dev-names-exclude (
-  ;;   "ZSA Technology Labs Voyager"
-  ;; )
+  ;; Only intercept MacBook keyboard - external keyboards (Voyager) pass through
+  macos-dev-names-include (
+    "Apple Internal Keyboard / Trackpad"
+  )
 
   process-unmapped-keys yes
   concurrent-tap-hold yes
