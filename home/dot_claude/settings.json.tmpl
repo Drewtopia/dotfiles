@@ -51,6 +51,7 @@
       "Bash(git push:*)"
     ]
   },
+{{- if ne .chezmoi.os "windows" }}
   "hooks": {
     "PreToolUse": [
       {
@@ -106,15 +107,14 @@
       }
     ]
   },
+{{- end }}
   "statusLine": {
     "type": "command",
     "command": "npx -y ccusage statusline",
     "padding": 0
   },
-  "feedbackSurveyState": {
-    "lastShownTime": 1762390693828
-  },
   "enabledPlugins": {
     "obsidian@obsidian-skills": true
-  }
+  },
+  "autoUpdatesChannel": "latest"
 }
