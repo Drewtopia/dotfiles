@@ -1,10 +1,8 @@
 {{- if eq .chezmoi.os "windows" -}}
 #!/usr/bin/env pwsh
 
-# Install Claude Code using the native installer (recommended approach)
-# This script runs when the hash changes (onchange)
-
-Write-Host "[Install] Installing Claude Code using native installer..." -ForegroundColor Green
+# Install Claude Code on Windows
+# This script runs when its content changes (onchange)
 
 # Ensure ~/.local/bin is in user PATH
 $localBin = "$env:USERPROFILE\.local\bin"
@@ -14,27 +12,20 @@ if ($currentPath -notlike "*$localBin*") {
     Write-Host "[Setup] Adding $localBin to user PATH..." -ForegroundColor Blue
     $newPath = "$localBin;$currentPath"
     [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-    # Also update current session
     $env:Path = "$localBin;$env:Path"
     Write-Host "[OK] Added $localBin to PATH" -ForegroundColor Green
 } else {
     Write-Host "[OK] $localBin already in PATH" -ForegroundColor Green
 }
 
-# Windows PowerShell installation
-Write-Host "[Install] Installing Claude Code for Windows via PowerShell..." -ForegroundColor Blue
+# Install Claude Code
+Write-Host "[Install] Installing Claude Code..." -ForegroundColor Blue
 try {
     irm https://claude.ai/install.ps1 | iex
-    Write-Host "[OK] Claude Code installed successfully" -ForegroundColor Green
 
-    # Verify installation
     if (Get-Command claude -ErrorAction SilentlyContinue) {
         $version = claude --version
         Write-Host "[OK] Claude Code version: $version" -ForegroundColor Green
-
-        # Run claude doctor to check installation health
-        Write-Host "[Check] Running installation health check..." -ForegroundColor Blue
-        claude doctor
     }
 } catch {
     Write-Host "[ERROR] Claude Code installation failed: $($_.Exception.Message)" -ForegroundColor Red

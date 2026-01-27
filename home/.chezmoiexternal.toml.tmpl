@@ -183,13 +183,15 @@
     url = "https://github.com/zdharma-continuum/zinit.git"
     refreshPeriod = "168h"
 
-# Claude Code - Hooks from claude-code-mastery
+{{- if ne .chezmoi.os "windows" }}
+# Claude Code - Hooks from claude-code-mastery (Unix only - uses shell scripts)
 [".claude/hooks"]
     type = "archive"
     url = "https://github.com/TheDecipherist/claude-code-mastery/archive/main.tar.gz"
     stripComponents = 2
-    include = ["*/hooks/*"]
+    include = ["*/hooks/**"]
     refreshPeriod = "168h"
+{{- end }}
 
 # Claude Code - Skills from claude-code-mastery
 [".claude/skills/commit-messages"]
