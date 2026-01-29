@@ -15,7 +15,10 @@
 # sudo_command = "sudo"
 
 # Disable specific steps - same options as the command line flag
-# disable = ["system", "emacs"]
+# oh-my-zsh managed via chezmoi externals (no .git), zinit updates omz plugins
+# containers disabled - Docker Desktop not always running
+# go disabled - mise handles Go, Homebrew go conflicts with mise paths
+disable = ["shell", "containers", "go"]
 
 # Ignore failures for these steps
 # ignore_failures = ["powershell"]
