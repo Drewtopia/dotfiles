@@ -110,9 +110,7 @@ zinit light zsh-users/zsh-syntax-highlighting  # Must be loaded last
 # Note: zsh-completions removed (carapace replaces it)
 
 # Tmux plugin config (must be set before plugin loads)
-export ZSH_TMUX_AUTOSTART=true
-export ZSH_TMUX_AUTOCONNECT=true
-export ZSH_TMUX_AUTOQUIT=false
+export ZSH_TMUX_FIXTERM=false
 
 # Load Oh My Zsh plugins via Zinit snippets
 {{- range .zshPlugins }}
