@@ -4,10 +4,28 @@
 # Install Scoop package manager and essential tools
 # This script runs when its content changes
 
-Write-Host "[Windows] Setting up Scoop package manager..." -ForegroundColor Green
+Write-Host "[Windows] Setting up environment and Scoop..." -ForegroundColor Green
 
 function Test-Command($cmdname) {
     return [bool](Get-Command -Name $cmdname -ErrorAction SilentlyContinue)
+}
+
+# Set XDG Base Directory environment variables (permanent user-level)
+# Ensures Neovim and other XDG-aware tools find configs in ~/.config
+$xdgVars = @{
+    'XDG_CONFIG_HOME' = "$HOME\.config"
+    'XDG_DATA_HOME'   = "$HOME\.local\share"
+    'XDG_STATE_HOME'  = "$HOME\.local\state"
+    'XDG_CACHE_HOME'  = "$HOME\.cache"
+}
+
+foreach ($var in $xdgVars.GetEnumerator()) {
+    $current = [Environment]::GetEnvironmentVariable($var.Key, 'User')
+    if ($current -ne $var.Value) {
+        Write-Host "[Config] Setting $($var.Key)" -ForegroundColor Blue
+        [Environment]::SetEnvironmentVariable($var.Key, $var.Value, 'User')
+        Set-Item -Path "Env:$($var.Key)" -Value $var.Value
+    }
 }
 
 # Install Scoop if not already installed
@@ -49,9 +67,14 @@ $scoopPackages = @(
     'eza',
     'fd',
     'fzf',
+    'gh',
+    'glow',
+    'jj',
     'jq',
     'kanata',
+    'lazygit',
     'Meslo-NF',
+    'neovim',
     'ripgrep',
     'zoxide'
 )
