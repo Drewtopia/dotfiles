@@ -124,10 +124,11 @@
 {{- end }}
 {{- $ghPath := lookPath "gh" }}
 {{- if $ghPath }}
+{{- $ghPath = $ghPath | replace "\\" "/" }}
 [credential "https://github.com"]
-	helper = !{{ $ghPath }} auth git-credential
+	helper = !"{{ $ghPath }}" auth git-credential
 [credential "https://gist.github.com"]
-	helper = !{{ $ghPath }} auth git-credential
+	helper = !"{{ $ghPath }}" auth git-credential
 {{- end }}
 {{ if eq .chezmoi.os "darwin" -}}
 [credential]
