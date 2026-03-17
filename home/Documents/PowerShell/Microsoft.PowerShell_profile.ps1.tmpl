@@ -1,26 +1,69 @@
 {{- if and (eq .chezmoi.os "windows") .dev_computer -}}
 # PowerShell Profile - Dev Tools (sourced from OneDrive profile)
 
-# Add mise shims to PATH if mise is installed
-$miseShimPath = "$env:USERPROFILE\AppData\Local\mise\shims"
-if (Test-Path $miseShimPath) {
-    $currentPath = $env:PATH -split ';'
-    if ($miseShimPath -notin $currentPath) {
-        $env:PATH = "$miseShimPath;$env:PATH"
+# --- Init-script caching infrastructure ---
+
+$script:PwshInitCacheDir = "$env:LOCALAPPDATA\pwsh-init-cache"
+
+function Invoke-CachedInit {
+    param(
+        [string]$Tool,
+        [string]$VersionCommand,
+        [scriptblock]$InitCommand
+    )
+
+    if (-not (Test-Path $script:PwshInitCacheDir)) {
+        New-Item -ItemType Directory -Path $script:PwshInitCacheDir -Force | Out-Null
     }
 
-    if (Get-Command mise -ErrorAction SilentlyContinue) {
+    $cacheFile = Join-Path $script:PwshInitCacheDir "$Tool.ps1"
+    $versionFile = Join-Path $script:PwshInitCacheDir "$Tool.version"
+
+    $currentVersion = & ([scriptblock]::Create($VersionCommand)) 2>$null | Out-String
+    $currentVersion = $currentVersion.Trim()
+
+    $cachedVersion = if (Test-Path $versionFile) { (Get-Content $versionFile -Raw).Trim() } else { '' }
+
+    if ($currentVersion -eq $cachedVersion -and (Test-Path $cacheFile)) {
+        . $cacheFile
+    } else {
+        $initOutput = & $InitCommand | Out-String
+        $initOutput | Set-Content -Path $cacheFile -Force
+        $currentVersion | Set-Content -Path $versionFile -Force
+        Invoke-Expression $initOutput
+    }
+}
+
+function Clear-PwshInitCache {
+    if (Test-Path $script:PwshInitCacheDir) {
+        Remove-Item -Path $script:PwshInitCacheDir -Recurse -Force
+        Write-Host "Cleared pwsh init cache. Restart shell to regenerate."
+    } else {
+        Write-Host "No cache directory found."
+    }
+}
+
+# --- PATH helpers ---
+
+# Add mise shims to PATH if mise is installed
+$miseShimPath = "$env:USERPROFILE\AppData\Local\mise\shims"
+if ((Test-Path $miseShimPath) -and $env:PATH -notlike "*$miseShimPath*") {
+    $env:PATH = "$miseShimPath;$env:PATH"
+}
+
+# Defer mise activate to first prompt (shims provide immediate tool access)
+if (Get-Command mise -ErrorAction SilentlyContinue) {
+    $global:__miseFirstPromptHook = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
         mise activate pwsh | Out-String | Invoke-Expression
+        Unregister-Event -SourceIdentifier PowerShell.OnIdle -ErrorAction SilentlyContinue
+        Remove-Variable -Name __miseFirstPromptHook -Scope Global -ErrorAction SilentlyContinue
     }
 }
 
 # pnpm global packages setup
 $pnpmHome = "$env:USERPROFILE\.local\share\pnpm"
-if (Test-Path $pnpmHome) {
-    $currentPath = $env:PATH -split ';'
-    if ($pnpmHome -notin $currentPath) {
-        $env:PATH = "$pnpmHome;$env:PATH"
-    }
+if ((Test-Path $pnpmHome) -and $env:PATH -notlike "*$pnpmHome*") {
+    $env:PATH = "$pnpmHome;$env:PATH"
 }
 
 # Carapace - multi-shell completion engine
@@ -28,24 +71,21 @@ if (Get-Command carapace -ErrorAction SilentlyContinue) {
     $env:CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense'
     Set-PSReadLineOption -Colors @{ "Selection" = "`e[7m" }
     Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
-    carapace _carapace | Out-String | Invoke-Expression
+    Invoke-CachedInit -Tool 'carapace' -VersionCommand 'carapace --version' -InitCommand { carapace _carapace }
 }
 
 # Zoxide - smarter cd command
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { (zoxide init powershell | Out-String) })
+    Invoke-CachedInit -Tool 'zoxide' -VersionCommand 'zoxide --version' -InitCommand { zoxide init powershell }
 }
 
 # Atuin - shell history (requires atuin 18.11+)
 $atuinPath = "$env:USERPROFILE\.atuin\bin"
-if (Test-Path $atuinPath) {
-    $currentPath = $env:PATH -split ';'
-    if ($atuinPath -notin $currentPath) {
-        $env:PATH = "$atuinPath;$env:PATH"
-    }
+if ((Test-Path $atuinPath) -and $env:PATH -notlike "*$atuinPath*") {
+    $env:PATH = "$atuinPath;$env:PATH"
 }
 if (Get-Command atuin -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { (atuin init powershell | Out-String) })
+    Invoke-CachedInit -Tool 'atuin' -VersionCommand 'atuin --version' -InitCommand { atuin init powershell }
 }
 
 # PowerToys CommandNotFound module
