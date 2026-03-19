@@ -141,7 +141,26 @@
     "padding": 0
   },
   "enabledPlugins": {
-    "obsidian@obsidian-skills": true
+{{- if .personal }}
+    "obsidian@obsidian-skills": true,
+{{- end }}
+{{- if .dev_computer }}
+    "code-review@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": true,
+    "greptile@claude-plugins-official": true,
+{{- end }}
+    "explanatory-output-style@claude-plugins-official": true,
+    "learning-output-style@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
   },
   "autoUpdatesChannel": "latest"
 }
