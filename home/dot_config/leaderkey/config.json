@@ -26,7 +26,9 @@
     {
       "actions" : [
         {
+          "iconPath" : "dot.scope.laptopcomputer",
           "key" : "1",
+          "label" : "Work Laptop",
           "type" : "command",
           "value" : "open \"/Users/drew/Documents/work-laptop.jump\""
         },
