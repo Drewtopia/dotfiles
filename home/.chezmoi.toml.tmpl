@@ -146,10 +146,13 @@
     ]
 
 {{ if eq .chezmoi.os "windows" -}}
+# cd uses pwsh (interactive only, available after 00-install-pwsh runs)
 [cd]
     command = "pwsh"
 
+# interpreter uses powershell.exe (built-in 5.1) so scripts can bootstrap
+# pwsh before it exists on a fresh machine
 [interpreters.ps1]
-    command = "pwsh"
+    command = "powershell.exe"
     args = ["-NoLogo", "-NoProfile"]
 {{- end }}

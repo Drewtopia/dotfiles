@@ -88,6 +88,11 @@ if (Get-Command atuin -ErrorAction SilentlyContinue) {
     Invoke-CachedInit -Tool 'atuin' -VersionCommand 'atuin --version' -InitCommand { atuin init powershell }
 }
 
+# pay-respects - command correction (thefuck replacement)
+if (Get-Command pay-respects -ErrorAction SilentlyContinue) {
+    pay-respects pwsh --alias f | Out-String | Invoke-Expression
+}
+
 # PowerToys CommandNotFound module
 if (Get-Module -ListAvailable -Name Microsoft.WinGet.CommandNotFound) {
     Import-Module -Name Microsoft.WinGet.CommandNotFound
