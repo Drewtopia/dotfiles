@@ -1,0 +1,55 @@
+# Global Copilot Instructions
+
+## Identity
+- **GitHub**: {{ .github.username }}
+- **Version Control**: jj (Jujutsu) preferred, git as fallback
+- **Runtime Management**: mise
+- **Package Manager**: pnpm (Node.js)
+
+## Code Style & Conventions
+
+### General
+- No file > 300 lines (split if larger)
+- No function > 50 lines
+- Prefer simple, focused solutions over abstractions
+- Don't add features, refactoring, or "improvements" beyond what was asked
+- Only add comments where logic isn't self-evident
+
+### Security — ABSOLUTE Rules
+- NEVER commit passwords, API keys, tokens, or credentials
+- NEVER hardcode secrets in source files
+- NEVER commit `.env` files — use `.env.example` with placeholders
+- NEVER include secrets in error messages or logs
+
+### Node.js / TypeScript
+- TypeScript strict mode
+- ESLint + Prettier
+- pnpm as package manager
+- Add error handlers to entry points
+
+### Python
+- `pyproject.toml` (not setup.py)
+- `src/` layout
+- Ruff for linting
+- uv for package management
+
+### Rust
+- `cargo fmt` before commits
+- `cargo clippy` for linting
+- Keep `Cargo.lock` in version control for binaries
+
+### Go
+- `gofmt` before commits
+- `go vet` and `staticcheck`
+- Standard Go project layout
+
+### Docker
+- Multi-stage builds always
+- Never run as root
+- Include health checks
+
+## Quality Gates
+- All tests must pass before suggesting completion
+- TypeScript must compile with no errors
+- Linter must pass with no warnings
+- No secrets in staged files

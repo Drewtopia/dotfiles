@@ -222,3 +222,31 @@
     stripComponents = 4
     include = ["*/.claude/skills/using-jj-workspaces/**"]
     refreshPeriod = "168h"
+
+# Claude Code - Skills from mattpocock/skills
+{{ $mattSkills := list
+    "design-an-interface"
+    "edit-article"
+    "git-guardrails-claude-code"
+    "grill-me"
+    "improve-codebase-architecture"
+    "migrate-to-shoehorn"
+    "prd-to-issues"
+    "prd-to-plan"
+    "request-refactor-plan"
+    "scaffold-exercises"
+    "setup-pre-commit"
+    "tdd"
+    "triage-issue"
+    "ubiquitous-language"
+    "write-a-prd"
+    "write-a-skill" -}}
+{{ range $mattSkills -}}
+[".claude/skills/{{ . }}"]
+    type = "archive"
+    url = "https://github.com/mattpocock/skills/archive/main.tar.gz"
+    stripComponents = 2
+    include = ["*/{{ . }}/**"]
+    refreshPeriod = "168h"
+
+{{ end -}}

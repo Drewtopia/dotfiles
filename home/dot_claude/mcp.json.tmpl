@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+{{- if .personal }}
+    "ha-mcp": {
+      "command": "uvx",
+      "args": ["--refresh", "ha-mcp@latest"],
+      "env": {}
+    },
+{{- end }}
+    "mcp-obsidian": {
+      "command": "uvx",
+      "args": ["mcp-obsidian"],
+      "env": {}
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    }
+  }
+}
