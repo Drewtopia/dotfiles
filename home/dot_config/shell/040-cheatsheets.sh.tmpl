@@ -1,0 +1,104 @@
+#!/usr/bin/env zsh
+
+# Enhanced Cheat Sheet System with zsh-active-cheatsheet integration
+# Handles all the workarounds for zsh-active-cheatsheet in one place
+
+# Configuration for zsh-active-cheatsheet
+export ZSH_ACTIVE_CHEATSHEET_DIRS=("$HOME/.config/cheatsheets")
+{{- if lookPath "bat" }}
+export ZSH_ACTIVE_CHEATSHEET_HIGHLIGHTER="bat --language=sh --style=plain --color=always"
+{{- else if lookPath "batcat" }}
+export ZSH_ACTIVE_CHEATSHEET_HIGHLIGHTER="batcat --language=sh --style=plain --color=always"
+{{- else }}
+export ZSH_ACTIVE_CHEATSHEET_HIGHLIGHTER="cat"
+{{- end }}
+export ZSH_ACTIVE_CHEATSHEET_AUTO_COMPILE=false
+
+# Function to compile cheat sheets with modern bash
+compile-cheats() {
+{{- $bashPath := "" }}
+{{- if eq .chezmoi.os "darwin" }}
+{{-   if stat "/opt/homebrew/bin/bash" }}
+{{-     $bashPath = "/opt/homebrew/bin/bash" }}
+{{-   else if lookPath "bash" }}
+{{-     $bashPath = lookPath "bash" }}
+{{-   end }}
+{{- else }}
+{{-   $bashPath = lookPath "bash" }}
+{{- end }}
+{{- if $bashPath }}
+    {{ $bashPath }} ~/.oh-my-zsh/custom/plugins/zsh-active-cheatsheet/cheats-compiler.sh ~/.config/cheatsheets
+{{- else }}
+    echo "✗ Bash not found"
+    return 1
+{{- end }}
+}
+
+# Determine the highlight command once
+{{- if lookPath "bat" }}
+{{- $highlighter := "bat --style=numbers,changes --color=always" }}
+{{- else if lookPath "batcat" }}
+{{- $highlighter := "batcat --style=numbers,changes --color=always" }}
+{{- else }}
+{{- $highlighter := "cat" }}
+{{- end }}
+
+# Load zsh-active-cheatsheet, with fzf fallback
+if [[ -o interactive ]]; then
+    local plugin_dir="$HOME/.oh-my-zsh/custom/plugins/zsh-active-cheatsheet"
+
+    if [[ -f "$plugin_dir/zsh-active-cheatsheet.plugin.zsh" ]] && \
+       source "$plugin_dir/zsh-active-cheatsheet.plugin.zsh" 2>/dev/null && \
+       (( $+functions[fzf_show_cheats] )); then
+        # Plugin loaded — bind and set up
+        bindkey -r '^S' 2>/dev/null || true
+        bindkey '^\' fzf_show_cheats
+        alias cheats='fzf_show_cheats'
+
+        # Compile cheat sheets if metadata is empty or doesn't exist
+        if [[ ! -f "$HOME/.cache/cheats-metadata.jsonl" ]] || [[ ! -s "$HOME/.cache/cheats-metadata.jsonl" ]]; then
+            compile-cheats >/dev/null 2>&1
+        fi
+    elif command -v fzf >/dev/null 2>&1; then
+        # Fallback: simple fzf-based cheat function
+        cheat() {
+            local cheat_dir="$HOME/.config/cheatsheets"
+            [[ -d "$cheat_dir" ]] || { echo "Cheat directory not found: $cheat_dir"; return 1; }
+
+            local cheat_file
+            cheat_file=$(find "$cheat_dir" -type f | \
+                sed "s|$cheat_dir/||g" | \
+                fzf --prompt="Select cheat sheet: " \
+{{- if lookPath "bat" }}
+                    --preview="bat --style=numbers,changes --color=always $cheat_dir/{} 2>/dev/null || cat $cheat_dir/{}" \
+{{- else if lookPath "batcat" }}
+                    --preview="batcat --style=numbers,changes --color=always $cheat_dir/{} 2>/dev/null || cat $cheat_dir/{}" \
+{{- else }}
+                    --preview="cat $cheat_dir/{}" \
+{{- end }}
+                    --preview-window=right:60%:wrap \
+                    --height=80%)
+
+            if [[ -n "$cheat_file" ]]; then
+                echo "=== $cheat_file ==="
+{{- if lookPath "bat" }}
+                bat --style=numbers,changes --color=always "$cheat_dir/$cheat_file"
+{{- else if lookPath "batcat" }}
+                batcat --style=numbers,changes --color=always "$cheat_dir/$cheat_file"
+{{- else }}
+                cat "$cheat_dir/$cheat_file"
+{{- end }}
+            fi
+        }
+
+        cheat-widget() {
+            BUFFER=""
+            CURSOR=0
+            cheat
+            zle reset-prompt
+        }
+        zle -N cheat-widget
+        bindkey '^\' cheat-widget
+        alias cheats='cheat'
+    fi
+fi

@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+# Shell Enhancement Tools
+# Tools that enhance shell experience and productivity
+
+## Navigation & Search Tools
+
+## Shell Integration (only if tools are available)
+if command -v fzf >/dev/null 2>&1; then
+	[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+
+	# Universal fuzzy completion integration
+	if [[ -n ${ZSH_NAME} && -f "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh" ]]; then
+		source "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh"
+		# Enable for commands that don't have native completions
+		bindkey '^I' fzf_completion
+	fi
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+	eval "$(zoxide init zsh)"
+fi
+
+# atuin - shell history enhancement
+{{- if eq .chezmoi.os "linux" }}
+# Add atuin to PATH safely on Linux
+path_add "${HOME}/.atuin/bin"
+{{- end }}
+
+if command -v atuin >/dev/null 2>&1; then
+	if [[ -n ${ZSH_NAME} ]]; then
+		export ATUIN_NOBIND="true"
+		eval "$(atuin init zsh)"
+		bindkey '^r' atuin-search
+		bindkey '^[[A' atuin-up-search
+		bindkey '^[OA' atuin-up-search
+	elif [[ -n ${BASH} ]]; then
+		# shellcheck disable=SC1091
+		[[ -f ~/.bash-preexec.sh ]] && source "${HOME}/.bash-preexec.sh"
+		eval "$(atuin init bash)"
+		bind -x '"\C-r": __atuin_history'
+		bind -x '"\e[A": __atuin_history --shell-up-key-binding'
+		bind -x '"\eOA": __atuin_history --shell-up-key-binding'
+	fi
+fi
+
+# fnox - secrets manager with shell integration
+if command -v fnox >/dev/null 2>&1; then
+	if [[ -n ${ZSH_NAME} ]]; then
+		eval "$(fnox activate zsh)"
+	elif [[ -n ${BASH} ]]; then
+		eval "$(fnox activate bash)"
+	fi
+fi
+
+# Starship removed - user preference
+
+# Shell tool aliases removed - user prefers no automatic aliases
