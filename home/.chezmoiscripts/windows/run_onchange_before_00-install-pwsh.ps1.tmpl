@@ -1,0 +1,23 @@
+{{- if eq .chezmoi.os "windows" -}}
+# Install PowerShell 7+ via winget (runs with built-in powershell.exe 5.1)
+
+$ErrorActionPreference = "Stop"
+
+# Check if pwsh is already available
+if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+    $version = (pwsh -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString()')
+    Write-Host "[OK] PowerShell 7 already installed (v$version)" -ForegroundColor Green
+    exit 0
+}
+
+Write-Host "[Install] Installing PowerShell 7 via winget..." -ForegroundColor Blue
+
+try {
+    winget install --id Microsoft.PowerShell --source winget --accept-package-agreements --accept-source-agreements
+    Write-Host "[OK] PowerShell 7 installed successfully" -ForegroundColor Green
+} catch {
+    Write-Host "[ERROR] Failed to install PowerShell 7: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "[INFO] Install manually: winget install Microsoft.PowerShell" -ForegroundColor Yellow
+    exit 1
+}
+{{- end }}
