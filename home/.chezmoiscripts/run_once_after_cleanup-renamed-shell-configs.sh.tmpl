@@ -1,0 +1,30 @@
+{{- if ne .chezmoi.os "windows" -}}
+#!/bin/bash
+
+# One-time cleanup of orphaned shell config files from renames
+# chezmoi doesn't remove old targets when source files are renamed
+
+echo "Cleaning up orphaned shell config files..."
+
+removed=0
+for f in \
+    "$HOME/.config/shell/mise.sh" \
+    "$HOME/.config/shell/shell-tools.sh" \
+    "$HOME/.config/shell/system-tools.sh" \
+    "$HOME/.config/shell/cheatsheets.sh" \
+    "$HOME/.config/shell/060-common_aliases.sh" \
+    "$HOME/.config/shell/dev-tools.sh" \
+; do
+    if [ -f "$f" ]; then
+        rm "$f"
+        echo "  removed: $f"
+        removed=$((removed + 1))
+    fi
+done
+
+if [ "$removed" -eq 0 ]; then
+    echo "  nothing to clean up"
+else
+    echo "  removed $removed orphaned file(s)"
+fi
+{{- end }}
