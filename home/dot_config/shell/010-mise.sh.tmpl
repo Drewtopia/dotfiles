@@ -5,7 +5,7 @@
 if command -v mise >/dev/null 2>&1; then
     # Activate mise - this handles PATH and completions for all tools
     eval "$(mise activate zsh)"
-    
+
     # Enable mise completions
     if [[ -n ${ZSH_NAME} ]]; then
         eval "$(mise completion zsh)"

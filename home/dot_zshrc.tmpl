@@ -6,10 +6,9 @@
 typeset -aU fpath path manpath
 typeset +x FPATH
 
-# XDG Base Directory Specification
-export XDG_DATA_HOME=$HOME/.local/share
+# XDG Base Directory - canonical source is in shell/paths/priority.paths.sh
+# Set here early so p10k instant prompt and path-management can use them
 export XDG_CONFIG_HOME=$HOME/.config
-export XDG_STATE_HOME=$HOME/.local/state
 export XDG_CACHE_HOME=$HOME/.cache
 
 # Enable profiling (controlled by ZPROF environment variable)

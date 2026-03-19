@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# System Management Tools
+# Tools for system administration, maintenance, and configuration
+
+## System Administration
+# topgrade and chezmoi - expected to be in PATH via brew/cargo/local bin
+# Chezmoi aliases removed - user prefers no automatic aliases
+
+## Terminal & Interface
+{{- if eq .chezmoi.os "darwin" }}
+# iTerm2 integration (macOS only)
+if [[ -f "${HOME}/.iterm2_shell_integration.zsh" ]]; then
+    source "${HOME}/.iterm2_shell_integration.zsh"
+fi
+{{- end }}
+
+# pay-respects - Rust-based command correction (thefuck replacement)
+if command -v pay-respects >/dev/null 2>&1; then
+    eval "$(pay-respects zsh --alias f)"
+fi
+
+# System tool aliases removed - user prefers no automatic aliases
+
+# System tool completions are generated as files by configure-tools.sh script
