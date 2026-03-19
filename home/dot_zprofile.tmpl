@@ -3,3 +3,8 @@ fpath+=("{{ output "/opt/homebrew/bin/brew" "--prefix" | trim }}/share/zsh/site-
 
 eval "$(/opt/homebrew/bin/brew shellenv)"
 {{ end -}}
+
+{{- if eq .chezmoi.os "darwin" }}
+# Obsidian CLI
+export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
+{{- end }}
