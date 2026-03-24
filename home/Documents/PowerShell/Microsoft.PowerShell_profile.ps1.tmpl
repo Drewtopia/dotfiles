@@ -79,11 +79,7 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-CachedInit -Tool 'zoxide' -VersionCommand 'zoxide --version' -InitCommand { zoxide init powershell }
 }
 
-# Atuin - shell history (requires atuin 18.11+)
-$atuinPath = "$env:USERPROFILE\.atuin\bin"
-if ((Test-Path $atuinPath) -and $env:PATH -notlike "*$atuinPath*") {
-    $env:PATH = "$atuinPath;$env:PATH"
-}
+# Atuin - shell history
 if (Get-Command atuin -ErrorAction SilentlyContinue) {
     Invoke-CachedInit -Tool 'atuin' -VersionCommand 'atuin --version' -InitCommand { atuin init powershell }
 }
