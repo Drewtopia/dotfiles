@@ -11,8 +11,10 @@
 # Ignore non-macOS files.
 {{ if ne .chezmoi.os "darwin" }}
 .chezmoiscripts/darwin/**
+.config/aerospace
 .config/homebrew
 .config/karabiner
+.config/leaderkey
 .hammerspoon
 .config/iterm
 .Brewfile
@@ -42,12 +44,16 @@ AppData
 # Windows: Ignore Unix/Linux-specific files
 **/.DS_Store
 .bash_aliases
+.config/cheatsheets
+.config/cheatsheets/**
 .config/fzf-tab-completion
 .config/fzf-tab-completion/**
 .config/ghostty
 .config/git/cookies
+.config/path-management.sh
 .config/shell
 .config/shell/**
+.config/shell-loader.sh
 .config/tmux
 .config/tmux/**
 .config/zsh
