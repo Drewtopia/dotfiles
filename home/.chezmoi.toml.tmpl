@@ -93,6 +93,7 @@
   hostname = {{ $hostname | quote }}
   personal = {{ $personal }}
   osid = {{ $osID | quote }}
+  opVault = {{ $opVault | quote }}
   zshPlugins = [
       "git",
       "tmux",
@@ -112,9 +113,6 @@
 
 [github]
     refreshPeriod = "12h"
-{{- if not $ephemeral }}
-    accessToken = {{ onepasswordRead "op://Private/GitHub Metadata Read-Only Access Token/token" | trim | quote }}
-{{- end }}
 
 [git]
     autoCommit = true
