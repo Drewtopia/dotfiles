@@ -37,10 +37,15 @@ Library
 # Ignore non-Windows files.
 {{ if ne .chezmoi.os "windows" }}
 .chezmoiscripts/windows/**
+.chezmoiscripts/**/*.ps1
+.chezmoiscripts/**/*.ps1.tmpl
 .config/windows_terminal
 Documents
 AppData
 {{ else }}
+# Windows: Ignore Unix shell scripts
+.chezmoiscripts/**/*.sh
+.chezmoiscripts/**/*.sh.tmpl
 # Windows: Ignore Unix/Linux-specific files
 **/.DS_Store
 .bash_aliases
