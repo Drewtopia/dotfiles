@@ -24,31 +24,7 @@ manpath=($manpath /opt/homebrew/share/man /usr/local/share/man)
 manpath=($manpath /usr/share/man "$HOME/.local/share/man")
 
 {{- if .is_wsl }}
-# WSL2: Filter out Windows tool paths that conflict with Linux tools
-# Keep: VS Code, Docker, Windows system, 1Password CLI
-# Remove: All dev tools that have Linux equivalents via mise
-_filtered_path=()
-for dir in "${path[@]}"; do
-    if [[ ! "$dir" =~ ^/mnt/[a-zA-Z]/ ]]; then
-        _filtered_path+=("$dir")
-    elif [[ "$dir" =~ "Microsoft VS Code" ]] ||
-         [[ "$dir" =~ "Docker" ]] ||
-         [[ "$dir" =~ "1Password" ]] ||
-         [[ "$dir" =~ "/mnt/c/Windows" ]]; then
-        _filtered_path+=("$dir")
-    fi
-done
-
-# Rebuild with WSL paths first, then remaining Windows paths
-_wsl_paths=()
-_win_paths=()
-for dir in "${_filtered_path[@]}"; do
-    if [[ "$dir" =~ ^/mnt/[a-zA-Z]/ ]]; then
-        _win_paths+=("$dir")
-    else
-        _wsl_paths+=("$dir")
-    fi
-done
-path=($_wsl_paths $_win_paths)
-unset _filtered_path _wsl_paths _win_paths
+# WSL2: interop enabled but appendWindowsPath=false (set in /etc/wsl.conf)
+# No Windows paths to filter — mise provides native Linux tools
+# Windows executables (code, explorer.exe, op.exe) available via /mnt/c/ when needed
 {{- end }}

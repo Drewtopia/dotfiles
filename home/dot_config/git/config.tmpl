@@ -122,7 +122,14 @@
 [url "git@github.com:Drewtopia/"]
 	insteadOf = https://github.com/Drewtopia/
 {{- end }}
+{{- /* Find gh: try lookPath first, fall back to mise shim */ -}}
 {{- $ghPath := lookPath "gh" }}
+{{- if not $ghPath }}
+{{-   $shimPath := joinPath .chezmoi.homeDir ".local/share/mise/shims/gh" }}
+{{-   if stat $shimPath }}
+{{-     $ghPath = $shimPath }}
+{{-   end }}
+{{- end }}
 {{- if $ghPath }}
 {{- $ghPath = $ghPath | replace "\\" "/" }}
 [credential "https://github.com"]
@@ -143,7 +150,8 @@
 	gpgsign = true
 {{- end }}
 
-{{- if and .work .is_wsl -}}
+{{- if and .work .is_wsl }}
+# Windows Git Credential Manager via interop (appendWindowsPath=false, so use full path)
 [credential]
   helper = /mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe
 [credential "https://dev.azure.com"]
