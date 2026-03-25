@@ -16,7 +16,12 @@ rust = "latest"
 # mise ecosystem tools
 usage = "latest"
 fnox = "latest"
+{{ if eq .chezmoi.os "windows" -}}
+# Windows: use pre-built binaries (cargo needs MSVC build tools)
+"github:iffse/pay-respects" = "latest"
+{{ else -}}
 "cargo:pay-respects" = "latest"
+{{ end -}}
 
 # CLI tools — aqua backend (checksum-verified, cross-platform)
 "aqua:sharkdp/bat" = "latest"
@@ -32,8 +37,13 @@ fnox = "latest"
 "aqua:dundee/gdu" = "latest"
 "aqua:golangci/golangci-lint" = "latest"
 
-# eza — not in aqua, github backend grabs wrong asset, use core registry
+{{ if eq .chezmoi.os "windows" -}}
+# Windows: eza core registry uses cargo (needs MSVC), use github binary
+"github:eza-community/eza" = "latest"
+{{ else -}}
+# eza — not in aqua, github grabs wrong asset on macOS, use core registry
 eza = "latest"
+{{ end -}}
 
 # Shell-integrated tools (keybindings, completions, prompt hooks)
 "aqua:junegunn/fzf" = "latest"
