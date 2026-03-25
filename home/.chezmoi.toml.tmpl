@@ -10,7 +10,6 @@
 {{- $ephemeral := false -}}{{/* true if this machine is ephemeral, e.g. a cloud or VM instance */}}
 {{- $work := false -}}{{/* true if this machine is a work machine */}}
 {{- $is_wsl := false -}}{{/* true if this machine is a WSL machine */}}
-{{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
 {{- $personal := false -}}{{/* true if this machine should have personal secrets */}}
 {{- "" -}}
 
@@ -22,7 +21,6 @@
 {{/* detect GitHub codespaces, VSCode remote containers, Docker containers, Multipass VMs, and Vagrant boxes */}}
 {{- if or (env "CODESPACES") (env "REMOTE_CONTAINERS_IPC") (eq .chezmoi.username "root" "ubuntu" "vagrant" "vscode") -}}
 {{-   $ephemeral = true -}}
-{{-   $headless = true -}}
 {{- end -}}
 
 {{- if eq .chezmoi.os "linux" -}}
@@ -66,7 +64,6 @@
 {{-   else if stdinIsATTY -}}
 {{-     $ephemeral = promptBoolOnce . "ephemeral" "Is this an ephemeral machine (no secrets)?" -}}
 {{-     if not $ephemeral -}}
-{{-       $headless = promptBoolOnce . "headless" "Is this a headless server (no GUI)?" -}}
 {{-       $personal = promptBoolOnce . "personal" "Is this your personal machine?" -}}
 {{-       if $personal -}}
 {{-         $opVault = "Private" -}}
@@ -77,7 +74,6 @@
 {{-     end -}}
 {{-   else -}}
 {{-     $ephemeral = true -}}
-{{-     $headless = true -}}
 {{-   end -}}
 {{- end -}}
 
@@ -92,7 +88,6 @@
   name = {{ $name | quote }}
   email = {{ $email | quote }}
   work = {{ $work }}
-  headless = {{ $headless }}
   is_wsl = {{ $is_wsl }}
   dev_computer = {{ $dev_computer }}
   hostname = {{ $hostname | quote }}
