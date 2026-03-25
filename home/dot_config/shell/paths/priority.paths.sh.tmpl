@@ -35,5 +35,7 @@ path_add "/usr/local/bin"    # Linux system tools
 path_add "/usr/bin"          # Core Linux utilities
 {{- end }}
 
-# pnpm PATH is handled by mise.sh
-# Other high-priority tools can be added here
+{{- if eq .chezmoi.os "darwin" }}
+# Prevent brew from reinstalling tools that mise owns
+export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-lint jj jless jq lazygit ripgrep yt-dlp age"
+{{- end }}

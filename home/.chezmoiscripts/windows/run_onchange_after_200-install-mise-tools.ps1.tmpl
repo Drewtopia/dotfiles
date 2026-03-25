@@ -1,9 +1,14 @@
 {{- if and .dev_computer (eq .chezmoi.os "windows") }}
 
-# Install mise tools after config changes
 if (Get-Command mise -ErrorAction SilentlyContinue) {
-    Write-Host "Installing mise tools..."
-    mise install
+    # Set GITHUB_TOKEN to avoid API rate limits with many aqua/github tools
+    if (Get-Command gh -ErrorAction SilentlyContinue) {
+        $env:GITHUB_TOKEN = (gh auth token 2>$null)
+    }
+    mise trust --all 2>$null
+    Write-Host "📦 Installing mise tools..."
+    mise install --yes
+    mise prune --yes 2>$null
 }
 
 {{- end }}
