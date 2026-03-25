@@ -2,42 +2,28 @@
 
 set -eufo pipefail
 
+{{- /* CLI tools (bat, fd, rg, delta, eza, gh, glow, gdu, jq, jj, jless, lazygit, ripgrep, age, golangci-lint, yt-dlp) moved to mise */ -}}
+{{- /* Shell tools (atuin, carapace, fzf, zoxide) move to mise in Batch 3 */ -}}
 {{ $brews := list
-    "age"
     "atuin"
-    "bat"
     "btop"
     "carapace"
     "curl"
     "dockutil"
-    "eza"
-    "fd"
     "ffmpeg"
     "fzf"
-    "gdu"
-    "gh"
     "git"
-    "git-delta"
     "git-lfs"
-    "glow"
     "gnu-units"
     "gnupg"
-    "golangci-lint"
-    "jj"
-    "jless"
-    "jq"
     "kanata"
-    "lazygit"
     "mas"
     "pkg-config"
-    "ripgrep"
     "shellcheck"
     "tmux"
     "wget"
     "xz"
-    "yt-dlp"
     "zoxide" -}}
-{{- /* Node.js back to homebrew due to mise GPG issues */ -}}
 {{ $casks := list
 	"1password@nightly"
     "1password-cli"
