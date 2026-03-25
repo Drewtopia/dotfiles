@@ -105,6 +105,11 @@
   xdgDataDir = "{{ .chezmoi.homeDir }}/.local/share"
   xdgStateDir = "{{ .chezmoi.homeDir }}/.local/state"
 
+  [data.directories]
+    repos_dir = "{{ .chezmoi.homeDir }}/repos"
+    ssh_keys_dir = "{{ .chezmoi.homeDir }}/.ssh_keys"
+    user_bin_dir = "{{ .chezmoi.homeDir }}/bin"
+
 [github]
     refreshPeriod = "12h"
 {{- if not $ephemeral }}
