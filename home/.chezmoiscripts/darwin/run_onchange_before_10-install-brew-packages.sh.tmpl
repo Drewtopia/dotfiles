@@ -96,15 +96,4 @@ for cask in glance-chamburr qlmarkdown; do
     fi
 done
 
-{{ if .dev_computer -}}
-# Install mise (runtime version manager) — installer auto-runs `mise install --yes`
-# Subsequent installs triggered by 200-install-mise-tools when config.toml changes
-echo "📦 Installing/updating mise..."
-curl https://mise.run | sh || {
-    echo "⚠️  Mise installation failed"
-    exit 1
-}
-export PATH="$HOME/.local/bin:$PATH"
-{{- end }}
-
-echo "✅ macOS installation completed!"
+echo "✅ Homebrew packages installed!"

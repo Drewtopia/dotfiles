@@ -1,4 +1,3 @@
-{{- if eq .chezmoi.os "windows" -}}
 #!/usr/bin/env pwsh
 
 # Install Claude Code on Windows
@@ -31,4 +30,3 @@ try {
     Write-Host "[ERROR] Claude Code installation failed: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
-{{- end -}}

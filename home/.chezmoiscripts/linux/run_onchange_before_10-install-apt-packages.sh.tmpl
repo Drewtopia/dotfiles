@@ -51,18 +51,6 @@ echo "🐧 Installing system packages on Linux..."
 {{   end }}
 {{ end }}
 
-{{ if .dev_computer -}}
-# Install mise (runtime version manager) — installer auto-runs `mise install --yes`
-# Subsequent installs triggered by 200-install-mise-tools when config.toml changes
-# zoxide, atuin, fzf, carapace all handled by mise now
-echo "📦 Installing/updating mise..."
-curl https://mise.run | sh || {
-    echo "⚠️  Mise installation failed"
-    exit 1
-}
-export PATH="$HOME/.local/bin:$PATH"
-{{- end }}
-
-echo "✅ Linux installation completed!"
+echo "✅ apt packages installed!"
 
 {{ end -}}

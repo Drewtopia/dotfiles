@@ -1,9 +1,18 @@
+{{- if .dev_computer -}}
 #!/bin/bash
-# Re-run when mise config changes: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
-{{- if .dev_computer }}
+set -eufo pipefail
 
+# Re-run when mise config changes: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
+
+# Install/update mise if needed
+if ! command -v mise >/dev/null 2>&1; then
+    echo "📦 Installing mise..."
+    curl https://mise.run | sh
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Install mise tools
 if command -v mise >/dev/null 2>&1; then
-    # Set GITHUB_TOKEN to avoid API rate limits with many aqua/github tools
     if command -v gh >/dev/null 2>&1; then
         export GITHUB_TOKEN="$(gh auth token 2>/dev/null)" || true
     fi
@@ -12,5 +21,4 @@ if command -v mise >/dev/null 2>&1; then
     mise install --yes
     mise prune --yes 2>/dev/null || true
 fi
-
 {{- end }}
