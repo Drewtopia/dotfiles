@@ -111,11 +111,7 @@ load_paths() {
     [[ -f "${XDG_CONFIG_HOME}/shell/paths/default.paths.sh" ]] && \
         source "${XDG_CONFIG_HOME}/shell/paths/default.paths.sh"
     
-    # 3. Custom paths (user-specific, tool managers)
-    [[ -f "${XDG_CONFIG_HOME}/shell/paths/custom.paths.sh" ]] && \
-        source "${XDG_CONFIG_HOME}/shell/paths/custom.paths.sh"
-    
-    # 4. Load completion paths (zsh only)
+    # 3. Load completion paths (zsh only)
     if [[ -n "${ZSH_VERSION:-}" ]]; then
         # Oh My Zsh completions directory
         fpath_add "$HOME/.oh-my-zsh/completions"
