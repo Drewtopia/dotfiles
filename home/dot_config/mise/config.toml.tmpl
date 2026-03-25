@@ -1,26 +1,50 @@
 {{ if .dev_computer -}}
-# Global mise configuration - focused on core development tools
-# CLI utilities handled by homebrew/apt for better system integration
+# Global mise configuration — single source of truth for dev tools
+# OS package managers (brew/scoop/apt) only handle system deps + GUI apps
 
 [tools]
-# JavaScript/TypeScript ecosystem
+# Language runtimes (core backend)
 node = "latest"
 pnpm = "latest"
 deno = "latest"
 bun = "latest"
-
-# Python ecosystem
 python = "3.12"
 uv = "latest"
-
-# Language runtimes
 go = "latest"
 rust = "latest"
 
-# CLI utilities
+# mise ecosystem tools
 usage = "latest"
 fnox = "latest"
 "cargo:pay-respects" = "latest"
+
+# CLI tools — aqua backend (checksum-verified, cross-platform)
+"aqua:sharkdp/bat" = "latest"
+"aqua:sharkdp/fd" = "latest"
+"aqua:BurntSushi/ripgrep" = "latest"
+"aqua:dandavison/delta" = "latest"
+"aqua:jesseduffield/lazygit" = "latest"
+"aqua:jj-vcs/jj" = "latest"
+"aqua:cli/cli" = "latest"
+"aqua:charmbracelet/glow" = "latest"
+"aqua:jqlang/jq" = "latest"
+"aqua:FiloSottile/age" = "latest"
+"aqua:dundee/gdu" = "latest"
+"aqua:golangci/golangci-lint" = "latest"
+
+# CLI tools — github backend (not in aqua registry)
+"github:eza-community/eza" = "latest"
+
+{{ if ne .chezmoi.os "windows" -}}
+# Unix-only (no Windows binary available)
+"aqua:PaulJuliusMartinez/jless" = "latest"
+{{ end -}}
+
+{{ if .personal -}}
+# Personal-only tools
+"github:yt-dlp/yt-dlp" = "latest"
+"aqua:schollz/croc" = "latest"
+{{ end -}}
 
 [settings]
 experimental = true
