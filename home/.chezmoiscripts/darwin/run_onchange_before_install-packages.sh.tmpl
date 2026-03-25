@@ -2,16 +2,12 @@
 
 set -eufo pipefail
 
-{{/* CLI tools (bat, fd, rg, delta, eza, gh, glow, gdu, jq, jj, jless, lazygit, ripgrep, age, golangci-lint, yt-dlp) moved to mise */}}
-{{/* Shell tools (atuin, carapace, fzf, zoxide) move to mise in Batch 3 */}}
+{{/* CLI + shell tools moved to mise: bat, fd, rg, delta, eza, gh, glow, gdu, jq, jj, jless, lazygit, age, golangci-lint, yt-dlp, atuin, carapace, fzf, zoxide */}}
 {{ $brews := list
-    "atuin"
     "btop"
-    "carapace"
     "curl"
     "dockutil"
     "ffmpeg"
-    "fzf"
     "git"
     "git-lfs"
     "gnu-units"
@@ -22,8 +18,7 @@ set -eufo pipefail
     "shellcheck"
     "tmux"
     "wget"
-    "xz"
-    "zoxide" -}}
+    "xz" -}}
 {{ $casks := list
 	"1password@nightly"
     "1password-cli"

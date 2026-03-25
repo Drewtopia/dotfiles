@@ -7,21 +7,7 @@ set -euo pipefail
 # Template hash: {{ include "dot_config/shell/020-shell-tools.sh.tmpl" | sha256sum }}
 
 {{ if .dev_computer -}}
-# Configure fzf integration (silently to avoid Powerlevel10k warnings)
-if command -v fzf >/dev/null 2>&1; then
-    
-    {{- if eq .chezmoi.os "darwin" }}
-    # macOS homebrew fzf setup
-    if [[ -f /opt/homebrew/opt/fzf/install ]]; then
-        /opt/homebrew/opt/fzf/install --key-bindings --completion --no-update-rc --no-bash --no-fish >/dev/null 2>&1 || true
-    fi
-    {{- else }}
-    # Linux fzf setup
-    if [[ -f ~/.fzf/install ]]; then
-        ~/.fzf/install --key-bindings --completion --no-update-rc --no-bash --no-fish >/dev/null 2>&1 || true
-    fi
-    {{- end }}
-fi
+# fzf integration now handled by eval "$(fzf --zsh)" in 020-shell-tools.sh
 
 # Configure GitHub CLI
 if command -v gh >/dev/null 2>&1; then

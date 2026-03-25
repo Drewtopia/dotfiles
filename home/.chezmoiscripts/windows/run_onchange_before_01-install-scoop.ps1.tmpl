@@ -60,15 +60,11 @@ foreach ($bucket in $buckets) {
 }
 
 # Install essential CLI tools via Scoop
-# CLI tools (bat, fd, rg, delta, eza, gh, glow, jj, jq, lazygit) moved to mise
-# Shell tools (carapace, fzf, zoxide) move to mise in Batch 3
+# CLI + shell tools moved to mise: bat, fd, rg, delta, eza, gh, glow, jj, jq, lazygit, carapace, fzf, zoxide
 $scoopPackages = @(
-    'carapace-bin',
-    'fzf',
     'kanata',
     'Meslo-NF',
-    'neovim',
-    'zoxide'
+    'neovim'
 )
 
 # Get list of installed packages once

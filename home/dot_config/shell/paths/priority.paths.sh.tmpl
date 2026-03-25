@@ -37,5 +37,5 @@ path_add "/usr/bin"          # Core Linux utilities
 
 {{- if eq .chezmoi.os "darwin" }}
 # Prevent brew from reinstalling tools that mise owns
-export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-lint jj jless jq lazygit ripgrep yt-dlp age"
+export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-lint jj jless jq lazygit ripgrep yt-dlp age atuin carapace fzf zoxide"
 {{- end }}

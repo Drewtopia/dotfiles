@@ -7,26 +7,15 @@
 
 ## Shell Integration (only if tools are available)
 if command -v fzf >/dev/null 2>&1; then
-	[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
-
-	# Universal fuzzy completion integration
-	if [[ -n ${ZSH_NAME} && -f "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh" ]]; then
-		source "$HOME/.config/fzf-tab-completion/zsh/fzf-zsh-completion.sh"
-		# Enable for commands that don't have native completions
-		bindkey '^I' fzf_completion
-	fi
+	# fzf 0.48+ universal init — replaces brew-specific ~/.fzf.zsh
+	eval "$(fzf --zsh)"
 fi
 
 if command -v zoxide >/dev/null 2>&1; then
 	eval "$(zoxide init zsh)"
 fi
 
-# atuin - shell history enhancement
-{{- if eq .chezmoi.os "linux" }}
-# Add atuin to PATH safely on Linux
-path_add "${HOME}/.atuin/bin"
-{{- end }}
-
+# atuin - shell history enhancement (installed via mise on all platforms)
 if command -v atuin >/dev/null 2>&1; then
 	if [[ -n ${ZSH_NAME} ]]; then
 		export ATUIN_NOBIND="true"
