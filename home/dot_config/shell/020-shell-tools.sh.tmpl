@@ -42,6 +42,7 @@ if command -v fnox >/dev/null 2>&1; then
 	fi
 fi
 
-# Starship removed - user preference
-
-# Shell tool aliases removed - user prefers no automatic aliases
+{{- if .is_wsl }}
+# WSL2: Use Windows 1Password CLI via interop
+alias op="op.exe"
+{{- end }}
