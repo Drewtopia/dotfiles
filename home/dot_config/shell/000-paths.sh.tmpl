@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+# Consolidated PATH setup (replaces path-management.sh + paths/ directory)
+# Loaded by shell-loader.sh before 010-mise.sh
+
+# System paths (homebrew + ~/.local/bin already set in .zshenv)
+path=($path /usr/local/bin /usr/local/sbin /usr/bin /bin /usr/sbin /sbin)
+
+{{- if eq .chezmoi.os "darwin" }}
+path=($path /opt/homebrew/sbin /Library/Apple/usr/bin)
+{{- end }}
+
+# Completion paths (zsh only)
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+    fpath=("$HOME/.oh-my-zsh/completions" $fpath)
+    [[ -d "/usr/local/share/zsh/site-functions" ]] && fpath=($fpath /usr/local/share/zsh/site-functions)
+    [[ -d "/opt/homebrew/share/zsh/site-functions" ]] && fpath=($fpath /opt/homebrew/share/zsh/site-functions)
+fi
+
+# Manpaths
+{{- if eq .chezmoi.os "darwin" }}
+manpath=($manpath /opt/homebrew/share/man /usr/local/share/man)
+{{- end }}
+manpath=($manpath /usr/share/man "$HOME/.local/share/man")
+
+{{- if .is_wsl }}
+# WSL2: Filter out Windows tool paths that conflict with Linux tools
+# Keep: VS Code, Docker, Windows system, 1Password CLI
+# Remove: All dev tools that have Linux equivalents via mise
+_filtered_path=()
+for dir in "${path[@]}"; do
+    if [[ ! "$dir" =~ ^/mnt/[a-zA-Z]/ ]]; then
+        _filtered_path+=("$dir")
+    elif [[ "$dir" =~ "Microsoft VS Code" ]] ||
+         [[ "$dir" =~ "Docker" ]] ||
+         [[ "$dir" =~ "1Password" ]] ||
+         [[ "$dir" =~ "/mnt/c/Windows" ]]; then
+        _filtered_path+=("$dir")
+    fi
+done
+
+# Rebuild with WSL paths first, then remaining Windows paths
+_wsl_paths=()
+_win_paths=()
+for dir in "${_filtered_path[@]}"; do
+    if [[ "$dir" =~ ^/mnt/[a-zA-Z]/ ]]; then
+        _win_paths+=("$dir")
+    else
+        _wsl_paths+=("$dir")
+    fi
+done
+path=($_wsl_paths $_win_paths)
+unset _filtered_path _wsl_paths _win_paths
+{{- end }}

@@ -33,6 +33,13 @@ if command -v atuin >/dev/null 2>&1; then
 	fi
 fi
 
+# carapace - universal completion engine
+if command -v carapace >/dev/null 2>&1; then
+	export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
+	zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
+	source <(carapace _carapace)
+fi
+
 # fnox - secrets manager with shell integration
 if command -v fnox >/dev/null 2>&1; then
 	if [[ -n ${ZSH_NAME} ]]; then
