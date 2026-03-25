@@ -35,6 +35,12 @@ fnox = "latest"
 # eza — not in aqua, github backend grabs wrong asset, use core registry
 eza = "latest"
 
+# Shell-integrated tools (keybindings, completions, prompt hooks)
+"aqua:junegunn/fzf" = "latest"
+"aqua:ajeetdsouza/zoxide" = "latest"
+"aqua:atuinsh/atuin" = "latest"
+"aqua:carapace-sh/carapace-bin" = "latest"
+
 {{ if ne .chezmoi.os "windows" -}}
 # Unix-only (no Windows binary available)
 "aqua:PaulJuliusMartinez/jless" = "latest"
