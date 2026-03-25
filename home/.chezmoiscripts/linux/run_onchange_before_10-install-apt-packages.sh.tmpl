@@ -1,7 +1,6 @@
-{{ if eq .osid "linux-debian" "linux-raspbian" "linux-ubuntu" -}}
-
+{{- if eq .osid "linux-debian" "linux-raspbian" "linux-ubuntu" -}}
 {{/* CLI + shell tools moved to mise: bat, fd, rg, gh, jq, age, fzf, zoxide, atuin, carapace */}}
-{{ $packages := list
+{{- $packages := list
      "curl"
      "ffmpeg"
      "git"
