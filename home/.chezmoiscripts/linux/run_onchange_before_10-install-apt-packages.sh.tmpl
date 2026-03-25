@@ -24,7 +24,9 @@
 
 {{ if not .ephemeral -}}
 {{   $packages = mustAppend $packages "xclip" -}}
+{{-   if not .is_wsl }}
 {{   $classicSnaps = mustAppend $classicSnaps "code" -}}
+{{-   end }}
 {{ end -}}
 
 {{ $sudo := "sudo " -}}
@@ -42,12 +44,14 @@ echo "🐧 Installing system packages on Linux..."
 {{ $sudo }}apt-get install -y {{ $packages | join " " }}
 
 {{ if lookPath "snap" }}
+if [[ -S /run/snapd.socket ]]; then
 {{   range $snaps }}
-( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install {{ . }}
+( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install {{ . }} || true
 {{   end }}
 {{   range $classicSnaps }}
-( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install --classic {{ . }}
+( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install --classic {{ . }} || true
 {{   end }}
+fi
 {{ end }}
 
 echo "✅ apt packages installed!"
