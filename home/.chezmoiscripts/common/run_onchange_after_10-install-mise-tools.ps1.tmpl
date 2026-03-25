@@ -1,6 +1,15 @@
 {{- if .dev_computer }}
 #!/usr/bin/env pwsh
 
+# Re-launch with pwsh 7 if running under PowerShell 5.1
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+        pwsh -NoProfile -File $MyInvocation.MyCommand.Path
+        exit $LASTEXITCODE
+    }
+    Write-Host "[WARN] pwsh 7 not found, running under PowerShell $($PSVersionTable.PSVersion)" -ForegroundColor Yellow
+}
+
 # Re-run when mise config changes: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
 
 # Install mise if needed
