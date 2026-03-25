@@ -1,0 +1,56 @@
+# XDG Base Directory Specification (single source of truth)
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+
+# Prevent PATH duplicates (zsh built-in)
+typeset -U path fpath manpath
+typeset +x FPATH
+
+# Core paths — remove-then-prepend to survive macOS path_helper reordering
+# path_helper runs in /etc/zprofile and pushes system paths ahead of ours.
+# .zprofile re-sources this file; the ${path:#pattern} removal ensures our
+# paths land at the front even on second source.
+path=("$HOME/.local/bin" ${path:#$HOME/.local/bin})
+
+{{- if eq .chezmoi.os "darwin" }}
+path=("/opt/homebrew/bin" ${path:#/opt/homebrew/bin})
+{{- end }}
+
+# XDG-aware application configurations
+alias wget="wget --hsts-file='${XDG_DATA_HOME}/wget-hsts'"
+export ANDROID_HOME="$XDG_DATA_HOME/android"
+export ANSIBLE_HOME="${XDG_DATA_HOME}/ansible"
+export CARGO_HOME="${XDG_DATA_HOME}/cargo"
+export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
+export DOTNET_CLI_HOME="${XDG_DATA_HOME}/dotnet"
+export GNUPGHOME="${XDG_DATA_HOME}/gnupg"
+export IPYTHONDIR="$XDG_CONFIG_HOME/ipython"
+export JUPYTER_CONFIG_DIR="$XDG_CONFIG_HOME/jupyter"
+export LESSHISTFILE="${XDG_STATE_HOME}/less/history"
+export NPM_CONFIG_USERCONFIG="${XDG_CONFIG_HOME}/npm/npmrc"
+export PYTHONSTARTUP="${XDG_CONFIG_HOME}/python/pythonrc"
+export PYTHON_HISTORY="${XDG_STATE_HOME}/python_history"
+export RUSTUP_HOME="${XDG_DATA_HOME}/rustup"
+export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
+
+# Core environment
+export EDITOR=nvim
+export PAGER=less
+export LESS=FRX
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+{{- if eq .chezmoi.os "darwin" }}
+# 1Password SSH Agent (skip when SSH'd — biometric unavailable)
+if [[ -z "$SSH_CONNECTION" ]]; then
+    export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+fi
+
+# Prevent brew from reinstalling tools that mise owns
+export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-lint jj jless jq lazygit ripgrep yt-dlp age atuin carapace fzf zoxide"
+{{- end }}
+
+# Local overrides (machine-specific env vars, not tracked by chezmoi)
+[[ -f "${HOME}/.zshenv.local" ]] && source "${HOME}/.zshenv.local"
