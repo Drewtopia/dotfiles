@@ -1,9 +1,7 @@
 {{- if eq .osid "linux-ubuntu" }}
 
-{{- /* CLI tools moved to mise: age, croc, eza, gdu, glow, golangci-lint, jless, uv, delta, lazygit, yt-dlp, jj */ -}}
-{{- /* carapace moves to mise in Batch 3 */ -}}
+{{- /* CLI + shell tools moved to mise. Only cue + nvim stay as externals (platform quirks) */ -}}
 
-# Tools that stay as externals (platform quirks, not in mise)
 [".local/bin/cue"]
     type = "archive-file"
     url = {{ gitHubLatestReleaseAssetURL "cue-lang/cue" (printf "cue_v*_%s_%s.tar.gz" .chezmoi.os .chezmoi.arch) | quote }}
@@ -15,13 +13,6 @@
     url = "https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.appimage"
     refreshPeriod = "672h"
     executable = true
-
-[".local/bin/carapace"]
-    type = "archive-file"
-    url = {{ gitHubLatestReleaseAssetURL "carapace-sh/carapace-bin" "carapace-bin_*_linux_amd64.tar.gz" | quote }}
-    executable = true
-    path = "carapace"
-    refreshPeriod = "168h"
 
 {{- end }}
 
