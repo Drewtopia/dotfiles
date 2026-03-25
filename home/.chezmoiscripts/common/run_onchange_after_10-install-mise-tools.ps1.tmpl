@@ -1,0 +1,22 @@
+{{- if .dev_computer }}
+#!/usr/bin/env pwsh
+
+# Re-run when mise config changes: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
+
+# Install mise if needed
+if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
+    Write-Host "📦 Installing mise..." -ForegroundColor Blue
+    irm https://mise.run | iex
+}
+
+# Install mise tools
+if (Get-Command mise -ErrorAction SilentlyContinue) {
+    if (Get-Command gh -ErrorAction SilentlyContinue) {
+        $env:GITHUB_TOKEN = (gh auth token 2>$null)
+    }
+    mise trust --all 2>$null
+    Write-Host "📦 Installing mise tools..." -ForegroundColor Blue
+    mise install --yes
+    mise prune --yes 2>$null
+}
+{{- end }}

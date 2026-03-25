@@ -1,1 +1,29 @@
 .tmux.config
+
+# Old fzf configs (replaced by eval "$(fzf --zsh)")
+.fzf.zsh
+.fzf.bash
+
+# Old custom.paths.sh (deleted from chezmoi source)
+.config/shell/paths/custom.paths.sh
+
+{{- if eq .chezmoi.os "linux" }}
+# Old chezmoi-external binaries now handled by mise
+.local/bin/age
+.local/bin/age-keygen
+.local/bin/croc
+.local/bin/eza
+.local/bin/gdu
+.local/bin/glow
+.local/bin/golangci-lint
+.local/bin/jless
+.local/bin/uv
+.local/bin/delta
+.local/bin/lazygit
+.local/bin/yt-dlp
+.local/bin/jj
+.local/bin/carapace
+{{- end }}
+
+# Old atuin curl install (mise owns atuin now)
+.atuin
