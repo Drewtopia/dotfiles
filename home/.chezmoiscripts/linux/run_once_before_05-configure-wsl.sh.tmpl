@@ -2,6 +2,17 @@
 #!/bin/bash
 set -euo pipefail
 
+# Passwordless sudo for WSL (local dev VM, not a shared server)
+SUDOERS_FILE="/etc/sudoers.d/{{ .chezmoi.username }}"
+if [[ ! -f "$SUDOERS_FILE" ]]; then
+    echo "🔧 Configuring passwordless sudo..."
+    echo "{{ .chezmoi.username }} ALL=(ALL) NOPASSWD:ALL" | sudo tee "$SUDOERS_FILE" > /dev/null
+    sudo chmod 0440 "$SUDOERS_FILE"
+    echo "✅ Passwordless sudo configured"
+else
+    echo "✅ Passwordless sudo already configured"
+fi
+
 # Configure WSL2: interop ON (for code, explorer.exe, op.exe, clip.exe)
 # but appendWindowsPath OFF (mise provides native Linux tools, no PATH pollution)
 if [[ ! -f /etc/wsl.conf ]] || ! grep -q "appendWindowsPath" /etc/wsl.conf 2>/dev/null; then
