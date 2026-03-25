@@ -16,7 +16,7 @@
 
 {{- end }}
 
-{{- if and (not .ephemeral) (not .headless) }}
+{{- if not .ephemeral }}
 {{-   $fontDir := "" }}
 {{-   if eq .chezmoi.os "darwin" }}
 {{-     $fontDir = "Library/Fonts" }}

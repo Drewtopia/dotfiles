@@ -23,7 +23,7 @@
 {{   $packages = mustAppend $packages "btop" -}}
 {{ end -}}
 
-{{ if not .headless -}}
+{{ if not .ephemeral -}}
 {{   $packages = mustAppend $packages "xclip" -}}
 {{   $classicSnaps = mustAppend $classicSnaps "code" -}}
 {{ end -}}
