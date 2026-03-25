@@ -2,8 +2,8 @@
 
 set -eufo pipefail
 
-{{- /* CLI tools (bat, fd, rg, delta, eza, gh, glow, gdu, jq, jj, jless, lazygit, ripgrep, age, golangci-lint, yt-dlp) moved to mise */ -}}
-{{- /* Shell tools (atuin, carapace, fzf, zoxide) move to mise in Batch 3 */ -}}
+{{/* CLI tools (bat, fd, rg, delta, eza, gh, glow, gdu, jq, jj, jless, lazygit, ripgrep, age, golangci-lint, yt-dlp) moved to mise */}}
+{{/* Shell tools (atuin, carapace, fzf, zoxide) move to mise in Batch 3 */}}
 {{ $brews := list
     "atuin"
     "btop"
@@ -80,7 +80,7 @@ set -eufo pipefail
     "wezterm"
     "zen"
     "qlmarkdown"
-    "qlvideo" -}}
+    "quicklook-video" -}}
 
 echo "🍎 Installing system packages via Homebrew..."
 
@@ -89,13 +89,17 @@ brew bundle --file=/dev/stdin <<EOF
 brew "{{ . }}"
 {{ end -}}
 {{ range ($casks | sortAlpha | uniq) -}}
-{{ if or (eq . "glance-chamburr") (eq . "qlmarkdown") -}}
-cask "{{ . }}", args: { no_quarantine: true }
-{{ else -}}
 cask "{{ . }}"
 {{ end -}}
-{{ end -}}
 EOF
+
+# Remove quarantine flag from Quick Look plugins that need it
+for cask in glance-chamburr qlmarkdown; do
+    cask_dir="$(brew --caskroom)/$cask" 2>/dev/null
+    if [[ -d "$cask_dir" ]]; then
+        xattr -dr com.apple.quarantine "$cask_dir" 2>/dev/null || true
+    fi
+done
 
 {{ if .dev_computer -}}
 # Install mise (runtime version manager) — installer auto-runs `mise install --yes`

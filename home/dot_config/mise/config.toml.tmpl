@@ -32,8 +32,8 @@ fnox = "latest"
 "aqua:dundee/gdu" = "latest"
 "aqua:golangci/golangci-lint" = "latest"
 
-# CLI tools — github backend (not in aqua registry)
-"github:eza-community/eza" = "latest"
+# eza — not in aqua, github backend grabs wrong asset, use core registry
+eza = "latest"
 
 {{ if ne .chezmoi.os "windows" -}}
 # Unix-only (no Windows binary available)
@@ -42,7 +42,8 @@ fnox = "latest"
 
 {{ if .personal -}}
 # Personal-only tools
-"github:yt-dlp/yt-dlp" = "latest"
+# yt-dlp — github backend names binary yt-dlp_macos, use core registry
+yt-dlp = "latest"
 "aqua:schollz/croc" = "latest"
 {{ end -}}
 
