@@ -63,30 +63,18 @@ echo "📦 Installing/updating zoxide..."
 curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
 
 {{ if .dev_computer -}}
-echo "🐧 Installing development tools via mise..."
-
-# Install mise (modern runtime version manager)
-# Always install/update mise to ensure latest version and correct location
+# Install mise (runtime version manager) — installer auto-runs `mise install --yes`
+# Subsequent installs triggered by 200-install-mise-tools when config.toml changes
 echo "📦 Installing/updating mise..."
 curl https://mise.run | sh || {
     echo "⚠️  Mise installation failed"
     exit 1
 }
-
-# Add mise to PATH for this session
 export PATH="$HOME/.local/bin:$PATH"
-
-# Install development tools via mise
-echo "📦 Installing development tools via mise..."
-mise install 2>/dev/null || echo "⚠️  Some mise tools failed to install"
 
 # Atuin (shell history) - not available via apt
 echo "📦 Installing/updating Atuin..."
 curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh -s -- --no-modify-path || echo "⚠️  Atuin installation failed"
-
-echo "✅ Development tools installation completed!"
-{{- else }}
-echo "🏠 Skipping development tools installation (not a dev computer)"
 {{- end }}
 
 echo "✅ Linux installation completed!"
