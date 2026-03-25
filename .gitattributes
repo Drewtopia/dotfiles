@@ -1,0 +1,25 @@
+# Default: auto-detect
+* text=auto
+
+# Shell scripts must be LF (WSL/Linux/macOS)
+*.sh text eol=lf
+*.sh.tmpl text eol=lf
+*.zsh text eol=lf
+
+# PowerShell can handle either but prefer CRLF
+*.ps1 text eol=crlf
+*.ps1.tmpl text eol=crlf
+
+# Config files — LF for cross-platform consistency
+*.toml text eol=lf
+*.toml.tmpl text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.tmpl text eol=lf
+
+# Markdown
+*.md text eol=lf
+
+# Windows-specific files
+*.wslconfig text eol=crlf
