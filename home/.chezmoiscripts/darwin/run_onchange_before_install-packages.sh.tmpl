@@ -83,6 +83,7 @@ set -eufo pipefail
     "setapp"
     "spotify"
     "soundsource"
+    "glance-chamburr"
     "syntax-highlight"
     "tailscale-app"
     "telegram"
@@ -102,7 +103,11 @@ brew bundle --file=/dev/stdin <<EOF
 brew "{{ . }}"
 {{ end -}}
 {{ range ($casks | sortAlpha | uniq) -}}
+{{ if or (eq . "glance-chamburr") (eq . "qlmarkdown") -}}
+cask "{{ . }}", args: { no_quarantine: true }
+{{ else -}}
 cask "{{ . }}"
+{{ end -}}
 {{ end -}}
 EOF
 
