@@ -132,13 +132,14 @@ export EDITOR=nvim
 {{ else -}}
 export EDITOR=vim
 {{ end -}}
-{{ if and (not .ephemeral) (not .work) -}}
-export GITHUB_ACCESS_TOKEN={{ onepasswordRead "op://Private/GitHub Metadata Read-Only Access Token/token" | trim }}
-export MISE_GITHUB_TOKEN={{ onepasswordRead "op://Private/GitHub mise PAT/token" | trim }}
+{{- if not .ephemeral }}
+export GITHUB_TOKEN={{ onepasswordRead (printf "op://%s/GitHub PAT/token" .opVault) | trim }}
+{{- end }}
+{{- if and (not .ephemeral) (not .work) }}
 export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | trim }}
-{{ else if .work -}}
+{{- else if .work }}
 export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
-{{ end -}}
+{{- end }}
 # MANPATH is managed via array syntax and typeset -aU
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
