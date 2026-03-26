@@ -1,0 +1,20 @@
+# navi configuration
+# Docs: https://github.com/denisidoro/navi/blob/master/docs/config_file.md
+
+finder:
+  command: fzf
+
+style:
+  tag:
+    color: cyan
+    width_percentage: 26
+    min_width: 20
+  comment:
+    color: blue
+    width_percentage: 42
+    min_width: 45
+  snippet:
+    color: white
+
+shell:
+  command: bash
