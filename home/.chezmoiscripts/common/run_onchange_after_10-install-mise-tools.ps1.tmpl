@@ -14,8 +14,8 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 
 # Install mise if needed
 if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
-    Write-Host "📦 Installing mise..." -ForegroundColor Blue
-    irm https://mise.run | iex
+    Write-Host "📦 Installing mise via winget..." -ForegroundColor Blue
+    winget install -e --id jdx.mise --accept-source-agreements --accept-package-agreements
 }
 
 # Install mise tools
