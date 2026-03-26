@@ -13,14 +13,14 @@ else
     echo "✅ Passwordless sudo already configured"
 fi
 
-# Configure WSL2: interop ON (for code, explorer.exe, op.exe, clip.exe)
-# but appendWindowsPath OFF (mise provides native Linux tools, no PATH pollution)
+# Configure WSL2: interop ON, appendWindowsPath ON
+# mise Linux tools come first in PATH, Windows .exe binaries available as fallback
 if [[ ! -f /etc/wsl.conf ]] || ! grep -q "appendWindowsPath" /etc/wsl.conf 2>/dev/null; then
     echo "🔧 Configuring /etc/wsl.conf..."
     sudo tee /etc/wsl.conf > /dev/null <<EOF
 [interop]
 enabled = true
-appendWindowsPath = false
+appendWindowsPath = true
 
 [automount]
 enabled = true
