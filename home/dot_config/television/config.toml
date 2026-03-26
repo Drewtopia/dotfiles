@@ -1,6 +1,7 @@
 # Television configuration
 # Docs: https://alexpasmantier.github.io/television/user-guide/configuration/
 
+tick_rate = 50
 default_channel = "files"
 history_size = 200
 global_history = false
@@ -8,13 +9,43 @@ global_history = false
 [ui]
 ui_scale = 80
 theme = "catppuccin"
+orientation = "landscape"
 
-# Shell integration — disabled to avoid conflicting with atuin (Ctrl+R) and fzf (Ctrl+T)
-# To enable: add `eval "$(tv init zsh)"` to shell config and configure triggers below
-# [shell_integration]
-# fallback_channel = "files"
-#
-# [shell_integration.channel_triggers]
-# "git-branches" = ["git checkout", "git switch"]
-# "git-repos" = ["cd"]
-# "files" = ["cat", "bat", "nvim"]
+# Shell integration — smart autocompletion based on command being typed
+# Ctrl+T triggers tv with context-aware channel selection
+[shell_integration]
+fallback_channel = "files"
+
+[shell_integration.keybindings]
+smart_autocomplete = "ctrl-t"
+command_history = "ctrl-r"
+
+[shell_integration.channel_triggers]
+"git-branch" = ["git checkout", "git switch", "git merge", "git rebase"]
+"git-files" = ["git add", "git diff", "git restore"]
+"git-repos" = ["cd"]
+"dirs" = ["cd", "ls", "eza"]
+"files" = ["cat", "bat", "nvim", "vim", "code", "less"]
+"docker-containers" = ["docker exec", "docker logs", "docker stop", "docker rm"]
+"docker-images" = ["docker run", "docker rmi"]
+"npm-scripts" = ["pnpm run", "npm run"]
+"ssh-hosts" = ["ssh", "scp"]
+"tmux-sessions" = ["tmux attach", "tmux switch"]
+"brew-packages" = ["brew uninstall", "brew info"]
+"gh-prs" = ["gh pr view", "gh pr checkout"]
+"gh-issues" = ["gh issue view"]
+
+[keybindings]
+# Remote control (channel picker)
+ctrl-r = "toggle_remote_control"
+# Preview
+ctrl-o = "toggle_preview"
+ctrl-t = "toggle_ui_orientation"
+# Navigation
+ctrl-n = "select_next_entry"
+ctrl-p = "select_prev_entry"
+ctrl-d = "select_next_page"
+ctrl-u = "select_prev_page"
+# Preview scroll
+ctrl-f = "preview_scroll_down"
+ctrl-b = "preview_scroll_up"
