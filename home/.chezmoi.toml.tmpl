@@ -41,7 +41,7 @@
 {{-   if has ($hostname | lower) $personalWindowsHosts -}}
 {{-     $personal = true -}}
 {{-     $opVault = "Private" -}}
-{{-   else if stdinIsATTY -}}
+{{-   else if or (stdinIsATTY) (hasKey . "ephemeral") -}}
 {{-     $ephemeral = promptBoolOnce . "ephemeral" "Is this an ephemeral machine (no secrets)?" -}}
 {{-     if not $ephemeral -}}
 {{-       $personal = promptBoolOnce . "personal" "Is this your personal machine?" -}}
@@ -61,7 +61,7 @@
 {{-   if eq $hostname "andrews-macbook-pro" -}}
 {{-     $personal = true -}}
 {{-     $opVault = "Private" -}}
-{{-   else if stdinIsATTY -}}
+{{-   else if or (stdinIsATTY) (hasKey . "ephemeral") -}}
 {{-     $ephemeral = promptBoolOnce . "ephemeral" "Is this an ephemeral machine (no secrets)?" -}}
 {{-     if not $ephemeral -}}
 {{-       $personal = promptBoolOnce . "personal" "Is this your personal machine?" -}}
@@ -82,6 +82,10 @@
 {{-   $email = "andrew.cliff@vec.vic.gov.au" -}}
 {{- end -}}
 
+
+# Make mise-managed tools visible to chezmoi templates (lookPath, etc.)
+[env]
+    PATH = "{{ .chezmoi.homeDir }}/.local/share/mise/shims:{{ env "PATH" }}"
 
 [data]
   ephemeral = {{ $ephemeral }}
@@ -118,7 +122,7 @@
     autoCommit = true
     commitMessageTemplate = {{ printf "%q" "{{ promptString `Commit message` }}" }}
 
-{{- if and (lookPath "delta") (ne .chezmoi.os "windows") }}
+{{- if and $dev_computer (ne .chezmoi.os "windows") }}
 [diff]
     pager = "delta"
 {{- end }}

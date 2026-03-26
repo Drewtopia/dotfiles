@@ -50,8 +50,6 @@ if command -v fnox >/dev/null 2>&1; then
 fi
 
 {{- if .is_wsl }}
-# WSL2: Use Windows 1Password CLI via interop if native op isn't installed
-if ! command -v op >/dev/null 2>&1 && [[ -x /mnt/c/Program\ Files/1Password\ CLI/op.exe ]]; then
-	alias op="/mnt/c/Program\ Files/1Password\ CLI/op.exe"
-fi
+# WSL2: op wrapper is created by chezmoi script (run_onchange_before_15-setup-1password-wsl.sh)
+# It delegates to Windows op.exe so chezmoi templates and shell both work
 {{- end }}
