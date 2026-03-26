@@ -1,0 +1,20 @@
+# Television configuration
+# Docs: https://alexpasmantier.github.io/television/user-guide/configuration/
+
+default_channel = "files"
+history_size = 200
+global_history = false
+
+[ui]
+ui_scale = 80
+theme = "catppuccin"
+
+# Shell integration — disabled to avoid conflicting with atuin (Ctrl+R) and fzf (Ctrl+T)
+# To enable: add `eval "$(tv init zsh)"` to shell config and configure triggers below
+# [shell_integration]
+# fallback_channel = "files"
+#
+# [shell_integration.channel_triggers]
+# "git-branches" = ["git checkout", "git switch"]
+# "git-repos" = ["cd"]
+# "files" = ["cat", "bat", "nvim"]
