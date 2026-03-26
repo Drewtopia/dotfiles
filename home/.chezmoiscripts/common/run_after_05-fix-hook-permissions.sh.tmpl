@@ -1,4 +1,0 @@
-{{- if ne .chezmoi.os "windows" -}}
-#!/bin/bash
-chmod +x "$HOME/.claude/hooks/"*.sh "$HOME/.claude/hooks/"*.py 2>/dev/null || true
-{{- end }}

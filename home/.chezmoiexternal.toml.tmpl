@@ -94,13 +94,15 @@
     refreshPeriod = "168h"
 
 {{- if ne .chezmoi.os "windows" }}
-# Claude Code - Hooks from claude-code-mastery (Unix only - uses shell scripts)
-[".claude/hooks"]
-    type = "archive"
-    url = "https://github.com/TheDecipherist/claude-code-mastery/archive/main.tar.gz"
-    stripComponents = 2
-    include = ["*/hooks/**"]
+# Claude Code - Hooks from claude-code-mastery (Unix only - individual files for executable bit)
+{{ $hookBase := "https://raw.githubusercontent.com/TheDecipherist/claude-code-mastery/main/hooks" -}}
+{{ range (list "after-edit.sh" "block-dangerous-commands.sh" "block-secrets.py" "end-of-turn.sh" "notify.sh") }}
+[".claude/hooks/{{ . }}"]
+    type = "file"
+    url = "{{ $hookBase }}/{{ . }}"
     refreshPeriod = "168h"
+    executable = true
+{{ end -}}
 {{- end }}
 
 # Claude Code - Skills from claude-code-mastery
