@@ -6,8 +6,10 @@
 ## Navigation & Search Tools
 
 ## Shell Integration (only if tools are available)
+
+# fzf — defaults and theme (used by navi, pipes, and other tools that call fzf)
+# Keybindings (Ctrl+T, Ctrl+R) handled by television instead
 if command -v fzf >/dev/null 2>&1; then
-	# fzf defaults — use fd for file finding, Catppuccin Mocha theme
 	export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 	export FZF_DEFAULT_OPTS=" \
 		--height=40% --layout=reverse --border --info=inline \
@@ -15,12 +17,8 @@ if command -v fzf >/dev/null 2>&1; then
 		--color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
 		--color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8 \
 		--color=selected-bg:#45475a"
-	export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-	export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:500 {} 2>/dev/null || cat {}'"
 	export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
 	export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --color=always {} 2>/dev/null || ls {}'"
-
-	# fzf 0.48+ universal init — replaces brew-specific ~/.fzf.zsh
 	eval "$(fzf --zsh)"
 fi
 
@@ -28,19 +26,17 @@ if command -v zoxide >/dev/null 2>&1; then
 	eval "$(zoxide init zsh)"
 fi
 
-# atuin - shell history enhancement (installed via mise on all platforms)
+# atuin — shell history storage + sync (data backend, no keybindings)
+# UI accessed via television's atuin-history channel (Ctrl+R)
 if command -v atuin >/dev/null 2>&1; then
+	export ATUIN_NOBIND="true"
 	if [[ -n ${ZSH_NAME} ]]; then
-		export ATUIN_NOBIND="true"
 		eval "$(atuin init zsh)"
-		bindkey '^r' atuin-search
+		# Keep up-arrow for atuin prefix search
 		bindkey '^[[A' atuin-up-search
 		bindkey '^[OA' atuin-up-search
 	elif [[ -n ${BASH} ]]; then
-		# shellcheck disable=SC1091
-		[[ -f ~/.bash-preexec.sh ]] && source "${HOME}/.bash-preexec.sh"
 		eval "$(atuin init bash)"
-		bind -x '"\C-r": __atuin_history'
 		bind -x '"\e[A": __atuin_history --shell-up-key-binding'
 		bind -x '"\eOA": __atuin_history --shell-up-key-binding'
 	fi
@@ -51,6 +47,13 @@ if command -v carapace >/dev/null 2>&1; then
 	export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
 	zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
 	source <(carapace _carapace)
+fi
+
+# television - smart fuzzy finder with context-aware channels
+# Ctrl+T: smart completion (picks channel based on command, e.g. git checkout → branches)
+# Ctrl+R in tv: remote control to switch channels
+if command -v tv >/dev/null 2>&1; then
+	eval "$(tv init zsh)"
 fi
 
 # fnox - secrets manager with shell integration

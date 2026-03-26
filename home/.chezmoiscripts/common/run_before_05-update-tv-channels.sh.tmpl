@@ -1,0 +1,7 @@
+{{- if .dev_computer -}}
+#!/bin/bash
+# Update television community channels before chezmoi applies custom overrides
+if command -v tv >/dev/null 2>&1; then
+    tv update-channels 2>/dev/null || true
+fi
+{{- end }}
