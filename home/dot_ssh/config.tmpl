@@ -14,6 +14,10 @@ Host *
 
 Host github.com
   User git
+{{- if .is_wsl }}
+  Hostname ssh.github.com
+  Port 443
+{{- end }}
 
 # Host macbook-air-m3
 #  User twp
