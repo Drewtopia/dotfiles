@@ -3,27 +3,21 @@
 # OS package managers (brew/scoop/apt) only handle system deps + GUI apps
 
 [tools]
-# Language runtimes (core backend)
+# Language runtimes
 node = "latest"
 pnpm = "latest"
 deno = "latest"
 bun = "latest"
-python = "3.12"
+python = "latest"
 uv = "latest"
 go = "latest"
 rust = "latest"
 
-# mise ecosystem tools
+# mise ecosystem
 usage = "latest"
 fnox = "latest"
-{{ if eq .chezmoi.os "windows" -}}
-# Windows: use pre-built binaries (cargo needs MSVC build tools)
-"github:iffse/pay-respects" = "latest"
-{{ else -}}
-"cargo:pay-respects" = "latest"
-{{ end -}}
 
-# CLI tools — aqua backend (checksum-verified, cross-platform)
+# Cross-platform CLI tools (aqua backend — checksum-verified)
 "aqua:sharkdp/bat" = "latest"
 "aqua:sharkdp/fd" = "latest"
 "aqua:BurntSushi/ripgrep" = "latest"
@@ -36,29 +30,36 @@ fnox = "latest"
 "aqua:FiloSottile/age" = "latest"
 "aqua:dundee/gdu" = "latest"
 "aqua:golangci/golangci-lint" = "latest"
+"aqua:gitleaks/gitleaks" = "latest"
+"aqua:topgrade-rs/topgrade" = "latest"
+"aqua:mikefarah/yq" = "latest"
+"aqua:neovim/neovim" = "latest"
+"aqua:alexpasmantier/television" = "latest"
 
-{{ if eq .chezmoi.os "windows" -}}
-# Windows: eza core registry uses cargo (needs MSVC), use github binary
-"github:eza-community/eza" = "latest"
-{{ else -}}
-# eza — not in aqua, github grabs wrong asset on macOS, use core registry
-eza = "latest"
-{{ end -}}
-
-# Shell-integrated tools (keybindings, completions, prompt hooks)
+# Cross-platform shell tools
 "aqua:junegunn/fzf" = "latest"
 "aqua:ajeetdsouza/zoxide" = "latest"
 "aqua:atuinsh/atuin" = "latest"
 "aqua:carapace-sh/carapace-bin" = "latest"
 
+# Platform-specific backends (cargo needs MSVC on Windows)
+{{ if eq .chezmoi.os "windows" -}}
+"github:iffse/pay-respects" = "latest"
+"github:eza-community/eza" = "latest"
+"aqua:XAMPPRocky/tokei" = "latest"
+{{ else -}}
+"cargo:pay-respects" = "latest"
+"cargo:tokei" = "latest"
+eza = "latest"
+{{ end -}}
+
 {{ if ne .chezmoi.os "windows" -}}
-# Unix-only (no Windows binary available)
+# Unix-only (no Windows binary)
 "aqua:PaulJuliusMartinez/jless" = "latest"
 {{ end -}}
 
 {{ if .personal -}}
 # Personal-only tools
-# yt-dlp — github backend names binary yt-dlp_macos, use core registry
 yt-dlp = "latest"
 "aqua:schollz/croc" = "latest"
 {{ end -}}

@@ -49,7 +49,7 @@ if [[ -z "$SSH_CONNECTION" ]]; then
 fi
 
 # Prevent brew from reinstalling tools that mise owns
-export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-lint jj jless jq lazygit ripgrep yt-dlp age atuin carapace fzf zoxide"
+export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-lint jj jless jq lazygit ripgrep yt-dlp age atuin carapace fzf zoxide gitleaks topgrade tokei yq navi neovim python go pipx lsd powerlevel10k direnv"
 {{- end }}
 
 # Local overrides (machine-specific env vars, not tracked by chezmoi)
