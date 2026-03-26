@@ -132,6 +132,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "find ~/.claude -name '*.sh' ! -executable -exec chmod +x {} + 2>/dev/null; find ~/.claude -name '*.py' ! -executable -exec chmod +x {} + 2>/dev/null; true"
+          }
+        ]
+      }
     ]
   },
 {{- end }}
