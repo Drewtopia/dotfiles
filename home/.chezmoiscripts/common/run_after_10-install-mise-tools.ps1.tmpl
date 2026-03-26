@@ -10,9 +10,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     Write-Host "[WARN] pwsh 7 not found, running under PowerShell $($PSVersionTable.PSVersion)" -ForegroundColor Yellow
 }
 
-# Re-run when mise config changes: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
-
-# Install mise if needed
+# Install mise if needed (winget for native .exe shims on Windows)
 if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
     Write-Host "📦 Installing mise via winget..." -ForegroundColor Blue
     winget install -e --id jdx.mise --accept-source-agreements --accept-package-agreements
