@@ -32,11 +32,12 @@ if command -v atuin >/dev/null 2>&1; then
 	export ATUIN_NOBIND="true"
 	if [[ -n ${ZSH_NAME} ]]; then
 		eval "$(atuin init zsh)"
-		# Keep up-arrow for atuin prefix search
+		bindkey '^r' atuin-search
 		bindkey '^[[A' atuin-up-search
 		bindkey '^[OA' atuin-up-search
 	elif [[ -n ${BASH} ]]; then
 		eval "$(atuin init bash)"
+		bind -x '"\C-r": __atuin_history'
 		bind -x '"\e[A": __atuin_history --shell-up-key-binding'
 		bind -x '"\eOA": __atuin_history --shell-up-key-binding'
 	fi
