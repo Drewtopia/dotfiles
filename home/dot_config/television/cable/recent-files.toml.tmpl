@@ -5,9 +5,9 @@ requirements = ["bat"]
 
 [source]
 command = [
-  "git diff --name-only HEAD~10 2>/dev/null",
   "fd --type f --changed-within 7d",
   "fd --type f --changed-within 1h",
+  "git diff --name-only HEAD~10 {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null || true{{ end }}",
 ]
 no_sort = true
 frecency = false
@@ -21,5 +21,5 @@ enter = "actions:edit"
 [actions.edit]
 description = "Open in editor"
 command = "${EDITOR:-nvim} '{}'"
-shell = "bash"
+shell = "{{ if eq .chezmoi.os "windows" }}pwsh{{ else }}bash{{ end }}"
 mode = "execute"
