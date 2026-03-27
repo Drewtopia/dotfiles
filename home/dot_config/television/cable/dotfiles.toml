@@ -1,0 +1,19 @@
+[metadata]
+name = "dotfiles"
+description = "Browse and edit dotfiles in ~/.config"
+requirements = ["fd", "bat"]
+
+[source]
+command = "fd --type f . ~/.config --max-depth 4"
+
+[preview]
+command = "bat -n --color=always '{}'"
+
+[keybindings]
+enter = "actions:edit"
+
+[actions.edit]
+description = "Open in editor"
+command = "${EDITOR:-nvim} '{}'"
+shell = "bash"
+mode = "execute"

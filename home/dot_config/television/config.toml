@@ -18,7 +18,7 @@ fallback_channel = "files"
 
 [shell_integration.keybindings]
 smart_autocomplete = "ctrl-t"
-command_history = "ctrl-r"
+# Ctrl+R stays with atuin (better history search + sync)
 
 [shell_integration.channel_triggers]
 "git-branch" = ["git checkout", "git switch", "git merge", "git rebase"]

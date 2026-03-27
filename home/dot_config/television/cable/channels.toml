@@ -1,0 +1,14 @@
+[metadata]
+name = "channels"
+description = "Browse and switch TV channels"
+
+[source]
+command = "tv list-channels"
+
+[keybindings]
+enter = "actions:zap"
+
+[actions.zap]
+description = "Switch to the selected channel"
+command = "tv '{}'"
+mode = "execute"
