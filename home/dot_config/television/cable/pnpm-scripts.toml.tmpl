@@ -5,9 +5,9 @@ requirements = ["pnpm", "jq"]
 
 [source]
 {{ if eq .chezmoi.os "windows" -}}
-command = "Get-Content package.json 2>$null | jq -r '.scripts | to_entries[] | .key + \"\t\" + .value'"
+command = '''Get-Content package.json 2>$null | jq -r ".scripts | to_entries[] | .key + \"\t\" + .value"'''
 {{ else -}}
-command = "jq -r '.scripts | to_entries[] | .key + \"\t\" + .value' package.json 2>/dev/null"
+command = '''jq -r '.scripts | to_entries[] | .key + "\t" + .value' package.json 2>/dev/null'''
 {{ end -}}
 display = "{split:\t:0}  {split:\t:1}"
 output = "{split:\t:0}"
