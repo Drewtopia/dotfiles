@@ -1,0 +1,24 @@
+[metadata]
+name = "pnpm-scripts"
+description = "Run pnpm scripts from package.json"
+requirements = ["pnpm", "jq"]
+
+[source]
+{{ if eq .chezmoi.os "windows" -}}
+command = "Get-Content package.json 2>$null | jq -r '.scripts | to_entries[] | .key + \"\t\" + .value'"
+{{ else -}}
+command = "jq -r '.scripts | to_entries[] | .key + \"\t\" + .value' package.json 2>/dev/null"
+{{ end -}}
+display = "{split:\t:0}  {split:\t:1}"
+output = "{split:\t:0}"
+
+[preview]
+command = "echo 'pnpm run {split:\t:0}'"
+
+[keybindings]
+enter = "actions:run"
+
+[actions.run]
+description = "Run the selected pnpm script"
+command = "pnpm run '{}'"
+mode = "execute"

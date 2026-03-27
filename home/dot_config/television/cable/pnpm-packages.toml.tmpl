@@ -1,0 +1,40 @@
+[metadata]
+name = "pnpm-packages"
+description = "Browse project dependencies from package.json"
+requirements = ["pnpm", "jq"]
+
+[source]
+{{ if eq .chezmoi.os "windows" -}}
+command = [
+  "Get-Content package.json 2>$null | jq -r '.dependencies // {} | to_entries[] | .key + \"@\" + .value'",
+  "Get-Content package.json 2>$null | jq -r '.devDependencies // {} | to_entries[] | .key + \"@\" + .value'",
+]
+{{ else -}}
+command = [
+  "jq -r '.dependencies // {} | to_entries[] | .key + \"@\" + .value' package.json 2>/dev/null",
+  "jq -r '.devDependencies // {} | to_entries[] | .key + \"@\" + .value' package.json 2>/dev/null",
+]
+{{ end -}}
+
+[preview]
+command = "pnpm info '{split:@:0}' {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null | head -30{{ end }}"
+
+[keybindings]
+enter = "actions:info"
+ctrl-u = "actions:update"
+ctrl-d = "actions:remove"
+
+[actions.info]
+description = "Show package info"
+command = "pnpm info '{split:@:0}'"
+mode = "fork"
+
+[actions.update]
+description = "Update to latest"
+command = "pnpm update '{split:@:0}'"
+mode = "fork"
+
+[actions.remove]
+description = "Remove package"
+command = "pnpm remove '{split:@:0}'"
+mode = "fork"

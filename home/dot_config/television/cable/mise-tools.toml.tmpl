@@ -1,0 +1,40 @@
+[metadata]
+name = "mise-tools"
+description = "Browse and manage mise-installed tools"
+requirements = ["mise"]
+
+[source]
+{{ if eq .chezmoi.os "windows" -}}
+command = [
+  "mise ls --current --no-header 2>$null",
+  "mise registry 2>$null",
+]
+{{ else -}}
+command = [
+  "mise ls --current --no-header 2>/dev/null",
+  "mise registry 2>/dev/null",
+]
+{{ end -}}
+
+[preview]
+command = "mise ls '{}' {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null{{ end }}"
+
+[keybindings]
+enter = "actions:use"
+ctrl-u = "actions:upgrade"
+ctrl-d = "actions:uninstall"
+
+[actions.use]
+description = "Install/activate the selected tool"
+command = "mise use --global '{}@latest'"
+mode = "fork"
+
+[actions.upgrade]
+description = "Upgrade to latest version"
+command = "mise upgrade '{}'"
+mode = "fork"
+
+[actions.uninstall]
+description = "Uninstall the selected tool"
+command = "mise uninstall '{}'"
+mode = "fork"
