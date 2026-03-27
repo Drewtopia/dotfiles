@@ -6,13 +6,13 @@ requirements = ["pnpm", "jq"]
 [source]
 {{ if eq .chezmoi.os "windows" -}}
 command = [
-  "Get-Content package.json 2>$null | jq -r '.dependencies // {} | to_entries[] | .key + \"@\" + .value'",
-  "Get-Content package.json 2>$null | jq -r '.devDependencies // {} | to_entries[] | .key + \"@\" + .value'",
+  'Get-Content package.json 2>$null | jq -r ".dependencies // {} | to_entries[] | .key + \"@\" + .value"',
+  'Get-Content package.json 2>$null | jq -r ".devDependencies // {} | to_entries[] | .key + \"@\" + .value"',
 ]
 {{ else -}}
 command = [
-  "jq -r '.dependencies // {} | to_entries[] | .key + \"@\" + .value' package.json 2>/dev/null",
-  "jq -r '.devDependencies // {} | to_entries[] | .key + \"@\" + .value' package.json 2>/dev/null",
+  '''jq -r '.dependencies // {} | to_entries[] | .key + "@" + .value' package.json 2>/dev/null''',
+  '''jq -r '.devDependencies // {} | to_entries[] | .key + "@" + .value' package.json 2>/dev/null''',
 ]
 {{ end -}}
 
