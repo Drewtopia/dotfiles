@@ -1,0 +1,33 @@
+{{- if .personal }}
+[metadata]
+name = "obsidian-notes"
+description = "Search Obsidian vault notes"
+requirements = ["fd", "bat"]
+
+[source]
+command = "fd --type f --extension md . '{{ .chezmoi.homeDir }}/Obsidian'"
+
+[preview]
+command = "bat -n --color=always --language=markdown '{}'"
+
+[keybindings]
+enter = "actions:edit"
+ctrl-o = "actions:open-obsidian"
+
+[actions.edit]
+description = "Open in editor"
+command = "${EDITOR:-nvim} '{}'"
+shell = "{{ if eq .chezmoi.os "windows" }}pwsh{{ else }}bash{{ end }}"
+mode = "execute"
+
+[actions.open-obsidian]
+description = "Open in Obsidian"
+{{ if eq .chezmoi.os "darwin" -}}
+command = "open 'obsidian://open?path={}'"
+{{ else if eq .chezmoi.os "windows" -}}
+command = "Start-Process 'obsidian://open?path={}'"
+{{ else -}}
+command = "xdg-open 'obsidian://open?path={}'"
+{{ end -}}
+mode = "fork"
+{{- end }}
