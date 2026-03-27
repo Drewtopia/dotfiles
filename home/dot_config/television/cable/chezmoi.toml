@@ -1,0 +1,33 @@
+[metadata]
+name = "chezmoi"
+description = "Browse and edit chezmoi-managed dotfiles"
+requirements = ["chezmoi", "bat"]
+
+[source]
+command = [
+  "chezmoi managed --include=files",
+  "chezmoi managed --include=scripts",
+]
+
+[preview]
+command = "chezmoi cat ~/'{}' 2>/dev/null | bat -n --color=always --file-name '{}' || bat -n --color=always ~/'{}'  2>/dev/null"
+
+[keybindings]
+enter = "actions:edit"
+ctrl-d = "actions:diff"
+ctrl-a = "actions:apply"
+
+[actions.edit]
+description = "Edit the source template in chezmoi"
+command = "chezmoi edit ~/'{}'"
+mode = "execute"
+
+[actions.diff]
+description = "Show diff between source and target"
+command = "chezmoi diff ~/'{}'"
+mode = "fork"
+
+[actions.apply]
+description = "Apply this specific file"
+command = "chezmoi apply ~/'{}'"
+mode = "fork"
