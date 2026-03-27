@@ -1,19 +1,13 @@
 [metadata]
 name = "pnpm-scripts"
 description = "Run pnpm scripts from package.json"
-requirements = ["pnpm", "jq"]
+requirements = ["pnpm"]
 
 [source]
-{{ if eq .chezmoi.os "windows" -}}
-command = '''Get-Content package.json 2>$null | jq -r ".scripts | to_entries[] | .key + \"\t\" + .value"'''
-{{ else -}}
-command = '''jq -r '.scripts | to_entries[] | .key + "\t" + .value' package.json 2>/dev/null'''
-{{ end -}}
-display = "{split:\t:0}  {split:\t:1}"
-output = "{split:\t:0}"
+command = "pnpm run --silent {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null{{ end }}"
 
 [preview]
-command = "echo 'pnpm run {split:\t:0}'"
+command = "echo 'pnpm run {}'"
 
 [keybindings]
 enter = "actions:run"
