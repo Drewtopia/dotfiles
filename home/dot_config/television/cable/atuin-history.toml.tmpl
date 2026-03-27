@@ -1,0 +1,19 @@
+[metadata]
+name = "atuin-history"
+description = "Shell history via atuin (synced across machines)"
+requirements = ["atuin"]
+
+[source]
+command = "atuin search --format '{time}\t{command}' --limit 5000 {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null{{ end }}"
+display = "{split:\t:1}"
+output = "{split:\t:1}"
+no_sort = true
+frecency = false
+
+[preview]
+command = "atuin search --format 'Command: {command}\nTime: {time}\nDuration: {duration}\nDirectory: {directory}\nExit: {exit}\nHost: {hostname}' --search-mode prefix -- '{split:\t:1}' {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null | head -20{{ end }}"
+
+[actions.execute]
+description = "Execute the selected command"
+command = "{{ if eq .chezmoi.os "windows" }}pwsh -c{{ else }}zsh -c{{ end }} '{split:\t:1}'"
+mode = "execute"
