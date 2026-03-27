@@ -15,5 +15,5 @@ enter = "actions:edit"
 [actions.edit]
 description = "Open in editor"
 command = "${EDITOR:-nvim} '{}'"
-shell = "{{ if eq .chezmoi.os "windows" }}pwsh{{ else }}bash{{ end }}"
+shell = "{{ if eq .chezmoi.os "windows" }}powershell{{ else }}bash{{ end }}"
 mode = "execute"

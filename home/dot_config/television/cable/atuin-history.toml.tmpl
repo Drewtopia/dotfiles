@@ -15,5 +15,5 @@ command = "atuin search --format 'Command: {command}\nTime: {time}\nDuration: {d
 
 [actions.execute]
 description = "Execute the selected command"
-command = "{{ if eq .chezmoi.os "windows" }}pwsh -c{{ else }}zsh -c{{ end }} '{split:\t:1}'"
+command = "{{ if eq .chezmoi.os "windows" }}powershell -c{{ else }}zsh -c{{ end }} '{split:\t:1}'"
 mode = "execute"
