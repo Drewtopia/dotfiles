@@ -15,26 +15,37 @@ command = [
   "mise registry 2>/dev/null",
 ]
 {{ end -}}
+display = "{0}  {1}"
+output = "{0}"
 
 [preview]
-command = "mise ls '{}' {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null{{ end }}"
+command = "mise ls '{0}' {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null{{ end }}"
+
+[ui]
+preview_panel = { header = "mise: {0}" }
 
 [keybindings]
 enter = "actions:use"
 ctrl-u = "actions:upgrade"
 ctrl-d = "actions:uninstall"
+ctrl-i = "actions:info"
 
 [actions.use]
 description = "Install/activate the selected tool"
-command = "mise use --global '{}@latest'"
+command = "mise use --global '{0}@latest'"
 mode = "fork"
 
 [actions.upgrade]
 description = "Upgrade to latest version"
-command = "mise upgrade '{}'"
+command = "mise upgrade '{0}'"
 mode = "fork"
 
 [actions.uninstall]
 description = "Uninstall the selected tool"
-command = "mise uninstall '{}'"
+command = "mise uninstall '{0}'"
+mode = "fork"
+
+[actions.info]
+description = "Show tool info and available versions"
+command = "mise ls-remote '{0}' | tail -20"
 mode = "fork"

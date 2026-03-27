@@ -1,23 +1,18 @@
 [metadata]
 name = "pnpm-packages"
-description = "Browse project dependencies from package.json"
-requirements = ["pnpm", "jq"]
+description = "Browse project dependencies"
+requirements = ["pnpm"]
 
 [source]
-{{ if eq .chezmoi.os "windows" -}}
 command = [
-  'Get-Content package.json 2>$null | jq -r ".dependencies // {} | to_entries[] | .key + \"@\" + .value"',
-  'Get-Content package.json 2>$null | jq -r ".devDependencies // {} | to_entries[] | .key + \"@\" + .value"',
+  "pnpm ls --depth 0 --parseable --long {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null{{ end }}",
+  "pnpm ls --depth 0 --parseable --long --dev {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null{{ end }}",
 ]
-{{ else -}}
-command = [
-  '''jq -r '.dependencies // {} | to_entries[] | .key + "@" + .value' package.json 2>/dev/null''',
-  '''jq -r '.devDependencies // {} | to_entries[] | .key + "@" + .value' package.json 2>/dev/null''',
-]
-{{ end -}}
+display = "{regex_extract:([^/]+)@([\\d.]+):0}"
+output = "{regex_extract:([^/]+)@[\\d.]+:1}"
 
 [preview]
-command = "pnpm info '{split:@:0}' {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null | head -30{{ end }}"
+command = "pnpm info '{}' {{ if eq .chezmoi.os "windows" }}2>$null{{ else }}2>/dev/null | head -30{{ end }}"
 
 [keybindings]
 enter = "actions:info"
@@ -26,15 +21,15 @@ ctrl-d = "actions:remove"
 
 [actions.info]
 description = "Show package info"
-command = "pnpm info '{split:@:0}'"
+command = "pnpm info '{}'"
 mode = "fork"
 
 [actions.update]
 description = "Update to latest"
-command = "pnpm update '{split:@:0}'"
+command = "pnpm update '{}'"
 mode = "fork"
 
 [actions.remove]
 description = "Remove package"
-command = "pnpm remove '{split:@:0}'"
+command = "pnpm remove '{}'"
 mode = "fork"
