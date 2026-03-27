@@ -89,6 +89,11 @@ if (Get-Command pay-respects -ErrorAction SilentlyContinue) {
     pay-respects pwsh --alias f | Out-String | Invoke-Expression
 }
 
+# Television - smart fuzzy finder with context-aware channels
+if (Get-Command tv -ErrorAction SilentlyContinue) {
+    Invoke-CachedInit -Tool 'television' -VersionCommand 'tv --version' -InitCommand { tv init power-shell }
+}
+
 # PowerToys CommandNotFound module
 if (Get-Module -ListAvailable -Name Microsoft.WinGet.CommandNotFound) {
     Import-Module -Name Microsoft.WinGet.CommandNotFound
