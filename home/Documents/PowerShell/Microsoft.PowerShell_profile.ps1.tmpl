@@ -79,6 +79,14 @@ if ((Test-Path $pnpmHome) -and $env:PATH -notlike "*$pnpmHome*") {
     $env:PATH = "$pnpmHome;$env:PATH"
 }
 
+# WinLibs (gcc/g++) — winget installs it but doesn't wire PATH, and Windows
+# Terminal caches PATH at host start, so new tabs may miss the USER PATH entry.
+# Probe the well-known winget package location and inject if present.
+$winLibsBin = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin"
+if ((Test-Path "$winLibsBin\gcc.exe") -and $env:PATH -notlike "*$winLibsBin*") {
+    $env:PATH = "$env:PATH;$winLibsBin"
+}
+
 # Ensure PSReadLine is loaded before tool inits that bind keys (atuin, tv, carapace).
 # pwsh auto-loads PSReadLine lazily for the REPL, but that can happen AFTER profile
 # execution — which makes atuin/tv init bail with "Atuin requires the PSReadLine module".
