@@ -1,1 +1,4 @@
 # Repo-specific ignores (common patterns in ~/.config/git/ignore)
+
+# Installed Claude Code skills (regenerable from skills-lock.json — treat like node_modules)
+.agents/

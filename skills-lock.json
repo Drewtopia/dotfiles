@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "chezmoi-config": {
+      "source": "faintghost/skills",
+      "sourceType": "github",
+      "computedHash": "4c0f2a06a1755133ee8cab67cbc613ca4d7c52f322b2803bf4ea05365f97cf42"
+    }
+  }
+}
