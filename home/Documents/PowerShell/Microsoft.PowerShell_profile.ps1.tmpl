@@ -51,13 +51,26 @@ if ((Test-Path $miseShimPath) -and $env:PATH -notlike "*$miseShimPath*") {
     $env:PATH = "$miseShimPath;$env:PATH"
 }
 
-# Defer mise activate to first prompt (shims provide immediate tool access)
+# Activate mise synchronously. Most mise-managed tools on Windows install to
+# .local\share\mise\installs\<name>\... paths that only `mise activate` adds to
+# PATH — the shims directory isn't populated by default here. Without this running
+# BEFORE the tool inits below (carapace/atuin/tv/etc), those inits can't find
+# their binaries and silently skip. Cached inline (not via Invoke-CachedInit)
+# because `mise activate pwsh` defines `function mise { ... }`, which needs to
+# land in global scope — dot-sourcing from inside a function would trap it.
 if (Get-Command mise -ErrorAction SilentlyContinue) {
-    $global:__miseFirstPromptHook = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
-        mise activate pwsh | Out-String | Invoke-Expression
-        Unregister-Event -SourceIdentifier PowerShell.OnIdle -ErrorAction SilentlyContinue
-        Remove-Variable -Name __miseFirstPromptHook -Scope Global -ErrorAction SilentlyContinue
+    if (-not (Test-Path $script:PwshInitCacheDir)) {
+        New-Item -ItemType Directory -Path $script:PwshInitCacheDir -Force | Out-Null
     }
+    $miseCacheFile = Join-Path $script:PwshInitCacheDir 'mise.ps1'
+    $miseVersionFile = Join-Path $script:PwshInitCacheDir 'mise.version'
+    $miseCurrentVersion = (mise --version 2>$null | Out-String).Trim()
+    $miseCachedVersion = if (Test-Path $miseVersionFile) { (Get-Content $miseVersionFile -Raw).Trim() } else { '' }
+    if ($miseCurrentVersion -ne $miseCachedVersion -or -not (Test-Path $miseCacheFile)) {
+        (mise activate pwsh | Out-String) | Set-Content -Path $miseCacheFile -Force
+        $miseCurrentVersion | Set-Content -Path $miseVersionFile -Force
+    }
+    . $miseCacheFile
 }
 
 # pnpm global packages setup
@@ -65,6 +78,11 @@ $pnpmHome = "$env:USERPROFILE\.local\share\pnpm"
 if ((Test-Path $pnpmHome) -and $env:PATH -notlike "*$pnpmHome*") {
     $env:PATH = "$pnpmHome;$env:PATH"
 }
+
+# Ensure PSReadLine is loaded before tool inits that bind keys (atuin, tv, carapace).
+# pwsh auto-loads PSReadLine lazily for the REPL, but that can happen AFTER profile
+# execution — which makes atuin/tv init bail with "Atuin requires the PSReadLine module".
+Import-Module PSReadLine -ErrorAction SilentlyContinue
 
 # Carapace - multi-shell completion engine
 if (Get-Command carapace -ErrorAction SilentlyContinue) {
