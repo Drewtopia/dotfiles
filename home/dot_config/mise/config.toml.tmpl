@@ -12,10 +12,15 @@ python = "latest"
 uv = "latest"
 go = "latest"
 rust = "latest"
+# zig doubles as a C/C++ compiler via `zig cc` — used as CC below so tools
+# like nvim-treesitter (main branch) can compile parsers without a system gcc.
+zig = "latest"
 
 # mise ecosystem
 usage = "latest"
 fnox = "latest"
+# neovim via mise core backend (tracks GitHub releases directly, upgrades on `mise upgrade`)
+neovim = "latest"
 
 # Cross-platform CLI tools (aqua backend — checksum-verified)
 "aqua:sharkdp/bat" = "latest"
@@ -33,7 +38,6 @@ fnox = "latest"
 "aqua:gitleaks/gitleaks" = "latest"
 "aqua:topgrade-rs/topgrade" = "latest"
 "aqua:mikefarah/yq" = "latest"
-"aqua:neovim/neovim" = "latest"
 "aqua:alexpasmantier/television" = "latest"
 
 # Cross-platform shell tools
@@ -62,6 +66,13 @@ eza = "latest"
 yt-dlp = "latest"
 "aqua:schollz/croc" = "latest"
 {{ end -}}
+
+[env]
+# Point CC at `zig cc` so tools that auto-detect a C compiler (nvim-treesitter
+# main branch, python native modules, some cargo builds) pick zig without needing
+# a system gcc/clang. Set via mise so it follows mise activation — available in
+# every shell where mise is active, regardless of OS.
+CC = "zig cc"
 
 [settings]
 experimental = true
