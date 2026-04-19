@@ -67,13 +67,6 @@ yt-dlp = "latest"
 "aqua:schollz/croc" = "latest"
 {{ end -}}
 
-[env]
-# Point CC at `zig cc` so tools that auto-detect a C compiler (nvim-treesitter
-# main branch, python native modules, some cargo builds) pick zig without needing
-# a system gcc/clang. Set via mise so it follows mise activation — available in
-# every shell where mise is active, regardless of OS.
-CC = "zig cc"
-
 [settings]
 experimental = true
 activate_aggressive = true
