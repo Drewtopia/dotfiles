@@ -4,6 +4,11 @@
 .fzf.zsh
 .fzf.bash
 
+# Prevent stale ~/.gitconfig from shadowing chezmoi-managed
+# ~/.config/git/config (git prefers ~/.gitconfig when both exist).
+# Git-for-Windows installer can re-create this on reinstall.
+.gitconfig
+
 # Old custom.paths.sh (deleted from chezmoi source)
 .config/shell/paths/custom.paths.sh
 
