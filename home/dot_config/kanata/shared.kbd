@@ -1,0 +1,50 @@
+;; Shared kanata config - OS-agnostic
+;; ====================================
+;; Included by kanata.kbd (the chezmoi-rendered entrypoint).
+;; Contains only logical aliases and timings.
+;; No defcfg / defsrc / deflayer here - those live in the per-OS files.
+
+;; ============================================================
+;; Timing variables - tune tap vs hold feel
+;; ============================================================
+(defvar
+  tap-time 200
+  hold-time 200
+  chord-time 80
+
+  hrm-tap 200
+  hrm-hold 200
+)
+
+;; ============================================================
+;; Logical aliases - shared across macOS and Windows
+;; ============================================================
+;; NOTE on Windows: `lmet` / `rmet` = the Windows key. The Hyper stack
+;; below therefore resolves to Ctrl+Shift+Alt+Win on Windows, which can
+;; collide with system shortcuts (Win+L, Win+R, Win+E). Home-row-mod
+;; `hm-d` also becomes "hold D = Win" rather than the Mac Cmd semantic.
+;; If you want Ctrl+C via home row on Windows, swap `hm-a` and `hm-d`'s
+;; modifier (move `lctl` onto `d`, `lmet` onto `a`) in a Windows-only
+;; override - do that in windows.kbd rather than here.
+(defalias
+  ;; Hyper & Meh
+  hyp (tap-hold $tap-time $hold-time esc (multi lctl lsft lalt lmet))
+  meh (tap-hold $tap-time $hold-time ralt (multi lctl lsft lalt))
+
+  ;; Home Row Mods - left hand
+  hm-a (tap-hold $hrm-tap $hrm-hold a lctl)
+  hm-s (tap-hold $hrm-tap $hrm-hold s lalt)
+  hm-d (tap-hold $hrm-tap $hrm-hold d lmet)
+  hm-f (tap-hold $hrm-tap $hrm-hold f lsft)
+
+  ;; Home Row Mods - right hand
+  hm-j (tap-hold $hrm-tap $hrm-hold j rsft)
+  hm-k (tap-hold $hrm-tap $hrm-hold k rmet)
+  hm-l (tap-hold $hrm-tap $hrm-hold l ralt)
+  hm-; (tap-hold $hrm-tap $hrm-hold ; rctl)
+
+  ;; Layer access (tap = key, hold = layer)
+  spc-sym (tap-hold $tap-time $hold-time spc (layer-while-held symbols))
+  ret-nav (tap-hold $tap-time $hold-time ret (layer-while-held navigation))
+  tab-app (tap-hold $tap-time $hold-time tab (layer-while-held apps))
+)
