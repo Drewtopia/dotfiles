@@ -1,0 +1,21 @@
+;; Kanata entrypoint - rendered by chezmoi
+;; =========================================
+;; This file is generated from kanata.kbd.tmpl. It dispatches to the
+;; right per-OS config, then pulls in shared aliases/timings.
+;;
+;; Files loaded together (kanata merges them into one program):
+;;   <os-specific>.kbd  - defcfg, defsrc, deflayers, OS-specific aliases
+;;   shared.kbd         - defvar, logical aliases (hyp/meh/hrm/layer)
+;;
+;; Source:  home/dot_config/kanata/kanata.kbd.tmpl
+;; Render:  ~/.config/kanata/kanata.kbd
+
+{{- if eq .chezmoi.os "darwin" }}
+(include "macos-macbook.kbd")
+{{- else if eq .chezmoi.os "windows" }}
+(include "windows.kbd")
+{{- else }}
+;; Unsupported OS: {{ .chezmoi.os }} - no kanata config generated
+{{- end }}
+
+(include "shared.kbd")

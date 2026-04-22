@@ -124,4 +124,60 @@ if (Get-Command tv -ErrorAction SilentlyContinue) {
 if (Get-Module -ListAvailable -Name Microsoft.WinGet.CommandNotFound) {
     Import-Module -Name Microsoft.WinGet.CommandNotFound
 }
+
+# Kanata toggles - manual on/off (used primarily on work machines where
+# auto-start is intentionally disabled to avoid Jump Desktop double-remap).
+# Personal machines also get these as a convenience alongside the
+# scheduled task.
+if (Get-Command kanata -ErrorAction SilentlyContinue) {
+    $script:KanataConfigPath = "$env:USERPROFILE\.config\kanata\kanata.kbd"
+
+    function kanata-status {
+        $running = Get-Process kanata -ErrorAction SilentlyContinue
+        $task = Get-ScheduledTask -TaskName Kanata -ErrorAction SilentlyContinue
+        if ($running) {
+            Write-Host "kanata: RUNNING (pid $($running.Id -join ','))" -ForegroundColor Green
+        } else {
+            Write-Host "kanata: not running" -ForegroundColor Yellow
+        }
+        if ($task) {
+            Write-Host "scheduled task: registered ($($task.State))" -ForegroundColor Cyan
+        } else {
+            Write-Host "scheduled task: not registered (manual-toggle mode)" -ForegroundColor Cyan
+        }
+    }
+
+    function kanata-on {
+        if (Get-Process kanata -ErrorAction SilentlyContinue) {
+            Write-Host "kanata already running" -ForegroundColor Yellow
+            return
+        }
+        $task = Get-ScheduledTask -TaskName Kanata -ErrorAction SilentlyContinue
+        if ($task) {
+            Start-ScheduledTask -TaskName Kanata
+            Write-Host "kanata started (via scheduled task)" -ForegroundColor Green
+        } else {
+            if (-not (Test-Path $script:KanataConfigPath)) {
+                Write-Host "kanata config missing at $script:KanataConfigPath" -ForegroundColor Red
+                return
+            }
+            Start-Process -FilePath kanata -ArgumentList "--cfg `"$script:KanataConfigPath`"" -WindowStyle Hidden
+            Write-Host "kanata started (direct process)" -ForegroundColor Green
+        }
+    }
+
+    function kanata-off {
+        $task = Get-ScheduledTask -TaskName Kanata -ErrorAction SilentlyContinue
+        if ($task -and $task.State -eq 'Running') {
+            Stop-ScheduledTask -TaskName Kanata
+        }
+        $running = Get-Process kanata -ErrorAction SilentlyContinue
+        if ($running) {
+            $running | Stop-Process -Force -ErrorAction SilentlyContinue
+            Write-Host "kanata stopped" -ForegroundColor Green
+        } else {
+            Write-Host "kanata not running" -ForegroundColor Yellow
+        }
+    }
+}
 {{- end }}
