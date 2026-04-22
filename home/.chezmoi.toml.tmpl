@@ -37,7 +37,7 @@
 
 {{/* Windows: Check for known personal hostnames, otherwise prompt or default to ephemeral */}}
 {{- if eq .chezmoi.os "windows" -}}
-{{-   $personalWindowsHosts := list "andrews-desktop" "drew-pc" -}}
+{{-   $personalWindowsHosts := list "andrews-desktop" "drew-pd" -}}
 {{-   if has ($hostname | lower) $personalWindowsHosts -}}
 {{-     $personal = true -}}
 {{-     $opVault = "Private" -}}
