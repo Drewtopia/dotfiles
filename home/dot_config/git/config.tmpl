@@ -63,6 +63,10 @@
 [core]
 	editor = nvim
 	whitespace = trailing-space,space-before-tab
+	# Line-ending policy for repos without their own .gitattributes:
+	# Windows → true  (LF in repo, CRLF in working tree)
+	# macOS/Linux → input  (LF everywhere, but accept repos with CRLF)
+	autocrlf = {{ if eq .chezmoi.os "windows" }}true{{ else }}input{{ end }}
 {{- if lookPath "delta" }}
 	pager = delta
 {{- end }}
