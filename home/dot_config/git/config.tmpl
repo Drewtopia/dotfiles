@@ -158,6 +158,22 @@
   useHttpPath = true
 {{- end }}
 
+{{- if and (eq .chezmoi.os "windows") (not .is_wsl) }}
+# Native Windows Git Credential Manager.
+# Git-for-Windows sets `credential.helper = manager` in system config, so
+# without the empty `helper =` reset we'd chain system + user entries and
+# call GCM twice per request. `manager` is the GfW-provided alias for GCM —
+# avoids hardcoding C:/Program Files/Git/mingw64/bin/git-credential-manager.exe
+# and survives GCM being installed via scoop or moved by a GfW update.
+# Needed for non-github https remotes (Azure DevOps etc.); github.com is
+# already covered by the gh-CLI block above.
+[credential]
+	helper =
+	helper = manager
+[credential "https://dev.azure.com"]
+	useHttpPath = true
+{{- end }}
+
 {{- if lookPath "delta" }}
 [delta]
 	# Use n and N to move between diff sections
