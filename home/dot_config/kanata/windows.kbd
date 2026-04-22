@@ -1,0 +1,89 @@
+;; Kanata config - Windows
+;; =========================
+;; Paired with shared.kbd (both loaded via kanata.kbd entrypoint).
+;;
+;; Scope: covers both Nuphy Air75/Air96 externals AND stock Windows
+;; laptop built-in keyboards. The defsrc describes the shared
+;; alphanum+F-row+arrows block; Air96 numpad keys and Air75
+;; right-column nav keys (home/pgup/pgdn/end) pass through unmapped via
+;; `process-unmapped-keys yes`.
+;;
+;; Not included (deliberately):
+;;   - `fn` in defsrc: both Nuphy and Windows laptops surface Fn as a
+;;     hardware modifier that never produces a scancode to the OS.
+;;   - Right Win key: Nuphy Air75 replaces it with Fn, and work laptops
+;;     rarely have a rmet. Chord `(lmet rmet) f18` is Mac-only.
+;;   - App launchers: add later with `cmd start "" "C:\path\to\app.exe"`
+;;     if you want Tab-layer launching on Windows.
+
+(defcfg
+  process-unmapped-keys yes
+  concurrent-tap-hold yes
+  log-layer-changes no
+
+  ;; Emergency exit: physical lctl + spc + esc (before any remapping)
+)
+
+;; ============================================================
+;; Source layout
+;; Shared between Nuphy Air75/96 and stock Windows laptop keyboards.
+;; ============================================================
+(defsrc
+  esc   f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
+  grv   1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  tab   q    w    e    r    t    y    u    i    o    p    [    ]    \
+  caps  a    s    d    f    g    h    j    k    l    ;    '    ret
+  lsft  z    x    c    v    b    n    m    ,    .    /    rsft up
+  lctl  lmet lalt           spc           ralt rctl left down rght
+)
+
+;; ============================================================
+;; Base layer
+;; Bottom row drops Mac's `fn` and uses Nuphy/Windows modifier order
+;; (lctl lmet lalt vs Mac's lctl lalt lmet).
+;; ============================================================
+(deflayer base
+  esc       f1    f2    f3    f4    f5    f6    f7    f8    f9    f10   f11   f12
+  grv       1     2     3     4     5     6     7     8     9     0     -     =     bspc
+  @tab-app  q     w     e     r     t     y     u     i     o     p     [     ]     \
+  @hyp      @hm-a @hm-s @hm-d @hm-f g     h     @hm-j @hm-k @hm-l @hm-; '     @ret-nav
+  lsft      z     x     c     v     b     n     m     ,     .     /     rsft  up
+  lctl      lmet  lalt              @spc-sym          @meh rctl left down rght
+)
+
+;; ============================================================
+;; Symbols layer (hold Space) - same mappings as macOS
+;; ============================================================
+(deflayer symbols
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  _     S-1  S-2  S-3  S-4  S-5  S-6  S-7  S-8  S-9  S-0  _    _    _
+  _     1    2    3    4    5    6    7    8    9    0    _    _
+  _     grv  S-grv S-[ S-]  S-\  -    =    S--  S-=  \    _    _
+  _     _    _                _              _    _    _    _    _
+)
+
+;; ============================================================
+;; Navigation layer (hold Return) - same mappings as macOS
+;; ============================================================
+(deflayer navigation
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    del
+  _     _    _    _    _    _    home pgup up   pgdn _    _    _    _
+  _     _    _    _    _    _    end  left down rght _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _                _              _    _    _    _    _
+)
+
+;; ============================================================
+;; Apps layer (hold Tab) - placeholders; wire up with `cmd start ""`
+;; launchers if you want one-key app launching on Windows.
+;; ============================================================
+(deflayer apps
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _                _              _    _    _    _    _
+)

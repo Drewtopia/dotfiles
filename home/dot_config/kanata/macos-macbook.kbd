@@ -1,0 +1,118 @@
+;; Kanata config - macOS / MacBook built-in keyboard
+;; ===================================================
+;; Paired with shared.kbd (both loaded via kanata.kbd entrypoint).
+;;
+;; Scope: the MacBook's internal keyboard only. The Voyager is excluded
+;; via `macos-dev-names-exclude` below because it has its own QMK
+;; firmware remap - double-mapping would be chaos.
+;;
+;; Layers:
+;;   base       - home-row mods + hyper/meh + layer-hold triggers
+;;   symbols    - hold Space: !@#$%^&*() on home row, numbers below
+;;   navigation - hold Return: arrows on HJKL, page/home/end nearby
+;;   apps       - hold Tab: per-app launchers (most commented out)
+
+(defcfg
+  ;; Exclude Voyager (firmware remap) - all other devices get kanata
+  macos-dev-names-exclude (
+    "Voyager"
+    "0x3547BCE4161C4E86"
+  )
+
+  process-unmapped-keys yes
+  concurrent-tap-hold yes
+  log-layer-changes no
+
+  ;; Needed for `cmd open -a` launchers. Homebrew kanata ignores this
+  ;; (compiled without cmd support) but the flag keeps config portable.
+  danger-enable-cmd yes
+
+  ;; Emergency exit: physical lctl + spc + esc (before any remapping)
+)
+
+;; ============================================================
+;; Source layout - MacBook keyboard
+;; ============================================================
+(defsrc
+  esc   f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
+  grv   1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  tab   q    w    e    r    t    y    u    i    o    p    [    ]    \
+  caps  a    s    d    f    g    h    j    k    l    ;    '    ret
+  lsft  z    x    c    v    b    n    m    ,    .    /    rsft up
+  fn    lctl lalt lmet           spc            rmet ralt left down rght
+)
+
+;; ============================================================
+;; Base layer
+;; ============================================================
+(deflayer base
+  esc       f1    f2    f3    f4    f5    f6    f7    f8    f9    f10   f11   f12
+  grv       1     2     3     4     5     6     7     8     9     0     -     =     bspc
+  @tab-app  q     w     e     r     t     y     u     i     o     p     [     ]     \
+  @hyp      @hm-a @hm-s @hm-d @hm-f g     h     @hm-j @hm-k @hm-l @hm-; '     @ret-nav
+  lsft      z     x     c     v     b     n     m     ,     .     /     rsft  up
+  fn        lctl  lalt  lmet                    @spc-sym              rmet @meh  left  down  rght
+)
+
+;; ============================================================
+;; Symbols layer (hold Space)
+;; Left home: 1 2 3 4 5   Right home: 6 7 8 9 0
+;; Top row:   ! @ # $ %               ^ & * ( )
+;; Bottom:    ` ~ { } |               - = _ + \
+;; ============================================================
+(deflayer symbols
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  _     S-1  S-2  S-3  S-4  S-5  S-6  S-7  S-8  S-9  S-0  _    _    _
+  _     1    2    3    4    5    6    7    8    9    0    _    _
+  _     grv  S-grv S-[ S-]  S-\  -    =    S--  S-=  \    _    _
+  _     _    _    _              _              _    _    _    _    _
+)
+
+;; ============================================================
+;; Navigation layer (hold Return)
+;; YUIO row: Home PgUp ↑ PgDn
+;; HJKL row: End  ←    ↓ →
+;; ============================================================
+(deflayer navigation
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    del
+  _     _    _    _    _    _    home pgup up   pgdn _    _    _    _
+  _     _    _    _    _    _    end  left down rght _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _              _              _    _    _    _    _
+)
+
+;; ============================================================
+;; Apps layer (hold Tab)
+;;
+;; To add an app:
+;;   1. Add an alias below: `arc (cmd open -a "Arc")`
+;;   2. Replace `_` on the chosen key in the deflayer apps block.
+;; ============================================================
+(deflayer apps
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _    _    _    _    _    _    _    _    _    _
+  _     _    _    _              _              _    _    _    _    _
+)
+
+(defalias
+  ;; ----- App launchers (uncomment & wire into apps layer) -----
+  ;; arc     (cmd open -a "Arc")
+  ;; ghost   (cmd open -a "Ghostty")
+  ;; obsdn   (cmd open -a "Obsidian")
+  ;; slack   (cmd open -a "Slack")
+  ;; spotify (cmd open -a "Spotify")
+  ;; vscode  (cmd open -a "Visual Studio Code")
+)
+
+;; ============================================================
+;; Chords - simultaneous key presses
+;; ============================================================
+(defchordsv2
+  ;; Both Cmd keys = F18 (matches Voyager firmware)
+  (lmet rmet) f18 $chord-time all-released ()
+)

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Setup Kanata with Karabiner VirtualHIDDevice driver on macOS
-# hash: {{ include "dot_config/kanata/kanata.kbd" | sha256sum }}
+# hash: {{ printf "%s%s%s%s" (include "dot_config/kanata/kanata.kbd.tmpl") (include "dot_config/kanata/shared.kbd") (include "dot_config/kanata/macos-macbook.kbd") (include "dot_config/kanata/windows.kbd") | sha256sum }}
 #
 # This script:
 # 1. Installs Karabiner-DriverKit-VirtualHIDDevice (just the driver, not full Karabiner-Elements)
