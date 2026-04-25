@@ -10,13 +10,12 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     Write-Host "[WARN] pwsh 7 not found, running under PowerShell $($PSVersionTable.PSVersion)" -ForegroundColor Yellow
 }
 
-# Install mise if needed (winget for native .exe shims on Windows)
-if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
-    Write-Host "📦 Installing mise via winget..." -ForegroundColor Blue
-    winget install -e --id jdx.mise --accept-source-agreements --accept-package-agreements
-}
+# Refresh PATH from registry to pick up scoop shims added by the bootstrap
+# script in this same chezmoi run (chezmoi-spawned scripts inherit the parent
+# env, so a sibling script's PATH changes aren't visible without this).
+$env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
 
-# Install mise tools
+# mise is installed via scoop in run_onchange_before_10-install-scoop.ps1.tmpl
 if (Get-Command mise -ErrorAction SilentlyContinue) {
     if (Get-Command gh -ErrorAction SilentlyContinue) {
         $env:GITHUB_TOKEN = (gh auth token 2>$null)
@@ -25,5 +24,7 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
     Write-Host "📦 Installing mise tools..." -ForegroundColor Blue
     mise install --yes
     mise prune --yes 2>$null
+} else {
+    Write-Host "[WARN] mise not found on PATH. Open a new shell and re-run 'chezmoi apply'." -ForegroundColor Yellow
 }
 {{- end }}
