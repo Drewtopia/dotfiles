@@ -1,14 +1,14 @@
 {{- if eq .chezmoi.os "windows" -}}
 # Add Git for Windows' bin directory to user PATH.
 # Goal: make `bash` resolvable from any shell (cmd, PowerShell, etc.) without
-# hardcoding absolute paths in scripts/hook commands. Narrow `bin/` only —
+# hardcoding absolute paths in scripts/hook commands. Narrow `bin/` only -
 # avoids the Unix-tool shadowing risk of `usr/bin/`.
 
 $ErrorActionPreference = "Stop"
 $gitBin = "C:\Program Files\Git\bin"
 
 if (-not (Test-Path $gitBin)) {
-    Write-Host "[SKIP] $gitBin not found — Git for Windows not installed at the standard path" -ForegroundColor Yellow
+    Write-Host "[SKIP] $gitBin not found - Git for Windows not installed at the standard path" -ForegroundColor Yellow
     exit 0
 }
 
