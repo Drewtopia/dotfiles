@@ -6,6 +6,11 @@
 
 Write-Host "[Windows] Setting up environment and Scoop..." -ForegroundColor Green
 
+# Ensure utility cmdlets (Get-FileHash, Invoke-WebRequest, etc.) are available.
+# Corporate group policy may set $PSModuleAutoLoadingPreference = 'None', which
+# breaks scoop's internal use of Get-FileHash to verify download checksums.
+Import-Module Microsoft.PowerShell.Utility -ErrorAction SilentlyContinue
+
 function Test-Command($cmdname) {
     return [bool](Get-Command -Name $cmdname -ErrorAction SilentlyContinue)
 }
