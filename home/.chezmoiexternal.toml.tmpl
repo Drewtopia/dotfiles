@@ -135,9 +135,12 @@
 
 # Claude Code - Skills from mattpocock/skills
 {{ $mattSkills := list
+    "caveman"
     "design-an-interface"
+    "domain-model"
     "edit-article"
     "git-guardrails-claude-code"
+    "github-triage"
     "grill-me"
     "improve-codebase-architecture"
     "migrate-to-shoehorn"
@@ -147,10 +150,12 @@
     "scaffold-exercises"
     "setup-pre-commit"
     "tdd"
+    "to-prd"
     "triage-issue"
     "ubiquitous-language"
     "write-a-prd"
-    "write-a-skill" -}}
+    "write-a-skill"
+    "zoom-out" -}}
 {{ range $mattSkills -}}
 [".claude/skills/{{ . }}"]
     type = "archive"
