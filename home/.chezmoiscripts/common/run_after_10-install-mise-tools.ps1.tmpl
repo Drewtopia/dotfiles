@@ -21,7 +21,7 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
         $env:GITHUB_TOKEN = (gh auth token 2>$null)
     }
     mise trust --all 2>$null
-    Write-Host "📦 Installing mise tools..." -ForegroundColor Blue
+    Write-Host "[Install] Installing mise tools..." -ForegroundColor Blue
     mise install --yes
     mise prune --yes 2>$null
 } else {
