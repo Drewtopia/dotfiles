@@ -93,8 +93,7 @@
     url = "https://github.com/zdharma-continuum/zinit.git"
     refreshPeriod = "168h"
 
-{{- if ne .chezmoi.os "windows" }}
-# Claude Code - Hooks from claude-code-mastery (Unix only - individual files for executable bit)
+# Claude Code - Hooks from claude-code-mastery (cross-platform; bash via Git Bash on Windows)
 {{ $hookBase := "https://raw.githubusercontent.com/TheDecipherist/claude-code-mastery/main/hooks" -}}
 {{ range (list "after-edit.sh" "block-dangerous-commands.sh" "block-secrets.py" "end-of-turn.sh" "notify.sh") }}
 [".claude/hooks/{{ . }}"]
@@ -103,7 +102,6 @@
     refreshPeriod = "168h"
     executable = true
 {{ end -}}
-{{- end }}
 
 # Claude Code - Skills from claude-code-mastery
 [".claude/skills/commit-messages"]

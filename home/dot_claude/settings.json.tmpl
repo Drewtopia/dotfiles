@@ -51,7 +51,6 @@
       "Bash(git push:*)"
     ]
   },
-{{- if ne .chezmoi.os "windows" }}
   "hooks": {
     "PreToolUse": [
       {
@@ -59,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.claude/hooks/block-secrets.py"
+            "command": "bash -c 'python ~/.claude/hooks/block-secrets.py'"
           }
         ]
       },
@@ -68,7 +67,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/block-dangerous-commands.sh"
+            "command": "bash -c '~/.claude/hooks/block-dangerous-commands.sh'"
           }
         ]
       }
@@ -78,11 +77,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "test -d .jj && jj log -r @ --no-graph -T 'if(self.contained_in(\"trunk()\") || self.contained_in(\"develop()\"), \"BLOCKED\")' 2>/dev/null | grep -q BLOCKED && { echo 'Cannot modify trunk or develop - run: jj new' >&2; exit 1; } || true"
+            "command": "bash -c '~/.claude/hooks/jj-block-trunk.sh'"
           },
           {
             "type": "command",
-            "command": "test -d .jj || exit 0; file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r '.file_path // empty' | xargs basename 2>/dev/null); [ -z \"$file\" ] && exit 0; desc=$(jj log -r @ --no-graph -T 'description' 2>/dev/null); if [ -z \"$desc\" ] || [ \"$desc\" = \"(no description set)\" ]; then jj describe -m \"claude: $file\" --quiet 2>/dev/null; elif echo \"$desc\" | grep -q '^claude:' && ! echo \"$desc\" | grep -qF \"$file\"; then jj describe -m \"$desc, $file\" --quiet 2>/dev/null; fi; true"
+            "command": "bash -c '~/.claude/hooks/jj-describe-claude.sh'"
           }
         ]
       }
@@ -94,12 +93,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/after-edit.sh"
+            "command": "bash -c '~/.claude/hooks/after-edit.sh'"
           }
 {{- if lookPath "jj" }},
           {
             "type": "command",
-            "command": "test -d .jj && jj diff --stat 2>/dev/null || true"
+            "command": "bash -c 'test -d .jj && jj diff --stat 2>/dev/null || true'"
           }
 {{- end }}
         ]
@@ -111,12 +110,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/end-of-turn.sh"
+            "command": "bash -c '~/.claude/hooks/end-of-turn.sh'"
           }
 {{- if lookPath "jj" }},
           {
             "type": "command",
-            "command": "test -d .jj && { jj st && jj diff --stat; } || true"
+            "command": "bash -c 'test -d .jj && { jj st && jj diff --stat; } || true'"
           }
 {{- end }}
         ]
@@ -128,12 +127,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh"
+            "command": "bash -c '~/.claude/hooks/notify.sh'"
           }
         ]
       }
     ],
     "SessionStart": [
+{{- if ne .chezmoi.os "windows" }}
       {
         "matcher": "",
         "hooks": [
@@ -142,10 +142,20 @@
             "command": "find ~/.claude -name '*.sh' ! -executable -exec chmod +x {} + 2>/dev/null; find ~/.claude -name '*.py' ! -executable -exec chmod +x {} + 2>/dev/null; true"
           }
         ]
+      },
+{{- end }}
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '~/.claude/hooks/session-start-git-status.sh'",
+            "timeout": 30
+          }
+        ]
       }
     ]
   },
-{{- end }}
   "statusLine": {
     "type": "command",
     "command": "bun x ccusage statusline",

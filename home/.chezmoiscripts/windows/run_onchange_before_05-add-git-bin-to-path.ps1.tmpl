@@ -1,0 +1,29 @@
+{{- if eq .chezmoi.os "windows" -}}
+# Add Git for Windows' bin directory to user PATH.
+# Goal: make `bash` resolvable from any shell (cmd, PowerShell, etc.) without
+# hardcoding absolute paths in scripts/hook commands. Narrow `bin/` only —
+# avoids the Unix-tool shadowing risk of `usr/bin/`.
+
+$ErrorActionPreference = "Stop"
+$gitBin = "C:\Program Files\Git\bin"
+
+if (-not (Test-Path $gitBin)) {
+    Write-Host "[SKIP] $gitBin not found — Git for Windows not installed at the standard path" -ForegroundColor Yellow
+    exit 0
+}
+
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if ($null -eq $userPath) { $userPath = "" }
+
+# Compare with normalized separators to avoid trailing-slash false negatives
+$alreadyPresent = ($userPath -split ';' | Where-Object { $_.TrimEnd('\') -eq $gitBin.TrimEnd('\') }).Count -gt 0
+
+if ($alreadyPresent) {
+    Write-Host "[OK] $gitBin already on user PATH" -ForegroundColor Green
+} else {
+    $newPath = if ($userPath) { "$userPath;$gitBin" } else { $gitBin }
+    [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+    Write-Host "[Install] Added $gitBin to user PATH" -ForegroundColor Blue
+    Write-Host "[INFO] Restart shells/Claude Code to pick up the change" -ForegroundColor Yellow
+}
+{{- end }}
