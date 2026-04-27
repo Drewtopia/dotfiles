@@ -164,6 +164,15 @@
 
 {{ end -}}
 
+# Personal memory + agent vault (private repo).
+# No refreshPeriod → chezmoi only clones once on first apply, never auto-refreshes.
+# Manual git push/pull from ~/.claude-vault/ stays in your control.
+[".claude-vault"]
+    type = "git-repo"
+    url = "git@github.com:Drewtopia/claude-vault.git"
+    [".claude-vault".clone]
+        args = ["--depth=1"]
+
 # Tool themes (Catppuccin Mocha)
 [".config/eza/theme.yml"]
     type = "file"
