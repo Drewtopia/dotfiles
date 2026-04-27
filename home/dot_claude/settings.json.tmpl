@@ -4,7 +4,8 @@
   "env": {
     "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
     "EDITOR": "nvim",
-    "GIT_EDITOR": "nvim --wait"
+    "GIT_EDITOR": "nvim --wait"{{- if eq .chezmoi.os "windows" }},
+    "CLAUDE_CODE_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe"{{- end }}
   },
   "includeCoAuthoredBy": false,
   "permissions": {
@@ -86,6 +87,17 @@
         ]
       }
 {{- end }}
+,
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pre-tool-memory.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ],
     "PostToolUse": [
       {
@@ -164,6 +176,7 @@
   "enabledPlugins": {
 {{- if .personal }}
     "obsidian@obsidian-skills": true,
+    "claude-brain-sync@claude-brain-sync": true,
 {{- end }}
 {{- if .dev_computer }}
     "code-review@claude-plugins-official": true,
@@ -185,6 +198,18 @@
     "superpowers@claude-plugins-official": true,
     "context7@claude-plugins-official": true
   },
+{{- if .personal }}
+  "extraKnownMarketplaces": {
+    "claude-brain-sync": {
+      "source": {
+        "source": "github",
+        "repo": "toroleapinc/claude-brain"
+      }
+    }
+  },
+{{- end }}
   "autoUpdatesChannel": "latest",
+  "verbose": true,
+  "preferredNotifChannel": "terminal_bell",
   "agentPushNotifEnabled": false
 }
