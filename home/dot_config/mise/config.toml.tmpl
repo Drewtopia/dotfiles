@@ -62,6 +62,9 @@ eza = "latest"
 {{ if ne .chezmoi.os "windows" -}}
 # Unix-only (no Windows binary)
 "aqua:PaulJuliusMartinez/jless" = "latest"
+# qmd — local search engine for markdown (BM25 + vector + LLM rerank).
+# Native deps (node-llama-cpp) build cleanly on macOS/Linux; deferring Windows.
+"npm:@tobilu/qmd" = "latest"
 {{ end -}}
 
 {{ if .personal -}}

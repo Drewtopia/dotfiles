@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Refresh Claude Code plugin marketplaces.
+#
+# Triggered by chezmoi's `run_onchange_after_*` semantics: re-runs whenever
+# this script's content changes. To force a refresh, bump the EPOCH below or
+# edit the tracked-plugins list to match dot_claude/settings.json.tmpl.
+#
+# EPOCH: 1
+#
+# Tracked enabled plugins (mirror of dot_claude/settings.json.tmpl).
+# Keep this list in sync — both for documentation and to use as the
+# re-run trigger when adding/removing plugins.
+#
+#   obsidian@obsidian-skills
+#   claude-brain-sync@claude-brain-sync
+#   code-review@claude-plugins-official
+#   feature-dev@claude-plugins-official
+#   typescript-lsp@claude-plugins-official
+#   commit-commands@claude-plugins-official
+#   playwright@claude-plugins-official
+#   code-simplifier@claude-plugins-official
+#   plugin-dev@claude-plugins-official
+#   greptile@claude-plugins-official
+#   explanatory-output-style@claude-plugins-official
+#   learning-output-style@claude-plugins-official
+#   claude-code-setup@claude-plugins-official
+#   security-guidance@claude-plugins-official
+#   ralph-loop@claude-plugins-official
+#   hookify@claude-plugins-official
+#   claude-md-management@claude-plugins-official
+#   qmd@qmd
+
+set -euo pipefail
+
+if ! command -v claude >/dev/null 2>&1; then
+  echo "ℹ️  claude CLI not on PATH; skipping marketplace update" >&2
+  exit 0
+fi
+
+echo "📦 Refreshing Claude Code plugin marketplaces..."
+if claude plugin marketplace update 2>&1; then
+  echo "✓ Marketplaces refreshed (restart Claude Code to pick up new skills)"
+else
+  echo "⚠️  marketplace update failed — continuing chezmoi apply" >&2
+  exit 0
+fi
