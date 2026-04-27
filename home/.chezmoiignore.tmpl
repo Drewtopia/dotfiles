@@ -98,6 +98,12 @@ README.md
 !.claude/agents/
 !.claude/hooks/
 !.claude/skills/
+{{ if not (and (eq .chezmoi.os "windows") .work) -}}
+# Mac/Linux/personal-Windows: chezmoi-managed symlink at .claude/memory
 !.claude/memory
+{{- else -}}
+# Work Windows: vault clones directly to .claude/memory via chezmoiexternal,
+# no symlink to track here. (.claude/memory falls under .claude/* ignore.)
+{{- end }}
 !.claude/mcp.json
 !.claude/CLAUDE.md
