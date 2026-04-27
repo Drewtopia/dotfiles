@@ -166,12 +166,23 @@
 
 # Personal memory + agent vault (private repo).
 # No refreshPeriod → chezmoi only clones once on first apply, never auto-refreshes.
-# Manual git push/pull from ~/.claude-vault/ stays in your control.
+# Manual git push/pull from the vault dir stays in your control.
+{{ if not (and (eq .chezmoi.os "windows") .work) -}}
+# Mac/Linux/personal-Windows: clone separately, symlink into .claude/memory.
 [".claude-vault"]
     type = "git-repo"
     url = "git@github.com:Drewtopia/claude-vault.git"
     [".claude-vault".clone]
         args = ["--depth=1"]
+{{- else -}}
+# Work Windows (no Developer Mode): clone vault directly to ~/.claude/memory/.
+# Loses the "Anthropic could claim this path" defense but unblocks the machine.
+[".claude/memory"]
+    type = "git-repo"
+    url = "git@github.com:Drewtopia/claude-vault.git"
+    [".claude/memory".clone]
+        args = ["--depth=1"]
+{{- end }}
 
 # Tool themes (Catppuccin Mocha)
 [".config/eza/theme.yml"]
