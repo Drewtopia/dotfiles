@@ -1,0 +1,116 @@
+#!/bin/bash
+# cvault — Claude memory vault management CLI
+# Mirrors chezmoi's verb structure for ~/.claude-vault/
+#
+# Subcommands:
+#   cvault status    — ahead/behind/uncommitted summary
+#   cvault diff [..] — pass-through to `git diff` (accepts any args)
+#   cvault apply     — commit + push local changes (no-op if clean)
+#   cvault update    — git pull --rebase --autostash from origin
+#   cvault sync      — update, then apply (full bidirectional sync)
+#
+# Auto-sync hooks (~/.claude/hooks/memory-{pull,push}.sh) handle the
+# ambient case. cvault is for explicit "do it now" usage.
+
+set -e
+
+VAULT_DIR="$HOME/.claude-vault"
+
+if [ ! -d "$VAULT_DIR/.git" ]; then
+    echo "cvault: no vault at $VAULT_DIR (or it's not a git repo)" >&2
+    echo "  expected: chezmoi external clones it on first apply." >&2
+    exit 1
+fi
+
+cmd_status() {
+    cd "$VAULT_DIR"
+    echo "Vault: $VAULT_DIR"
+    echo
+    git fetch --quiet origin 2>/dev/null || echo "  (offline — couldn't fetch)"
+    local ahead behind
+    ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
+    behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+    echo "  ahead of origin/main:  $ahead"
+    echo "  behind origin/main:    $behind"
+    echo
+    local working_tree
+    working_tree=$(git status --short)
+    if [ -z "$working_tree" ]; then
+        echo "  working tree:          clean"
+    else
+        echo "  working tree:"
+        echo "$working_tree" | sed 's/^/    /'
+    fi
+    echo
+    # Flag any backup dirs that need migration
+    local baks
+    baks=$(ls -d "$HOME/.claude/memory.bak."* 2>/dev/null || true)
+    if [ -n "$baks" ]; then
+        echo "  pending migration (run \`reorganize-memory\` skill):"
+        echo "$baks" | sed 's/^/    /'
+    fi
+}
+
+cmd_diff() {
+    cd "$VAULT_DIR"
+    git diff "$@"
+}
+
+cmd_apply() {
+    cd "$VAULT_DIR"
+    if git diff --quiet && git diff --cached --quiet; then
+        echo "cvault: no local changes to apply"
+        return 0
+    fi
+    echo "→ Committing local changes..."
+    git add -A
+    git commit -m "manual: $(date -u +%Y-%m-%dT%H:%M) via $(hostname)"
+    echo "→ Pushing..."
+    git push
+    echo "✓ Applied"
+}
+
+cmd_update() {
+    cd "$VAULT_DIR"
+    echo "→ Pulling..."
+    git pull --rebase --autostash
+    echo "✓ Updated"
+}
+
+cmd_sync() {
+    cmd_update
+    cmd_apply
+}
+
+cmd_help() {
+    cat <<'EOF'
+cvault — Claude memory vault CLI
+
+usage: cvault <command> [args]
+
+  status         Show ahead/behind, working tree, pending migrations
+  diff [...]    `git diff` pass-through
+  apply          Commit + push local changes
+  update         Pull from origin (rebase + autostash)
+  sync           update + apply
+  help           Show this message
+
+The vault auto-syncs at session boundaries via hooks (~/.claude/hooks/memory-{pull,push}.sh).
+Use cvault when you want explicit control.
+EOF
+}
+
+case "${1:-status}" in
+    status)  cmd_status ;;
+    diff)    shift; cmd_diff "$@" ;;
+    apply)   cmd_apply ;;
+    update)  cmd_update ;;
+    sync)    cmd_sync ;;
+    help|-h|--help) cmd_help ;;
+    *)
+        echo "cvault: unknown command '$1'" >&2
+        echo
+        cmd_help >&2
+        exit 1
+        ;;
+esac
