@@ -16,6 +16,9 @@ Run this skill when memory needs maintenance. Always use plan mode — show the 
    - `~/.claude/memory/{tools,domain}/**/*.md`
    - `~/.claude/memory/projects.md` (if exists)
    - For each path in projects.md: that project's `memory/MEMORY.md` + entry files
+   - **`~/.claude/memory.bak.*/`** directories — pre-existing memory content
+     auto-backed-up by chezmoi when the symlink landed on a fresh machine.
+     Treat as merge candidates (Step 3, "Migration candidates" below).
 
 3. **Build a proposal** — for each candidate change, identify:
    - **Duplicates**: entries that appear in multiple files. Recommend merge.
@@ -25,6 +28,12 @@ Run this skill when memory needs maintenance. Always use plan mode — show the 
    - **Re-sort**: entries within each file should be ordered by date (latest last) where dates exist.
    - **Type mismatches**: filename prefix vs frontmatter `type:` mismatch (e.g. file named `project_*.md` but frontmatter says `type: feedback`).
    - **Index drift**: `memory.md` table doesn't reflect current files.
+   - **Migration candidates**: each `~/.claude/memory.bak.<timestamp>/` directory contains content that pre-existed the vault on this machine. For each `.bak.*` dir:
+     - Diff against `~/.claude/memory/` (the vault).
+     - For files unique to .bak: propose copying into vault (likely under appropriate `tools/` or `domain/` subdir, or as new entries).
+     - For files in both: propose merge if content differs, or skip if identical.
+     - After successful merge confirmation: offer to delete the .bak dir.
+     - Never silently auto-delete a .bak dir; require explicit user approval.
 
 4. **Present the proposal** as a single ordered list with current → proposed for each change. Use AskUserQuestion (multiSelect) to let the user approve a subset.
 
