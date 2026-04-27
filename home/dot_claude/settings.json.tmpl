@@ -87,17 +87,6 @@
         ]
       }
 {{- end }}
-,
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pre-tool-memory.sh",
-            "timeout": 5
-          }
-        ]
-      }
     ],
     "PostToolUse": [
       {

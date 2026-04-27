@@ -83,6 +83,10 @@ Topic files:
 - ~/.claude/memory/projects.md — index of active project MEMORY.md files
 - ~/.claude/memory/tools/project-scaffolding.md — new-project setup checklist
 - ~/.claude/memory/tools/framework-rules.md — language-specific conventions (Node, Python, Rust, Go, Docker)
+- ~/.claude/memory/feedback_cross_platform_intro.md — when Drew is new to a topic, lead with what stays simple
+- ~/.claude/memory/feedback_notes_staleness.md — notes go stale; prefer regeneratable docs; treat prior plans as candidate state
+- ~/.claude/memory/feedback_live_config_edits.md — don't edit live service config files in place
+- ~/.claude/memory/feedback_scaffolded_placeholders.md — empty "(Populate as you go)" sections are intentional, don't trim
 
 ---
 
@@ -133,6 +137,36 @@ Read ~/.claude/CLAUDE.md for memory rules and topic files.
 
 When an update is needed to a promoted domain, note it in the memory file so an issue
 can be created on the plugin repo.
+
+---
+
+## Learning
+
+Track two types of knowledge:
+
+- Domain: what things are (product context, user preferences, APIs, naming conventions, team decisions
+- Procedural: how to do thing (deploy steps, test commands, review flows)
+
+Organize knowledge as a hierarchy of .md files:
+
+- knowledge/index.md routes to categories
+- Categories hold the details
+  Progressive disclosure. Read top-down, only load what you need.
+
+Log errors to knowledge/errors.md. Not every error is a mistake:
+
+- Deterministic errors (bad schema, wrong type, missing field) → conclude immediatel
+- Infrastructure errors (timeout, rate limit, network) → log, no conclusion until pattern emerge
+- Conclusions graduate into the relevant domain or procedural file
+
+Actively manage the knowledge system. This is as important as the current task:
+
+- Review knowledge files at the start of each session
+- Merge overlapping categories
+- Split files that grow too long
+- Remove knowledge that's no longer accurate
+- Create new categories when patterns emerge
+- When you notice something that should be in claude.md but isn't — a pattern, a preference, a correction — propose the edit. Don't wait to be asked.
 
 ---
 
