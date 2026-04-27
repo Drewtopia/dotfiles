@@ -175,6 +175,7 @@
 {{- if .personal }}
     "obsidian@obsidian-skills": true,
     "claude-brain-sync@claude-brain-sync": true,
+    "qmd@qmd": true,
 {{- end }}
 {{- if .dev_computer }}
     "code-review@claude-plugins-official": true,
@@ -202,6 +203,12 @@
       "source": {
         "source": "github",
         "repo": "toroleapinc/claude-brain"
+      }
+    },
+    "qmd": {
+      "source": {
+        "source": "github",
+        "repo": "tobi/qmd"
       }
     }
   },
