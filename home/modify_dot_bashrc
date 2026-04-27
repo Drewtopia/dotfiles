@@ -1,0 +1,21 @@
+#!/bin/bash
+# chezmoi modify_ script for ~/.bashrc.
+# Reads existing .bashrc on stdin, emits modified content on stdout.
+# Idempotent: appends a PATH guard for ~/.local/bin only if not already present.
+# Mac/Linux usually have this via .zshenv; this catches Git Bash on Windows.
+
+content=$(cat)
+printf '%s' "$content"
+
+if ! printf '%s' "$content" | grep -q 'CLAUDE_VAULT_PATH_GUARD'; then
+    cat <<'PATH_BLOCK'
+
+# CLAUDE_VAULT_PATH_GUARD — ensures ~/.local/bin is on PATH for interactive
+# bash sessions. Mac/Linux usually have this via .zshenv; this catches
+# Git Bash on Windows where the shell startup chain is different.
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+PATH_BLOCK
+fi

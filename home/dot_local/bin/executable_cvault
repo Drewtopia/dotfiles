@@ -14,11 +14,18 @@
 
 set -e
 
-VAULT_DIR="$HOME/.claude-vault"
-
-if [ ! -d "$VAULT_DIR/.git" ]; then
-    echo "cvault: no vault at $VAULT_DIR (or it's not a git repo)" >&2
-    echo "  expected: chezmoi external clones it on first apply." >&2
+# Auto-detect vault location:
+#   Mac/Linux/personal-Windows: ~/.claude-vault/ (symlinked into ~/.claude/memory)
+#   Work Windows (no Developer Mode): ~/.claude/memory/ (direct clone, no symlink)
+if [ -d "$HOME/.claude-vault/.git" ]; then
+    VAULT_DIR="$HOME/.claude-vault"
+elif [ -d "$HOME/.claude/memory/.git" ]; then
+    VAULT_DIR="$HOME/.claude/memory"
+else
+    echo "cvault: no vault found" >&2
+    echo "  expected ~/.claude-vault/ (Mac/Linux/personal-Windows)" >&2
+    echo "        or ~/.claude/memory/ (work Windows direct-clone)" >&2
+    echo "  run \`chezmoi apply\` to clone the vault" >&2
     exit 1
 fi
 
