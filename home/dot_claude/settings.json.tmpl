@@ -175,9 +175,9 @@
 {{- if .personal }}
     "obsidian@obsidian-skills": true,
     "claude-brain-sync@claude-brain-sync": true,
-    "qmd@qmd": true,
 {{- end }}
 {{- if .dev_computer }}
+    "qmd@qmd": true,
     "code-review@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
@@ -197,20 +197,24 @@
     "superpowers@claude-plugins-official": true,
     "context7@claude-plugins-official": true
   },
-{{- if .personal }}
+{{- if or .personal .dev_computer }}
   "extraKnownMarketplaces": {
+{{- if .personal }}
     "claude-brain-sync": {
       "source": {
         "source": "github",
         "repo": "toroleapinc/claude-brain"
       }
-    },
+    }{{ if .dev_computer }},{{ end }}
+{{- end }}
+{{- if .dev_computer }}
     "qmd": {
       "source": {
         "source": "github",
         "repo": "tobi/qmd"
       }
     }
+{{- end }}
   },
 {{- end }}
   "autoUpdatesChannel": "latest",
