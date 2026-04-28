@@ -98,13 +98,18 @@ README.md
 !.claude/agents/
 !.claude/hooks/
 !.claude/skills/
-{{ if not (and (eq .chezmoi.os "windows") .work) -}}
-# Mac/Linux/personal-Windows: chezmoi-managed symlinks at .claude/memory and .claude/rules
+{{ if eq .chezmoi.os "windows" -}}
+# Windows memory: junction created by run_after_99-claude-memory-junction.ps1.tmpl
+# (no Developer Mode required). Falls under the .claude/* ignore above.
+{{- if not .work }}
+# Personal Windows rules: chezmoi-managed symlink (requires Developer Mode).
+# TODO: extend junction script to cover rules so work-Windows works too.
+!.claude/rules
+{{- end }}
+{{- else -}}
+# Mac/Linux: chezmoi-managed symlinks at .claude/memory and .claude/rules.
 !.claude/memory
 !.claude/rules
-{{- else -}}
-# Work Windows: vault clones directly to .claude/memory and .claude/rules via chezmoiexternal,
-# no symlinks to track here. (.claude/* falls under the ignore.)
 {{- end }}
 !.claude/mcp.json
 !.claude/CLAUDE.md
