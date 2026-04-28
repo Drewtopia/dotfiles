@@ -49,124 +49,38 @@ Available in `~/.claude/skills/`:
 
 ---
 
-## Memory Management
+## Memory & Rules
 
-Maintain a structured memory system rooted at .claude/memory/
+Two systems load at session start:
 
-### Structure
+- `@~/.claude/memory/memory.md` — index of accumulated knowledge (tools/, projects.md, personal.md, SESSION_LOG.md, general.md). Load specific topic files only when relevant.
+- `~/.claude/rules/` — behavioral rules. Loaded automatically by Claude Code; no reference needed here.
 
-- memory.md — index of all memory files, updated whenever you create or modify one
-- general.md — cross-project facts, preferences, environment setup
-- domain/{topic}.md — domain-specific knowledge (one file per topic)
-- tools/{tool}.md — tool configs, CLI patterns, workarounds
+Maintaining memory:
 
-### Rules
-
-1. When you learn something worth remembering, write it to the right file immediately
-2. Keep memory.md as a current index with one-line descriptions
-3. Entries: date, what, why — nothing more
-4. Read memory.md at session start. Load other files only when relevant
-5. If a file doesn't exist yet, create it
-6. Before removing or modifying any existing memory entry, use AskUserQuestion to confirm
-   with the user — show the current content and the proposed change
-
-For maintenance ("reorganize memory"), see the `reorganize-memory` skill.
+- When you learn something worth remembering, write to the right file immediately. Keep `memory.md` current as an index.
+- Entries: date, what, why — nothing more.
+- Before removing or modifying any existing memory entry, use AskUserQuestion to confirm.
+- For maintenance, see the `reorganize-memory` skill.
 
 ---
 
-## Global Memory
+## Project MEMORY.md
 
-Read ~/.claude/memory/memory.md at session start. Load specific topic files only when relevant.
+When working in a project, ensure its MEMORY.md begins with this short pointer block. Do NOT duplicate the topic file list — it lives in CLAUDE.md only.
 
-Topic files (full list in `~/.claude/memory/memory.md` index):
-- ~/.claude/memory/general.md — cross-project conventions and quality gates
-- ~/.claude/memory/projects.md — index of active project MEMORY.md files
-- ~/.claude/memory/personal.md — notes about people in Drew's life
-- ~/.claude/memory/SESSION_LOG.md — cross-device session log (auto-appended by /close)
-- ~/.claude/memory/tools/ — one file per tool (bun, chezmoi, mise, television, etc.)
-- ~/.claude/memory/feedback/ — behavioral rules from past corrections
-- ~/.claude/memory/domain/ — domain knowledge per product/area
-
----
-
-## Global Memory Reference Rule
-
-Whenever you work in a project and read (or create) its MEMORY.md, check that it contains a
-## Global Memory section. If it does not, add it near the top, after the H1.
-
-The section must be a SHORT POINTER only. Do NOT duplicate the topic file list into project
-MEMORY.md. The list lives in CLAUDE.md (single source of truth). Project MEMORY.md has a
-200-line budget — use it for project knowledge, not boilerplate.
-
-Canonical template for project MEMORY.md:
+Canonical template:
 
 ## Global Memory
 
 Read ~/.claude/CLAUDE.md for memory rules and topic files.
 
 When a new file is added to ~/.claude/memory/:
-- Add it to the ## Global Memory topic file list in ~/.claude/CLAUDE.md only
+- Add it to ~/.claude/memory/memory.md only
 - Do NOT update individual project MEMORY.md files
 
----
-
-## Repo Memory Auto-Init
-
-At session start in any project, check for MEMORY.md in the project memory directory
-(~/.claude/projects/{mapped-path}/memory/). If it does not exist, create it:
-
-# {Project Name} - Project Memory
-
-## Global Memory
-
-Read ~/.claude/CLAUDE.md for memory rules and topic files.
-
-## Project Notes
-
-(Populated as you work in this project)
+Project MEMORY.md has a 200-line budget — auto-memory loads only the first 200 lines / 25KB at session start.
 
 ---
 
-## Domain Knowledge Lifecycle
-
-1. Staging — knowledge accumulates in ~/.claude/memory/domain/{name}/
-2. Promotion — enough knowledge exists to package as a plugin/skill
-3. Pointer — after promotion, the memory file becomes a pointer to the plugin;
-   content lives in the plugin
-
-When an update is needed to a promoted domain, note it in the memory file so an issue
-can be created on the plugin repo.
-
----
-
-## Learning
-
-Track two types of knowledge:
-
-- Domain: what things are (product context, user preferences, APIs, naming conventions, team decisions
-- Procedural: how to do thing (deploy steps, test commands, review flows)
-
-Organize knowledge as a hierarchy of .md files:
-
-- knowledge/index.md routes to categories
-- Categories hold the details
-  Progressive disclosure. Read top-down, only load what you need.
-
-Log errors to knowledge/errors.md. Not every error is a mistake:
-
-- Deterministic errors (bad schema, wrong type, missing field) → conclude immediatel
-- Infrastructure errors (timeout, rate limit, network) → log, no conclusion until pattern emerge
-- Conclusions graduate into the relevant domain or procedural file
-
-Actively manage the knowledge system. This is as important as the current task:
-
-- Review knowledge files at the start of each session
-- Merge overlapping categories
-- Split files that grow too long
-- Remove knowledge that's no longer accurate
-- Create new categories when patterns emerge
-- When you notice something that should be in claude.md but isn't — a pattern, a preference, a correction — propose the edit. Don't wait to be asked.
-
----
-
-*Last updated: 2026-04-27*
+*Last updated: 2026-04-28*
