@@ -141,7 +141,8 @@ ENTRY="$(cat <<EOF
 - Main artifact: <path>
 EOF
 )"
-{ printf "%s\n\n" "$ENTRY"; cat "$LOG" 2>/dev/null; } > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
+{ printf "%s\n\n" "$ENTRY"; cat "$LOG" 2>/dev/null || true; } > "$LOG.tmp"
+mv "$LOG.tmp" "$LOG"
 ```
 
 If `SESSION_LOG.md` doesn't exist yet, the prepend creates it.
