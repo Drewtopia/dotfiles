@@ -1,0 +1,48 @@
+{{- if eq .chezmoi.os "windows" -}}
+#!/usr/bin/env pwsh
+# Create junction at ~/.claude/memory pointing to ~/.claude-vault/memory.
+# Junctions don't require Developer Mode (unlike symlinks), so this works
+# uniformly on work and personal Windows machines.
+$ErrorActionPreference = "Stop"
+
+$linkPath   = Join-Path $HOME ".claude\memory"
+$targetPath = Join-Path $HOME ".claude-vault\memory"
+
+# Vault must be cloned first (handled by .chezmoiexternal).
+if (-not (Test-Path $targetPath)) {
+    Write-Host "[Junction] ERROR: vault target missing at $targetPath" -ForegroundColor Red
+    Write-Host "[Junction]        Re-run 'chezmoi apply' after the vault clone completes." -ForegroundColor Red
+    exit 1
+}
+
+# Ensure parent (~/.claude) exists.
+$parentDir = Split-Path $linkPath -Parent
+if (-not (Test-Path $parentDir)) {
+    New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+}
+
+# Idempotency: leave existing correct junction in place; replace wrong target;
+# refuse to clobber a real directory (would be data loss).
+if (Test-Path $linkPath) {
+    $item = Get-Item $linkPath -Force
+    if ($item.Attributes -match "ReparsePoint") {
+        if ($item.Target -eq $targetPath) {
+            exit 0  # Already correct — silent success.
+        }
+        Write-Host "[Junction] Replacing junction with wrong target: $($item.Target)" -ForegroundColor Yellow
+        Remove-Item $linkPath -Force
+    } else {
+        Write-Host "[Junction] ERROR: $linkPath exists as a real directory." -ForegroundColor Red
+        Write-Host "[Junction]        Refusing to overwrite. Move or remove it manually, then re-run." -ForegroundColor Red
+        exit 1
+    }
+}
+
+# Create the junction.
+& cmd /c mklink /J "`"$linkPath`"" "`"$targetPath`"" | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[Junction] ERROR: mklink /J failed (exit $LASTEXITCODE)." -ForegroundColor Red
+    exit $LASTEXITCODE
+}
+Write-Host "[Junction] Created $linkPath -> $targetPath" -ForegroundColor Green
+{{- end }}
