@@ -77,13 +77,23 @@ $scoopPackages = @(
 $installedPackages = scoop list 2>$null | ForEach-Object { $_.Name }
 
 Write-Host "[Install] Installing essential CLI tools via Scoop..." -ForegroundColor Blue
+$failedPackages = @()
 foreach ($package in $scoopPackages) {
     if ($package -notin $installedPackages) {
         Write-Host "Installing $package..." -ForegroundColor Cyan
         scoop install $package
+        if ($LASTEXITCODE -ne 0) {
+            $failedPackages += $package
+            Write-Host "[ERROR] Failed to install $package (exit $LASTEXITCODE)" -ForegroundColor Red
+        }
     } else {
         Write-Host "[OK] $package already installed" -ForegroundColor Green
     }
+}
+
+if ($failedPackages.Count -gt 0) {
+    Write-Host "[ERROR] Scoop install failures: $($failedPackages -join ', ')" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "[OK] Scoop setup completed!" -ForegroundColor Green
