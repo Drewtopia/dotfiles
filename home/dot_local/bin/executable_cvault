@@ -3,11 +3,12 @@
 # Mirrors chezmoi's verb structure for ~/.claude-vault/
 #
 # Subcommands:
-#   cvault status    — ahead/behind/uncommitted summary
+#   cvault status    — ahead/behind/uncommitted summary; flags rebase-in-progress
 #   cvault diff [..] — pass-through to `git diff` (accepts any args)
 #   cvault apply     — commit + push local changes (no-op if clean)
 #   cvault update    — git pull --rebase --autostash from origin
 #   cvault sync      — update, then apply (full bidirectional sync)
+#   cvault merge     — resolve conflicted files via `git mergetool`, then continue rebase
 #
 # Auto-sync hooks (~/.claude/hooks/memory-{pull,push}.sh) handle the
 # ambient case. cvault is for explicit "do it now" usage.
@@ -29,10 +30,39 @@ else
     exit 1
 fi
 
+# True if a rebase or merge is mid-flight in the vault repo.
+in_progress() {
+    [ -d "$VAULT_DIR/.git/rebase-merge" ] \
+        || [ -d "$VAULT_DIR/.git/rebase-apply" ] \
+        || [ -f "$VAULT_DIR/.git/MERGE_HEAD" ]
+}
+
+# Files with unresolved conflict markers, one per line.
+conflicted_files() {
+    git -C "$VAULT_DIR" diff --name-only --diff-filter=U
+}
+
 cmd_status() {
     cd "$VAULT_DIR"
     echo "Vault: $VAULT_DIR"
     echo
+    if in_progress; then
+        if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+            echo "  ⚠  REBASE IN PROGRESS"
+        else
+            echo "  ⚠  MERGE IN PROGRESS"
+        fi
+        local conflicted
+        conflicted=$(conflicted_files)
+        if [ -n "$conflicted" ]; then
+            echo "     conflicted files:"
+            echo "$conflicted" | sed 's/^/       /'
+            echo "     → run \`cvault merge\` to resolve"
+        else
+            echo "     → no conflicts left; run \`cvault merge\` to continue"
+        fi
+        echo
+    fi
     git fetch --quiet origin 2>/dev/null || echo "  (offline — couldn't fetch)"
     local ahead behind
     ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
@@ -89,6 +119,37 @@ cmd_sync() {
     cmd_apply
 }
 
+cmd_merge() {
+    cd "$VAULT_DIR"
+    if ! in_progress; then
+        echo "cvault: nothing to merge (no rebase or merge in progress)"
+        return 0
+    fi
+    local conflicted
+    conflicted=$(conflicted_files)
+    if [ -n "$conflicted" ]; then
+        echo "→ launching \`git mergetool\` for:"
+        echo "$conflicted" | sed 's/^/    /'
+        # Don't let mergetool's exit code (non-zero if any file unresolved) kill the script.
+        git mergetool || true
+        conflicted=$(conflicted_files)
+    fi
+    if [ -n "$conflicted" ]; then
+        echo
+        echo "cvault: still unresolved — re-run \`cvault merge\`, or \`git rebase --abort\` to bail"
+        return 1
+    fi
+    if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+        echo "→ all conflicts resolved; continuing rebase..."
+        git rebase --continue
+        echo "✓ Merged"
+    elif [ -f .git/MERGE_HEAD ]; then
+        echo "→ all conflicts resolved; finalizing merge commit..."
+        git commit --no-edit
+        echo "✓ Merged (run \`cvault apply\` to push)"
+    fi
+}
+
 cmd_help() {
     cat <<'EOF'
 cvault — Claude memory vault CLI
@@ -96,10 +157,12 @@ cvault — Claude memory vault CLI
 usage: cvault <command> [args]
 
   status         Show ahead/behind, working tree, pending migrations
+                 (loudly flags any in-progress rebase/merge)
   diff [...]    `git diff` pass-through
   apply          Commit + push local changes
   update         Pull from origin (rebase + autostash)
   sync           update + apply
+  merge          Resolve conflicts via `git mergetool` and continue
   help           Show this message
 
 The vault auto-syncs at session boundaries via hooks (~/.claude/hooks/memory-{pull,push}.sh).
@@ -113,6 +176,7 @@ case "${1:-status}" in
     apply)   cmd_apply ;;
     update)  cmd_update ;;
     sync)    cmd_sync ;;
+    merge)   cmd_merge ;;
     help|-h|--help) cmd_help ;;
     *)
         echo "cvault: unknown command '$1'" >&2
