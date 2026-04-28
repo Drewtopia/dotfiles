@@ -58,7 +58,7 @@ A **single file with sections** is Drew's preference — not a directory of sibl
    - **Files in legacy `~/.claude/memory/feedback/`** — migrate each to `~/.claude/rules/{topic}.md`. Strip `type: feedback` frontmatter (native rules don't use it). For file-type-specific rules, add `paths:` frontmatter so they only load when Claude reads matching files.
    - **`general.md` bloat** — if `general.md` has grown beyond ~50 lines or contains content that's clearly behavioral guidance rather than a flat convention/quality gate, propose extracting to `~/.claude/rules/{topic}.md` files.
    - **Project memory as a directory of files** — if a project's memory dir has multiple `*.md` files alongside `MEMORY.md`, propose collapsing them into MEMORY.md sections. Sibling files don't load at session start; only `MEMORY.md` does.
-   - **Stale audits/inventories** — date-stamped audit lists, `⚠ Last seen` markers older than ~30 days, snapshots of tool installs or package lists. Per `~/.claude/rules/notes-staleness.md`, the **content rots but the rationale survives**. For each candidate drop:
+   - **Stale audits/inventories** — date-stamped audit lists, `⚠ Last seen` markers older than ~30 days, snapshots of tool installs or package lists. Per the Note-keeping bias section in `~/.claude/memory/working-patterns.md`, the **content rots but the rationale survives**. For each candidate drop:
      1. Identify durable patterns / decisions / rationale (the "why" and "how" — not the "what" of static inventories).
      2. Extract those into the appropriate global file (`~/.claude/memory/tools/{tool}.md`, `~/.claude/memory/domain/{topic}.md`, or `~/.claude/rules/{topic}.md`) BEFORE proposing the drop.
      3. Only propose drop AFTER the extraction is in the migration plan.
