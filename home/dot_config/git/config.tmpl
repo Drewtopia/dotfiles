@@ -95,6 +95,14 @@
 	defaultBranch = main
 [merge]
 	conflictStyle = zdiff3
+	tool = nvimdiff
+[mergetool]
+	keepBackup = false
+	prompt = false
+[mergetool "nvimdiff"]
+	# 4-pane: LOCAL | BASE | REMOTE on top, MERGED below.
+	# Matches the chezmoi merge config's `nvim -d` style.
+	layout = "LOCAL,BASE,REMOTE / MERGED"
 [pager]
 	branch = false
 	grep = false
