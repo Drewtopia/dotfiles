@@ -2,3 +2,8 @@
 
 # Installed Claude Code skills (regenerable from skills-lock.json — treat like node_modules)
 .agents/
+
+# GSD planning artifacts kept local (commit_docs=false in .planning/config.json).
+# Note: .planning/codebase/*.md was committed before this entry was added and
+# remains tracked. To start tracking the rest, remove this rule and `git add`.
+.planning/
