@@ -13,9 +13,14 @@ if ($env:CLAUDE_CONFIG_DIR -ne $claudeDir) {
     $env:CLAUDE_CONFIG_DIR = $claudeDir
 }
 
+$xdgCache = "{{ .directories.xdg_cache_dir }}"
+if ($env:XDG_CACHE_HOME -ne $xdgCache) {
+    $env:XDG_CACHE_HOME = $xdgCache
+}
+
 {{ end -}}
 # Add mise shims to PATH if mise is installed
-$miseShimPath = "$env:USERPROFILE\AppData\Local\mise\shims"
+$miseShimPath = "{{ .directories.mise_dir }}/shims"
 if ((Test-Path $miseShimPath) -and $env:PATH -notlike "*$miseShimPath*") {
     $env:PATH = "$miseShimPath;$env:PATH"
 }
@@ -30,7 +35,7 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
 }
 
 # pnpm global packages setup
-$pnpmHome = "$env:USERPROFILE\.local\share\pnpm"
+$pnpmHome = "{{ .directories.tools_root }}/.local/share/pnpm"
 if ((Test-Path $pnpmHome) -and $env:PATH -notlike "*$pnpmHome*") {
     $env:PATH = "$pnpmHome;$env:PATH"
 }
