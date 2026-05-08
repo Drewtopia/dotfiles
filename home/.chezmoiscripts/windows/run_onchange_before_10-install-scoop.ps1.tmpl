@@ -15,52 +15,13 @@ function Test-Command($cmdname) {
     return [bool](Get-Command -Name $cmdname -ErrorAction SilentlyContinue)
 }
 
-# Set XDG Base Directory environment variables (permanent user-level)
-# Ensures Neovim and other XDG-aware tools find configs in ~/.config
-$xdgVars = @{
-    'XDG_CONFIG_HOME' = '{{ .directories.xdg_config_dir }}'
-    'XDG_DATA_HOME'   = '{{ .directories.xdg_data_dir }}'
-    'XDG_STATE_HOME'  = '{{ .directories.xdg_state_dir }}'
-    'XDG_CACHE_HOME'  = '{{ .directories.xdg_cache_dir }}'
+# Inherit env vars from run_onchange_before_05-set-env-vars (chezmoi
+# spawns each script as a fresh subprocess, so values that script
+# wrote to User scope aren't auto-propagated into this one's env).
+foreach ($v in 'SCOOP') {
+    $userVal = [Environment]::GetEnvironmentVariable($v, 'User')
+    if ($userVal) { Set-Item -Path "Env:$v" -Value $userVal }
 }
-
-foreach ($var in $xdgVars.GetEnumerator()) {
-    $current = [Environment]::GetEnvironmentVariable($var.Key, 'User')
-    if ($current -ne $var.Value) {
-        Write-Host "[Config] Setting $($var.Key)" -ForegroundColor Blue
-        [Environment]::SetEnvironmentVariable($var.Key, $var.Value, 'User')
-        Set-Item -Path "Env:$($var.Key)" -Value $var.Value
-    }
-}
-
-# Consolidate mise directories under .mise (see mise.jdx.dev/how-i-use-mise)
-$miseDataDir = '{{ .directories.mise_dir }}'
-$currentMise = [Environment]::GetEnvironmentVariable('MISE_DATA_DIR', 'User')
-if ($currentMise -ne $miseDataDir) {
-    Write-Host "[Config] Setting MISE_DATA_DIR = $miseDataDir" -ForegroundColor Blue
-    [Environment]::SetEnvironmentVariable('MISE_DATA_DIR', $miseDataDir, 'User')
-    Set-Item -Path "Env:MISE_DATA_DIR" -Value $miseDataDir
-}
-
-{{ if ne .directories.tools_root .chezmoi.homeDir -}}
-# Relocate Claude config to custom tools root
-$claudeDir = '{{ .directories.claude_dir }}'
-$currentClaude = [Environment]::GetEnvironmentVariable('CLAUDE_CONFIG_DIR', 'User')
-if ($currentClaude -ne $claudeDir) {
-    Write-Host "[Config] Setting CLAUDE_CONFIG_DIR = $claudeDir" -ForegroundColor Blue
-    [Environment]::SetEnvironmentVariable('CLAUDE_CONFIG_DIR', $claudeDir, 'User')
-    Set-Item -Path "Env:CLAUDE_CONFIG_DIR" -Value $claudeDir
-}
-
-# Relocate scoop to custom tools root
-$scoopDir = '{{ .directories.tools_root }}/scoop'
-$currentScoop = [Environment]::GetEnvironmentVariable('SCOOP', 'User')
-if ($currentScoop -ne $scoopDir) {
-    Write-Host "[Config] Setting SCOOP = $scoopDir" -ForegroundColor Blue
-    [Environment]::SetEnvironmentVariable('SCOOP', $scoopDir, 'User')
-    Set-Item -Path "Env:SCOOP" -Value $scoopDir
-}
-{{ end -}}
 
 # Install Scoop if not already installed
 if (-not (Test-Command scoop)) {
