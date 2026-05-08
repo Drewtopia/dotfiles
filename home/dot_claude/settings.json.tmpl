@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'python ~/.claude/hooks/block-secrets.py'"
+            "command": "bash -c 'python \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/block-secrets.py'"
           }
         ]
       },
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '~/.claude/hooks/block-dangerous-commands.sh'"
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/block-dangerous-commands.sh'"
           }
         ]
       }
@@ -78,11 +78,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '~/.claude/hooks/jj-block-trunk.sh'"
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/jj-block-trunk.sh'"
           },
           {
             "type": "command",
-            "command": "bash -c '~/.claude/hooks/jj-describe-claude.sh'"
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/jj-describe-claude.sh'"
           }
         ]
       }
@@ -94,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '~/.claude/hooks/after-edit.sh'"
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/after-edit.sh'"
           }
 {{- if lookPath "jj" }},
           {
@@ -111,7 +111,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '~/.claude/hooks/end-of-turn.sh'"
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/end-of-turn.sh'"
           }
 {{- if lookPath "jj" }},
           {
@@ -128,7 +128,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '~/.claude/hooks/notify.sh'"
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/notify.sh'"
           }
         ]
       }
@@ -140,7 +140,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "find ~/.claude -name '*.sh' ! -executable -exec chmod +x {} + 2>/dev/null; find ~/.claude -name '*.py' ! -executable -exec chmod +x {} + 2>/dev/null; true"
+            "command": "find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -name '*.sh' ! -executable -exec chmod +x {} + 2>/dev/null; find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -name '*.py' ! -executable -exec chmod +x {} + 2>/dev/null; true"
           }
         ]
       },
@@ -150,7 +150,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '~/.claude/hooks/session-start-git-status.sh'",
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/session-start-git-status.sh'",
             "timeout": 30
           }
         ]
