@@ -1,0 +1,28 @@
+{{- if eq .chezmoi.os "windows" -}}
+#!/usr/bin/env pwsh
+# Single source of truth for User-scope environment variables that
+# locate relocated dev tooling. Runs before any other onchange script
+# that might depend on these values (install-scoop, mise tools, etc.).
+$ErrorActionPreference = "Stop"
+
+$envVars = [ordered]@{
+    'XDG_CONFIG_HOME'   = '{{ .directories.xdg_config_dir }}'
+    'XDG_DATA_HOME'     = '{{ .directories.xdg_data_dir }}'
+    'XDG_STATE_HOME'    = '{{ .directories.xdg_state_dir }}'
+    'XDG_CACHE_HOME'    = '{{ .directories.xdg_cache_dir }}'
+    'MISE_DATA_DIR'     = '{{ .directories.mise_dir }}'
+{{- if ne .directories.tools_root .chezmoi.homeDir }}
+    'CLAUDE_CONFIG_DIR' = '{{ .directories.claude_dir }}'
+    'SCOOP'             = '{{ .directories.tools_root }}/scoop'
+{{- end }}
+}
+
+foreach ($kv in $envVars.GetEnumerator()) {
+    $current = [Environment]::GetEnvironmentVariable($kv.Key, 'User')
+    if ($current -ne $kv.Value) {
+        Write-Host "[Env] Setting $($kv.Key) = $($kv.Value)" -ForegroundColor Blue
+        [Environment]::SetEnvironmentVariable($kv.Key, $kv.Value, 'User')
+    }
+    Set-Item -Path "Env:$($kv.Key)" -Value $kv.Value
+}
+{{- end }}
