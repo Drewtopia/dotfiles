@@ -42,8 +42,12 @@ if (-not (Test-Command scoop)) {
     Write-Host "[OK] Scoop already installed" -ForegroundColor Green
 }
 
-# Add extra buckets for more packages
-$buckets = @('extras', 'nerd-fonts')
+# Add extra buckets. Declared in home/.chezmoidata/scoop.toml.
+$buckets = @(
+{{- range .scoop.buckets }}
+    '{{ . }}'
+{{- end }}
+)
 foreach ($bucket in $buckets) {
     $bucketList = scoop bucket list 2>$null
     if ($bucketList -notcontains $bucket) {
@@ -54,13 +58,18 @@ foreach ($bucket in $buckets) {
     }
 }
 
-# Install essential CLI tools via Scoop
-# CLI + shell tools moved to mise: bat, fd, rg, delta, eza, gh, glow, jj, jq, lazygit, carapace, fzf, zoxide, neovim
+# Install essential CLI tools via Scoop. Declared in
+# home/.chezmoidata/scoop.toml; [scoop.work] entries appended when
+# .work is true.
 $scoopPackages = @(
-    'kanata',
-    'Meslo-NF',
-    'mise',
-    '1password-cli'
+{{- range .scoop.packages }}
+    '{{ . }}'
+{{- end }}
+{{- if .work }}
+{{- range .scoop.work.packages }}
+    '{{ . }}'
+{{- end }}
+{{- end }}
 )
 
 # Get list of installed packages once
