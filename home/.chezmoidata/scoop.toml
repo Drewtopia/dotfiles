@@ -8,6 +8,7 @@
 # mise. The [scoop.work] section is expected to grow.
 
 [scoop]
+# Known scoop buckets (those listed in `scoop bucket known`).
 buckets = ["extras", "nerd-fonts"]
 
 # Installed on every Windows dev machine.
@@ -21,8 +22,22 @@ packages = [
   "1password-cli",
 ]
 
+# URLs for buckets not in scoop's "known" list. Looked up by name when
+# the install script adds a bucket; absent entries default to no URL
+# (which works for known buckets like extras/nerd-fonts).
+[scoop.bucket_urls]
+warthurton_scoop-misc = "https://github.com/warthurton/scoop-misc"
+
 # Work-only additions (gated by `{{ if .work }}` in the install script).
-# Add endpoint security-whitelisted tooling here as you discover the need. Examples:
-#   packages = ["vscode", "windows-terminal"]
+# Add endpoint security-whitelisted tooling here as you discover the need.
 [scoop.work]
-packages = []
+buckets = ["warthurton_scoop-misc"]
+packages = [
+  "zen-browser",
+]
+# admin_packages install at machine scope and require UAC. Handled
+# by run_onchange_before_15-install-scoop-admin, which self-elevates
+# only when an entry here is missing.
+admin_packages = [
+  "jump-desktop-connect",
+]
