@@ -42,17 +42,35 @@ if (-not (Test-Command scoop)) {
     Write-Host "[OK] Scoop already installed" -ForegroundColor Green
 }
 
-# Add extra buckets. Declared in home/.chezmoidata/scoop.toml.
+# Add scoop buckets. Declared in home/.chezmoidata/scoop.toml.
+# Common buckets are scoop's known ones (no URL needed). Work
+# buckets may be third-party — URL is looked up via bucket_urls.
 $buckets = @(
 {{- range .scoop.buckets }}
     '{{ . }}'
 {{- end }}
+{{- if .work }}
+{{- range .scoop.work.buckets }}
+    '{{ . }}'
+{{- end }}
+{{- end }}
 )
+$bucketUrls = @{
+{{- range $name, $url := .scoop.bucket_urls }}
+    '{{ $name }}' = '{{ $url }}'
+{{- end }}
+}
 foreach ($bucket in $buckets) {
     $bucketList = scoop bucket list 2>$null
     if ($bucketList -notcontains $bucket) {
-        Write-Host "[Install] Adding Scoop bucket: $bucket" -ForegroundColor Blue
-        scoop bucket add $bucket
+        $url = $bucketUrls[$bucket]
+        if ($url) {
+            Write-Host "[Install] Adding Scoop bucket: $bucket ($url)" -ForegroundColor Blue
+            scoop bucket add $bucket $url
+        } else {
+            Write-Host "[Install] Adding Scoop bucket: $bucket" -ForegroundColor Blue
+            scoop bucket add $bucket
+        }
     } else {
         Write-Host "[OK] Scoop bucket '$bucket' already added" -ForegroundColor Green
     }

@@ -1,0 +1,49 @@
+{{- if eq .chezmoi.os "windows" -}}
+{{- if and .work .scoop.work.admin_packages -}}
+#!/usr/bin/env pwsh
+# Install scoop packages whose manifests require admin (machine-scope
+# installers like jump-desktop-connect). Self-elevates only when at
+# least one declared admin package is missing — otherwise this script
+# is a no-op and never prompts for UAC.
+#
+# Declared in home/.chezmoidata/scoop.toml under [scoop.work].admin_packages.
+
+$ErrorActionPreference = "Stop"
+
+$adminPackages = @(
+{{- range .scoop.work.admin_packages }}
+    '{{ . }}'
+{{- end }}
+)
+
+# chezmoi spawns each script as a fresh subprocess; pull SCOOP from User scope.
+$env:SCOOP = [Environment]::GetEnvironmentVariable('SCOOP', 'User')
+
+$installedPackages = scoop list 2>$null | ForEach-Object { $_.Name }
+$missing = $adminPackages | Where-Object { $_ -notin $installedPackages }
+if ($missing.Count -eq 0) {
+    Write-Host "[OK] Admin scoop packages already installed" -ForegroundColor Green
+    return
+}
+
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')
+if (-not $isAdmin) {
+    Write-Host "[Elevate] Admin required to install: $($missing -join ', ')" -ForegroundColor Yellow
+    Start-Process pwsh -Verb RunAs -Wait -ArgumentList @(
+        '-NoProfile',
+        '-File', $MyInvocation.MyCommand.Path
+    )
+    return
+}
+
+Write-Host "[Install] Installing admin scoop packages: $($missing -join ', ')" -ForegroundColor Blue
+foreach ($pkg in $missing) {
+    scoop install $pkg
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Failed to install $pkg (exit $LASTEXITCODE)" -ForegroundColor Red
+        exit 1
+    }
+}
+Write-Host "[OK] Admin scoop install complete" -ForegroundColor Green
+{{- end }}
+{{- end }}
