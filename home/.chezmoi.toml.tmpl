@@ -87,7 +87,7 @@
      Leave blank to keep everything under $HOME as normal. */}}
 {{- $tools_root := .chezmoi.homeDir -}}
 {{- if and $work (eq .chezmoi.os "windows") -}}
-{{-   $dev_folder := promptStringOnce . "dev_folder" "Dev tools folder name (blank = use home dir)" -}}
+{{-   $dev_folder := promptStringOnce . "dev_folder" "Dev tools folder name (leave blank to use $HOME; otherwise tools_root = C:\<this-value>\<username>)" -}}
 {{-   if $dev_folder -}}
 {{-     $tools_root = printf "C:/%s/%s" $dev_folder (last (splitList "\\" (.chezmoi.username | lower))) -}}
 {{-   end -}}
