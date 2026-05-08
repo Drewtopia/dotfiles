@@ -1,0 +1,28 @@
+# Scoop buckets and packages for run_onchange_before_10-install-scoop.
+# Cannot use template syntax here — chezmoidata loads before the template
+# engine. Work-only gating happens in the install script.
+#
+# Why this exists: work Windows (endpoint security) only allows executables under
+# C:\<tools_root>\*. Once dev tools were relocated there, scoop became the
+# canonical installer for Windows-native binaries that can't live in
+# mise. The [scoop.work] section is expected to grow.
+
+[scoop]
+buckets = ["extras", "nerd-fonts"]
+
+# Installed on every Windows dev machine.
+# CLI/shell tools (bat, fd, rg, delta, eza, gh, glow, jj, jq, lazygit,
+# carapace, fzf, zoxide, neovim) moved to mise — only Windows-specific
+# or non-mise-able tools belong here.
+packages = [
+  "kanata",
+  "Meslo-NF",
+  "mise",
+  "1password-cli",
+]
+
+# Work-only additions (gated by `{{ if .work }}` in the install script).
+# Add endpoint security-whitelisted tooling here as you discover the need. Examples:
+#   packages = ["vscode", "windows-terminal"]
+[scoop.work]
+packages = []
