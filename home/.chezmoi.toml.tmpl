@@ -82,13 +82,28 @@
 {{-   $email = "<email>" -}}
 {{- end -}}
 
+{{/* Relocatable dev tools root — on work Windows, prompt for a whitelisted
+     top-level folder name so tool binaries live under an allowed path.
+     Leave blank to keep everything under $HOME as normal. */}}
+{{- $tools_root := .chezmoi.homeDir -}}
+{{- if and $work (eq .chezmoi.os "windows") -}}
+{{-   $dev_folder := promptStringOnce . "dev_folder" "Dev tools folder name (blank = use home dir)" -}}
+{{-   if $dev_folder -}}
+{{-     $tools_root = printf "C:/%s/%s" $dev_folder (last (splitList "\\" (.chezmoi.username | lower))) -}}
+{{-   end -}}
+{{- end -}}
+{{- $dev_root := printf "%s/dev" $tools_root -}}
+
+{{/* mise data dir — always use .mise for easy access (see mise.jdx.dev/how-i-use-mise) */}}
+{{- $mise_dir := printf "%s/.mise" $tools_root -}}
+{{- $claude_dir := printf "%s/.claude" $tools_root -}}
 
 # Make mise-managed tools visible to chezmoi templates (lookPath, etc.)
 [env]
 {{- if eq .chezmoi.os "windows" }}
-    PATH = '{{ env "LOCALAPPDATA" }}\mise\shims;{{ env "PATH" }}'
+    PATH = '{{ $mise_dir }}/shims;{{ env "PATH" }}'
 {{- else }}
-    PATH = "{{ .chezmoi.homeDir }}/.local/share/mise/shims:{{ env "PATH" }}"
+    PATH = "{{ $mise_dir }}/shims:{{ env "PATH" }}"
 {{- end }}
 
 [data]
@@ -109,15 +124,18 @@
         "brew",
       {{- end}}
   ]
-  xdgCacheDir = "{{ .chezmoi.homeDir }}/.cache"
-  xdgConfigDir = "{{ .chezmoi.homeDir }}/.config"
-  xdgDataDir = "{{ .chezmoi.homeDir }}/.local/share"
-  xdgStateDir = "{{ .chezmoi.homeDir }}/.local/state"
-
   [data.directories]
-    repos_dir = "{{ .chezmoi.homeDir }}/repos"
+    tools_root = "{{ $tools_root }}"
+    dev_root = "{{ $dev_root }}"
+    claude_dir = "{{ $claude_dir }}"
+    mise_dir = "{{ $mise_dir }}"
+    repos_dir = "{{ $tools_root }}/repos"
     ssh_keys_dir = "{{ .chezmoi.homeDir }}/.ssh_keys"
-    user_bin_dir = "{{ .chezmoi.homeDir }}/bin"
+    user_bin_dir = "{{ $tools_root }}/bin"
+    xdg_cache_dir = "{{ $tools_root }}/.cache"
+    xdg_config_dir = "{{ .chezmoi.homeDir }}/.config"
+    xdg_data_dir = "{{ .chezmoi.homeDir }}/.local/share"
+    xdg_state_dir = "{{ .chezmoi.homeDir }}/.local/state"
 
 [github]
     refreshPeriod = "12h"
