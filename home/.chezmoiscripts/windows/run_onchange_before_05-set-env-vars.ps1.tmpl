@@ -5,6 +5,10 @@
 # that might depend on these values (install-scoop, mise tools, etc.).
 $ErrorActionPreference = "Stop"
 
+{{- if ne .directories.tools_root .chezmoi.homeDir }}
+Write-Host "[Relocation] Dev tools under {{ .directories.tools_root }} (override via `dev_folder` prompt)" -ForegroundColor Cyan
+{{- end }}
+
 $envVars = [ordered]@{
     'XDG_CONFIG_HOME'   = '{{ .directories.xdg_config_dir }}'
     'XDG_DATA_HOME'     = '{{ .directories.xdg_data_dir }}'
