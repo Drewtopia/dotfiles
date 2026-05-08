@@ -3,6 +3,17 @@
 
 # --- PATH helpers ---
 
+{{ if ne .directories.tools_root .chezmoi.homeDir -}}
+# Re-assert CLAUDE_CONFIG_DIR every shell. User-scope env vars set by
+# chezmoi don't propagate into already-running parent processes, so any
+# terminal opened before setup ran would miss it and Claude Code would
+# silently fall back to %USERPROFILE%\.claude.
+$claudeDir = "{{ .directories.claude_dir }}"
+if ($env:CLAUDE_CONFIG_DIR -ne $claudeDir) {
+    $env:CLAUDE_CONFIG_DIR = $claudeDir
+}
+
+{{ end -}}
 # Add mise shims to PATH if mise is installed
 $miseShimPath = "$env:USERPROFILE\AppData\Local\mise\shims"
 if ((Test-Path $miseShimPath) -and $env:PATH -notlike "*$miseShimPath*") {
