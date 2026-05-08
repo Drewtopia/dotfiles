@@ -5,7 +5,7 @@
 # uniformly on work and personal Windows machines.
 $ErrorActionPreference = "Stop"
 
-$linkPath   = Join-Path $HOME ".claude\memory"
+$linkPath   = '{{ .directories.claude_dir }}/memory'
 $targetPath = Join-Path $HOME ".claude-vault\memory"
 
 # Vault must be cloned first (handled by .chezmoiexternal).

@@ -20,6 +20,19 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
     if (Get-Command gh -ErrorAction SilentlyContinue) {
         $env:GITHUB_TOKEN = (gh auth token 2>$null)
     }
+    # Consolidate mise dirs under .mise (see mise.jdx.dev/how-i-use-mise)
+    $miseDir = '{{ .directories.mise_dir }}'
+    $oldDataDir = Join-Path $HOME ".local\share\mise"
+    if ((Test-Path $oldDataDir) -and -not (Get-Item $oldDataDir -Force).Attributes.ToString().Contains("ReparsePoint")) {
+        if ($oldDataDir -ne $miseDir) {
+            Write-Host "[Migrate] Moving $oldDataDir -> $miseDir" -ForegroundColor Blue
+            New-Item -ItemType Directory -Path $miseDir -Force | Out-Null
+            Copy-Item "$oldDataDir\*" $miseDir -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item $oldDataDir -Recurse -Force -ErrorAction SilentlyContinue
+            & cmd /c mklink /J "`"$oldDataDir`"" "`"$miseDir`"" | Out-Null
+        }
+    }
+
     mise trust --all 2>$null
     Write-Host "[Install] Installing mise tools..." -ForegroundColor Blue
     mise install --yes

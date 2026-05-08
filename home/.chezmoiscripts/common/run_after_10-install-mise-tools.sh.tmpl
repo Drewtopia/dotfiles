@@ -16,6 +16,34 @@ if command -v mise >/dev/null 2>&1; then
     fi
     mise trust --all 2>/dev/null || true
     echo "📦 Installing mise tools..."
+    # Consolidate mise XDG dirs under ~/.mise before install
+    # (avoids re-downloading tools already present at the old XDG location)
+    mise_dir="{{ .directories.mise_dir }}"
+    mkdir -p "$mise_dir/cache"
+
+    # Migrate data + state dirs, then symlink old location → ~/.mise
+    for xdg_path in "$HOME/.local/share/mise" "$HOME/.local/state/mise"; do
+        if [ -d "$xdg_path" ] && [ ! -L "$xdg_path" ]; then
+            echo "📦 Migrating $xdg_path → $mise_dir"
+            cp -a "$xdg_path/." "$mise_dir/" 2>/dev/null || true
+            rm -rf "$xdg_path"
+        fi
+        if [ ! -L "$xdg_path" ]; then
+            mkdir -p "$(dirname "$xdg_path")"
+            ln -sfn "$mise_dir" "$xdg_path"
+        fi
+    done
+
+    # Cache uses a subdirectory
+    if [ -d "$HOME/.cache/mise" ] && [ ! -L "$HOME/.cache/mise" ]; then
+        cp -a "$HOME/.cache/mise/." "$mise_dir/cache/" 2>/dev/null || true
+        rm -rf "$HOME/.cache/mise"
+    fi
+    if [ ! -L "$HOME/.cache/mise" ]; then
+        mkdir -p "$HOME/.cache"
+        ln -sfn "$mise_dir/cache" "$HOME/.cache/mise"
+    fi
+
     mise install --yes
     mise prune --yes 2>/dev/null || true
 fi

@@ -103,7 +103,6 @@ README.md
 # (no Developer Mode required). Falls under the .claude/* ignore above.
 {{- if not .work }}
 # Personal Windows rules: chezmoi-managed symlink (requires Developer Mode).
-# TODO: extend junction script to cover rules so work-Windows works too.
 !.claude/rules
 {{- end }}
 {{- else -}}
@@ -113,3 +112,8 @@ README.md
 {{- end }}
 !.claude/mcp.json
 !.claude/CLAUDE.md
+
+{{ if and (eq .chezmoi.os "windows") (ne .directories.tools_root .chezmoi.homeDir) -}}
+# Relocated: .local/bin is a junction to tools_root — chezmoi can't manage junctions
+.local/bin
+{{- end }}
