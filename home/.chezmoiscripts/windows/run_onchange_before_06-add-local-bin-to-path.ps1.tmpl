@@ -1,11 +1,11 @@
-# Add ~/.local/bin to Windows user PATH so chezmoi-installed CLI tools
+# Add local bin to Windows user PATH so chezmoi-installed CLI tools
 # (e.g. cvault) are findable from any shell — PowerShell, Git Bash, cmd.
 # Idempotent: checks before appending.
 #
 # Mirrors the pattern of run_onchange_before_05-add-git-bin-to-path.ps1.tmpl
-# but for the user's ~/.local/bin/ rather than Git\bin.
+# but for the user's local bin rather than Git\bin.
 
-$localBin = Join-Path $env:USERPROFILE ".local\bin"
+$localBin = "{{ .directories.tools_root }}/.local/bin"
 $currentUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
 
 if (-not $currentUserPath) {

@@ -2,6 +2,9 @@
 # mise - Modern runtime version manager
 # Handles: node, pnpm, deno, bun, uv, python, go, etc.
 
+# Consolidate mise directories under ~/.mise (see mise.jdx.dev/how-i-use-mise)
+export MISE_DATA_DIR="{{ .directories.mise_dir }}"
+
 if command -v mise >/dev/null 2>&1; then
     # Activate mise - this handles PATH and completions for all tools
     eval "$(mise activate zsh)"
