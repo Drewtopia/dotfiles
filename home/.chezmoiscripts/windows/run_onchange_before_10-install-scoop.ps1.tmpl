@@ -113,9 +113,12 @@ $bucketUrls = @{
     '{{ $name }}' = '{{ $url }}'
 {{- end }}
 }
+
+# Cache bucket list once — avoids spawning `scoop bucket list` per iteration.
+$bucketNames = scoop bucket list 2>$null | ForEach-Object { $_.Name }
+
 foreach ($bucket in $buckets) {
-    $bucketList = scoop bucket list 2>$null
-    if ($bucketList -notcontains $bucket) {
+    if ($bucket -notin $bucketNames) {
         $url = $bucketUrls[$bucket]
         if ($url) {
             Write-Host "[Install] Adding Scoop bucket: $bucket ($url)" -ForegroundColor Blue
