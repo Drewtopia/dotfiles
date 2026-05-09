@@ -64,13 +64,39 @@ if ((Test-Path "$winLibsBin\gcc.exe") -and $env:PATH -notlike "*$winLibsBin*") {
 # execution — which makes atuin/tv init bail with "Atuin requires the PSReadLine module".
 Import-Module PSReadLine -ErrorAction SilentlyContinue
 
-# Oh-My-Posh prompt. Was previously in the OneDrive-located $PROFILE (which
-# dot-sources this file); moved here so the prompt config is version-controlled
-# rather than living only in OneDrive's per-account sync. POSH_THEMES_PATH is
-# set by the oh-my-posh installer (winget package JanDeDobbeleer.OhMyPosh).
+# --- Prompt + visual extras (all Windows dev machines) ---
+
+# oh-my-posh: theme name from .chezmoidata/constants.toml ([pwsh].posh_theme).
 if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
-    oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/spaceship.omp.json" | Invoke-Expression
+    $ompThemeName = '{{ .pwsh.posh_theme }}'
+    $ompTheme = if ($env:POSH_THEMES_PATH -and (Test-Path (Join-Path $env:POSH_THEMES_PATH "$ompThemeName.omp.json"))) {
+        Join-Path $env:POSH_THEMES_PATH "$ompThemeName.omp.json"
+    } else { $ompThemeName }
+    oh-my-posh init pwsh --config $ompTheme | Invoke-Expression
 }
+
+# Terminal-Icons: file/folder glyphs in Get-ChildItem / ls output. Installed
+# via run_onchange_after_60-install-pwsh-modules.ps1.tmpl.
+if (Get-Module -ListAvailable -Name Terminal-Icons) {
+    Import-Module Terminal-Icons
+}
+
+# PSReadLine inline predictions: greyed-out autosuggestions from history +
+# any prediction plugins. Equivalent to zsh-autosuggestions.
+# Wrapped in try/catch because PSReadLine throws if the host doesn't
+# support virtual terminal processing (e.g. when pwsh is invoked with
+# redirected stdout by chezmoi, CI, or scripts that capture output).
+try {
+    Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction Stop
+    Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction Stop
+} catch {
+    # Non-VT shell - predictions unavailable, skip silently.
+}
+
+# zsh-style key bindings for word deletion + completion menu + history search.
+Set-PSReadLineKeyHandler -Key Ctrl+Backspace -Function BackwardKillWord
+Set-PSReadLineKeyHandler -Key Ctrl+Spacebar  -Function MenuComplete
+Set-PSReadLineKeyHandler -Key F7             -Function HistorySearchBackward
 
 # Carapace - multi-shell completion engine
 if (Get-Command carapace -ErrorAction SilentlyContinue) {

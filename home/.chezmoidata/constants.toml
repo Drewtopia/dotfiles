@@ -1,2 +1,7 @@
 [github]
     username = "Drewtopia"
+
+[pwsh]
+    # oh-my-posh theme name (file under $env:POSH_THEMES_PATH, no extension).
+    # Override per-machine via .chezmoi.toml's [data.pwsh] table if needed.
+    posh_theme = "spaceship"
