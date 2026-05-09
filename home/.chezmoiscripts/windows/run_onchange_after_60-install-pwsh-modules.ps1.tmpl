@@ -1,0 +1,37 @@
+{{- if and (eq .chezmoi.os "windows") .dev_computer -}}
+#!/usr/bin/env pwsh
+
+# Install PSGallery modules used by Microsoft.PowerShell_profile.ps1.tmpl on
+# Windows dev machines. Re-runs when this script's content changes.
+
+# Re-launch with pwsh 7 if running under PowerShell 5.1.
+# 5.1's Install-Module needs the NuGet provider bootstrap (interactive),
+# which fails in chezmoi's non-interactive script context.
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+        pwsh -NoProfile -File $MyInvocation.MyCommand.Path
+        exit $LASTEXITCODE
+    }
+    Write-Host "[WARN] pwsh 7 not found, skipping module install" -ForegroundColor Yellow
+    exit 0
+}
+
+$modules = @(
+    'Terminal-Icons'    # File/folder icons in Get-ChildItem
+)
+
+foreach ($mod in $modules) {
+    if (Get-Module -ListAvailable -Name $mod) {
+        Write-Host "[OK] $mod already installed" -ForegroundColor Green
+        continue
+    }
+    Write-Host "[Install] $mod" -ForegroundColor Blue
+    try {
+        # PSGallery is the default repo; CurrentUser scope avoids needing admin.
+        Install-Module -Name $mod -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+        Write-Host "[OK] $mod installed" -ForegroundColor Green
+    } catch {
+        Write-Host "[ERROR] Failed to install $mod : $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+{{- end }}
