@@ -6,27 +6,31 @@
 
 Write-Host "[Windows] Setting up environment and Scoop..." -ForegroundColor Green
 
-# Repair PSModulePath: chezmoi's `powershell.exe` interpreter (5.1) inherits
-# a process PSModulePath where PS 7's module dirs are prepended (`C:\Program
-# Files\PowerShell\7\Modules`, etc.). PS 5.1 then picks up PS 7's
-# Microsoft.PowerShell.Utility first; the cmdlet set is incompatible and
-# Get-FileHash / Set-ExecutionPolicy fail to auto-load. Symptom: scoop install
-# bails with "The term 'Get-FileHash' is not recognized". Prepend the
-# WindowsPowerShell 5.1 module dir so 5.1 wins the lookup.
-if ($PSVersionTable.PSVersion.Major -lt 7) {
-    $ps51Modules = 'C:\Windows\System32\WindowsPowerShell\v1.0\Modules'
-    $existing = $env:PSModulePath -split ';' | Where-Object { $_ -and $_ -ine $ps51Modules }
-    $env:PSModulePath = (@($ps51Modules) + $existing) -join ';'
+# PSModulePath fix: pwsh 7's installer prepends PS 7 module paths to the
+# User-scope PSModulePath env var, which then leaks into PS 5.1's session.
+# PS 5.1 walks the list in order and loads PS 7's slimmer
+# Microsoft.PowerShell.Utility — which DOESN'T export Get-FileHash or
+# New-TemporaryFile (those moved to Management in PS 7), breaking scoop's
+# checksum verification. Reset to PS 5.1's default paths for the duration
+# of this script.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $env:PSModulePath = @(
+        (Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\Modules'),
+        (Join-Path $env:ProgramFiles 'WindowsPowerShell\Modules'),
+        (Join-Path $env:windir       'system32\WindowsPowerShell\v1.0\Modules')
+    ) -join ';'
 }
 
-# Force-load Utility from the (now-correct) module path so Get-FileHash et al.
-# resolve for scoop's internal hash verification.
-Import-Module Microsoft.PowerShell.Utility -Force -ErrorAction SilentlyContinue 2>$null
+$PSModuleAutoLoadingPreference = 'All'
+Import-Module Microsoft.PowerShell.Utility -Force -ErrorAction SilentlyContinue
+if (-not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {
+    Write-Host "[ERROR] Get-FileHash still unavailable - scoop installs will fail." -ForegroundColor Red
+    exit 1
+}
 
 # Set CurrentUser execution policy via registry to avoid loading the
-# Security module's Set-ExecutionPolicy cmdlet. On corporate hosts the module
-# can fail to import (FormatXmlUpdateException: type members already present),
-# which then breaks any later code path that needs the cmdlet.
+# Security module's Set-ExecutionPolicy cmdlet. On some locked-down hosts the
+# module import can fail and break downstream commands.
 $psPolicyKey = 'HKCU:\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
 try {
     if (-not (Test-Path $psPolicyKey)) {
@@ -146,7 +150,17 @@ $scoopPackages = @(
 {{- end }}
 )
 
-# Get list of installed packages once
+# scoop list includes packages whose Install failed - clear those first so
+# the install loop below retries them instead of skipping as "already installed".
+$failedInstalls = scoop list 2>$null | Where-Object { $_.Info -eq 'Install failed' } | ForEach-Object { $_.Name }
+foreach ($f in $failedInstalls) {
+    if ($f -in $scoopPackages) {
+        Write-Host "[Cleanup] Removing failed prior install: $f" -ForegroundColor Yellow
+        scoop uninstall $f 2>$null | Out-Null
+    }
+}
+
+# Get list of installed packages (post-cleanup)
 $installedPackages = scoop list 2>$null | ForEach-Object { $_.Name }
 
 Write-Host "[Install] Installing essential CLI tools via Scoop..." -ForegroundColor Blue
