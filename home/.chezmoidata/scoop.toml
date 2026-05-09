@@ -20,6 +20,9 @@ buckets = ["extras", "nerd-fonts"]
 packages = [
   "kanata",
   "Meslo-NF",
+  "zed",
+  "CascadiaCode-NF",      # installs as "CaskaydiaCove Nerd Font"
+  "JetBrainsMono-NF",     # installs as "JetBrainsMono Nerd Font"
 ]
 
 # URLs for buckets not in scoop's "known" list. Looked up by name when
