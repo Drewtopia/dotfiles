@@ -1,0 +1,38 @@
+{{- if and (eq .chezmoi.os "windows") .dev_computer -}}
+#!/usr/bin/env pwsh
+
+# Install Windows packages via winget. Runs when this script's content changes.
+# Idempotent: skips packages already installed (winget's exit codes are
+# inconsistent across builds when re-installing, so we pre-check with `list`).
+
+$packages = @(
+    @{ Id = 'JanDeDobbeleer.OhMyPosh'; Reason = 'pwsh prompt theme' }
+)
+
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Host "[WARN] winget not found - skipping winget package installs" -ForegroundColor Yellow
+    Write-Host "       (winget ships with Windows 10 1809+ / Windows 11; install App Installer from Store if missing)" -ForegroundColor Yellow
+    exit 0
+}
+
+foreach ($pkg in $packages) {
+    $id = $pkg.Id
+    Write-Host "[Check] $id ($($pkg.Reason))" -ForegroundColor Cyan
+
+    # `winget list --exact` matches by Id; success means installed.
+    winget list --id $id --exact --accept-source-agreements 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] $id already installed" -ForegroundColor Green
+        continue
+    }
+
+    Write-Host "[Install] $id" -ForegroundColor Blue
+    winget install --id $id --exact --silent --source winget `
+        --accept-package-agreements --accept-source-agreements
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] winget install $id failed (exit $LASTEXITCODE)" -ForegroundColor Red
+    } else {
+        Write-Host "[OK] $id installed" -ForegroundColor Green
+    }
+}
+{{- end }}
