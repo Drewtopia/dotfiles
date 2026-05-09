@@ -81,13 +81,16 @@ if (Get-Module -ListAvailable -Name Terminal-Icons) {
     Import-Module Terminal-Icons
 }
 
-# PSReadLine inline predictions: greyed-out autosuggestions from history +
-# any prediction plugins. Equivalent to zsh-autosuggestions.
+# PSReadLine inline predictions: greyed-out autosuggestions from history.
+# Use plain History (not HistoryAndPlugin) — Plugin requires a registered
+# predictor module (CompletionPredictor, Az.Tools.Predictor, etc.); without
+# one, its internal state stays null and atuin's later GetHistoryItems()
+# call null-derefs.
 # Wrapped in try/catch because PSReadLine throws if the host doesn't
 # support virtual terminal processing (e.g. when pwsh is invoked with
 # redirected stdout by chezmoi, CI, or scripts that capture output).
 try {
-    Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction Stop
+    Set-PSReadLineOption -PredictionSource History -ErrorAction Stop
     Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction Stop
 } catch {
     # Non-VT shell - predictions unavailable, skip silently.
