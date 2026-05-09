@@ -15,6 +15,7 @@ $envVars = [ordered]@{
     'XDG_STATE_HOME'    = '{{ .directories.xdg_state_dir }}'
     'XDG_CACHE_HOME'    = '{{ .directories.xdg_cache_dir }}'
     'MISE_DATA_DIR'     = '{{ .directories.mise_dir }}'
+    'PNPM_HOME'         = '{{ .directories.pnpm_home }}'
 {{- if ne .directories.tools_root .chezmoi.homeDir }}
     'CLAUDE_CONFIG_DIR' = '{{ .directories.claude_dir }}'
     'SCOOP'             = '{{ .directories.tools_root }}/scoop'

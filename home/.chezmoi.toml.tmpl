@@ -97,6 +97,7 @@
 {{/* mise data dir — always use .mise for easy access (see mise.jdx.dev/how-i-use-mise) */}}
 {{- $mise_dir := printf "%s/.mise" $tools_root -}}
 {{- $claude_dir := printf "%s/.claude" $tools_root -}}
+{{- $pnpm_home := printf "%s/.local/share/pnpm" $tools_root -}}
 
 # Make mise-managed tools visible to chezmoi templates (lookPath, etc.)
 [env]
@@ -128,6 +129,7 @@
     tools_root = "{{ $tools_root }}"
     dev_root = "{{ $dev_root }}"
     claude_dir = "{{ $claude_dir }}"
+    pnpm_home = "{{ $pnpm_home }}"
     mise_dir = "{{ $mise_dir }}"
     repos_dir = "{{ $tools_root }}/repos"
     ssh_keys_dir = "{{ .chezmoi.homeDir }}/.ssh_keys"
