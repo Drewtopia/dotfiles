@@ -8,7 +8,7 @@
 # already-running processes on SetEnvironmentVariable, so terminals
 # opened before chezmoi setup ran would miss the values. Source of
 # truth is run_onchange_before_05-set-env-vars.ps1.tmpl.
-foreach ($var in 'CLAUDE_CONFIG_DIR','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_STATE_HOME','MISE_DATA_DIR','SCOOP') {
+foreach ($var in 'CLAUDE_CONFIG_DIR','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_STATE_HOME','MISE_DATA_DIR','SCOOP','PNPM_HOME') {
     $userValue = [Environment]::GetEnvironmentVariable($var, 'User')
     if ($userValue -and (Get-Item -Path "Env:$var" -ErrorAction SilentlyContinue).Value -ne $userValue) {
         Set-Item -Path "Env:$var" -Value $userValue
@@ -31,10 +31,11 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
     (&mise activate pwsh) | Out-String | Invoke-Expression
 }
 
-# pnpm global packages setup
-$pnpmHome = "{{ .directories.tools_root }}/.local/share/pnpm"
-if ((Test-Path $pnpmHome) -and $env:PATH -notlike "*$pnpmHome*") {
-    $env:PATH = "$pnpmHome;$env:PATH"
+# pnpm global bin shims live at $env:PNPM_HOME (set by
+# run_onchange_before_05-set-env-vars). Always-add to PATH so the
+# directory is reachable even before pnpm has populated it.
+if ($env:PNPM_HOME -and $env:PATH -notlike "*$env:PNPM_HOME*") {
+    $env:PATH = "$env:PNPM_HOME;$env:PATH"
 }
 
 # WinLibs (gcc/g++) — winget installs it but doesn't wire PATH, and Windows
