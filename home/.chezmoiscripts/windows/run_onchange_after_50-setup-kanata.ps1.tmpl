@@ -39,42 +39,64 @@ Write-Host "[Info] Config file: $configPath" -ForegroundColor Cyan
 
 {{ if .personal -}}
 # -------------------------------------------------------------------
-# Personal machine: register scheduled task, auto-start at logon
+# Personal machine: Startup folder shortcut, auto-start at logon
+#
+# Why not Task Scheduler: on some Windows builds / policies, even
+# user-scope task registration with LogonType=Interactive is denied
+# at the service level. The Startup folder only needs HKCU + profile
+# write access, which non-admins always have.
 # -------------------------------------------------------------------
-Write-Host "[Info] Personal host - registering auto-start scheduled task" -ForegroundColor Cyan
+Write-Host "[Info] Personal host - creating Startup folder shortcut" -ForegroundColor Cyan
 
+# Transition: remove any pre-existing scheduled task left by the prior approach.
 $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 if ($existingTask) {
-    Write-Host "[Info] Removing existing Kanata task..." -ForegroundColor Cyan
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+    Write-Host "[Info] Removing legacy Kanata scheduled task..." -ForegroundColor Cyan
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
 }
 
-Write-Host "[Install] Creating Kanata startup task..." -ForegroundColor Blue
+$startup  = [Environment]::GetFolderPath('Startup')
+$shortcut = Join-Path $startup 'Kanata.lnk'
 
-$action = New-ScheduledTaskAction -Execute $kanataPath -Argument "--cfg `"$configPath`""
-$trigger = New-ScheduledTaskTrigger -AtLogon
-$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-
+Write-Host "[Install] Writing $shortcut..." -ForegroundColor Blue
 try {
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
-    Write-Host "[OK] Kanata scheduled task created" -ForegroundColor Green
+    $wsh = New-Object -ComObject WScript.Shell
+    $lnk = $wsh.CreateShortcut($shortcut)
+    $lnk.TargetPath  = $kanataPath
+    $lnk.Arguments   = '--cfg "{0}"' -f $configPath
+    $lnk.WindowStyle = 7    # minimised - kanata has no useful UI
+    $lnk.Description = 'Kanata keyboard remapper (auto-start at logon)'
+    $lnk.Save()
+    Write-Host "[OK] Startup shortcut created" -ForegroundColor Green
 } catch {
-    Write-Host "[ERROR] Failed to create scheduled task: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "[ERROR] Failed to create startup shortcut: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
 
+# Best-effort start for the current session.
 Write-Host "[Info] Starting Kanata..." -ForegroundColor Cyan
-Start-ScheduledTask -TaskName $taskName
+$running = Get-Process kanata -ErrorAction SilentlyContinue
+if ($running) {
+    Write-Host "[Info] Kanata already running (pid $($running.Id -join ', '))" -ForegroundColor Cyan
+} else {
+    try {
+        Start-Process -FilePath $kanataPath `
+            -ArgumentList ('--cfg "{0}"' -f $configPath) `
+            -WindowStyle Hidden -ErrorAction Stop
+        Write-Host "[OK] Kanata started" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARN] Could not start Kanata now: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "       It will start at next logon via the Startup shortcut." -ForegroundColor Yellow
+    }
+}
 
 Write-Host ""
 Write-Host "[OK] Kanata setup complete!" -ForegroundColor Green
 Write-Host ""
 Write-Host "   Commands:" -ForegroundColor Cyan
-Write-Host "   - Check status: Get-ScheduledTask -TaskName Kanata"
-Write-Host "   - Start:        Start-ScheduledTask -TaskName Kanata"
-Write-Host "   - Stop:         Stop-ScheduledTask -TaskName Kanata"
-Write-Host "   - Restart:      Stop-ScheduledTask -TaskName Kanata; Start-ScheduledTask -TaskName Kanata"
+Write-Host "   - Check status: Get-Process kanata"
+Write-Host "   - Stop:         Get-Process kanata | Stop-Process"
+Write-Host "   - Open folder:  start shell:startup"
 Write-Host ""
 {{- else -}}
 # -------------------------------------------------------------------
@@ -87,7 +109,13 @@ Write-Host "[Info] Reason: protects against double-remap when using Jump Desktop
 $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 if ($existingTask) {
     Write-Host "[Cleanup] Removing stale Kanata scheduled task..." -ForegroundColor Yellow
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+}
+
+$staleShortcut = Join-Path ([Environment]::GetFolderPath('Startup')) 'Kanata.lnk'
+if (Test-Path $staleShortcut) {
+    Write-Host "[Cleanup] Removing stale Kanata startup shortcut..." -ForegroundColor Yellow
+    Remove-Item $staleShortcut -Force -ErrorAction SilentlyContinue
 }
 
 # Stop any currently-running kanata so nothing is left active by surprise.
