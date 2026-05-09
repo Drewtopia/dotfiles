@@ -23,18 +23,62 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
     if (Get-Command gh -ErrorAction SilentlyContinue) {
         $env:GITHUB_TOKEN = (gh auth token 2>$null)
     }
-    # Consolidate mise dirs under .mise (see mise.jdx.dev/how-i-use-mise)
-    $miseDir = '{{ .directories.mise_dir }}'
-    $oldDataDir = Join-Path $HOME ".local\share\mise"
-    if ((Test-Path $oldDataDir) -and -not (Get-Item $oldDataDir -Force).Attributes.ToString().Contains("ReparsePoint")) {
-        if ($oldDataDir -ne $miseDir) {
-            Write-Host "[Migrate] Moving $oldDataDir -> $miseDir" -ForegroundColor Blue
-            New-Item -ItemType Directory -Path $miseDir -Force | Out-Null
-            Copy-Item "$oldDataDir\*" $miseDir -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item $oldDataDir -Recurse -Force -ErrorAction SilentlyContinue
-            & cmd /c mklink /J "`"$oldDataDir`"" "`"$miseDir`"" | Out-Null
-        }
+    # Consolidate mise XDG dirs under $miseDir (see mise.jdx.dev/how-i-use-mise).
+    # Matches the Unix sibling (run_after_10-install-mise-tools.sh.tmpl): symlink
+    # data + state -> $miseDir, cache -> $miseDir/cache. Config stays at the
+    # XDG path (chezmoi-managed via home/dot_config/mise/config.toml.tmpl).
+    $miseDir   = '{{ .directories.mise_dir }}'
+    $miseCache = Join-Path $miseDir 'cache'
+
+    # Prefer true symlinks (mklink /D). Fall back to junctions (/J) on machines
+    # without Developer Mode / admin — equivalent for same-volume directory targets.
+    $linkFlag = '/J'
+    try {
+        $val = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' `
+                  -Name 'AllowDevelopmentWithoutDevLicense' -ErrorAction Stop).AllowDevelopmentWithoutDevLicense
+        if ($val -eq 1) { $linkFlag = '/D' }
+    } catch {}
+
+    if (-not (Test-Path $miseCache)) {
+        New-Item -ItemType Directory -Path $miseCache -Force | Out-Null
     }
+
+    function Link-MiseXdg($source, $target, $flag) {
+        if ($source -eq $target) { return }
+        if (Test-Path $source) {
+            $item = Get-Item $source -Force
+            if ($item.Attributes.ToString().Contains('ReparsePoint')) { return }
+            $children = @(Get-ChildItem $source -Force -ErrorAction SilentlyContinue)
+            if ($children.Count -gt 0) {
+                Write-Host "[Migrate] $source -> $target" -ForegroundColor Blue
+                if (-not (Test-Path $target)) {
+                    New-Item -ItemType Directory -Path $target -Force | Out-Null
+                }
+                $targetEmpty = @(Get-ChildItem $target -Force -ErrorAction SilentlyContinue).Count -eq 0
+                if ($targetEmpty) {
+                    # Fast path: atomic same-volume rename of contents.
+                    Move-Item -Path (Join-Path $source '*') -Destination $target -Force
+                } else {
+                    # Merge path: robocopy /MOVE handles many small files efficiently.
+                    robocopy $source $target /MOVE /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+                    if ($LASTEXITCODE -ge 8) {
+                        Write-Host "[ERROR] robocopy $source -> $target failed (exit $LASTEXITCODE)" -ForegroundColor Red
+                        exit 1
+                    }
+                }
+            }
+            Remove-Item $source -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        $parent = Split-Path $source -Parent
+        if (-not (Test-Path $parent)) {
+            New-Item -ItemType Directory -Path $parent -Force | Out-Null
+        }
+        & cmd /c mklink $flag "`"$source`"" "`"$target`"" | Out-Null
+    }
+
+    Link-MiseXdg (Join-Path $HOME '.local\share\mise') $miseDir   $linkFlag
+    Link-MiseXdg (Join-Path $HOME '.local\state\mise') $miseDir   $linkFlag
+    Link-MiseXdg (Join-Path $HOME '.cache\mise')       $miseCache $linkFlag
 
     mise trust --all 2>$null
     Write-Host "[Install] Installing mise tools..." -ForegroundColor Blue
