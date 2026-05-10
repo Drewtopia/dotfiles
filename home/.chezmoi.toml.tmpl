@@ -1,4 +1,4 @@
-{{- $name := "Drew" -}}
+{{- $name := "" -}}
 
 {{- $dev_computer := promptBoolOnce . "dev_computer" "Install dev tools on this machine?" -}}
 
@@ -77,9 +77,10 @@
 {{-   end -}}
 {{- end -}}
 
-{{- $email := "drew@drewtopia.com.au" -}}
-{{- if $work -}}
-{{-   $email = "<email>" -}}
+{{- $email := "" -}}
+{{- if $opVault -}}
+{{-   $name = onepasswordRead (printf "op://%s/Identity/handle" $opVault) | trim -}}
+{{-   $email = onepasswordRead (printf "op://%s/Identity/email" $opVault) | trim -}}
 {{- end -}}
 
 {{/* Relocatable dev tools root — on work Windows, prompt for a whitelisted

@@ -2,10 +2,10 @@
 # Cannot use template syntax here — chezmoidata loads before the template
 # engine. Work-only gating happens in the install script.
 #
-# Why this exists: work Windows (endpoint security) only allows executables under
-# C:\<tools_root>\*. Once dev tools were relocated there, scoop became the
-# canonical installer for Windows-native binaries that can't live in
-# mise. The [scoop.work] section is expected to grow.
+# Why this exists: some work environments restrict executables to a
+# whitelisted directory tree. Once dev tools are relocated there,
+# scoop becomes the canonical installer for Windows-native binaries
+# that can't live in mise. The [scoop.work] section is expected to grow.
 
 [scoop]
 # Known scoop buckets (those listed in `scoop bucket known`).
@@ -29,7 +29,7 @@ packages = [
 warthurton_scoop-misc = "https://github.com/warthurton/scoop-misc"
 
 # Work-only additions (gated by `{{ if .work }}` in the install script).
-# Add endpoint security-whitelisted tooling here as you discover the need.
+# Add restricted-tree-friendly tooling here as you discover the need.
 [scoop.work]
 buckets = ["warthurton_scoop-misc"]
 packages = [
