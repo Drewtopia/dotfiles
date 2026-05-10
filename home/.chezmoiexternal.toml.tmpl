@@ -133,36 +133,9 @@
     include = ["*/.claude/skills/using-jj-workspaces/**"]
     refreshPeriod = "168h"
 
-# Claude Code - Skills from mattpocock/skills
-{{ $mattSkills := list
-    "caveman"
-    "design-an-interface"
-    "domain-model"
-    "edit-article"
-    "git-guardrails-claude-code"
-    "github-triage"
-    "grill-me"
-    "improve-codebase-architecture"
-    "migrate-to-shoehorn"
-    "request-refactor-plan"
-    "scaffold-exercises"
-    "setup-pre-commit"
-    "tdd"
-    "to-issues"
-    "to-prd"
-    "triage-issue"
-    "ubiquitous-language"
-    "write-a-skill"
-    "zoom-out" -}}
-{{ range $mattSkills -}}
-[".claude/skills/{{ . }}"]
-    type = "archive"
-    url = "https://github.com/mattpocock/skills/archive/main.tar.gz"
-    stripComponents = 2
-    include = ["*/{{ . }}/**"]
-    refreshPeriod = "168h"
-
-{{ end -}}
+# mattpocock/skills now reconciled via .chezmoidata/skills.yaml +
+# run_onchange_after_60-install-skills.sh.tmpl (npx skills CLI). The
+# old static list here went stale every time Pocock refactored upstream.
 
 # Personal memory + agent vault (private repo).
 # No refreshPeriod → chezmoi only clones once on first apply, never auto-refreshes.
