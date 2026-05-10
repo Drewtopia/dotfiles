@@ -7,12 +7,25 @@
 # .chezmoiexternal.toml.tmpl, which went stale on upstream refactors.
 skill_repos:
   - repo: mattpocock/skills
+    # All 12 default-listed mattpocock skills (those returned by
+    # `npx skills add mattpocock/skills -l`). Skills in subdirs that
+    # the CLI hides — misc/, personal/, deprecated/, in-progress/ —
+    # aren't installable via this flow.
     skills:
+      # productivity/
+      - grill-me
+      - write-a-skill
+      # engineering/
       - diagnose
       - grill-with-docs
+      - improve-codebase-architecture
       - prototype
       - setup-matt-pocock-skills
+      - tdd
+      - to-issues
+      - to-prd
       - triage
+      - zoom-out
   - repo: juliusbrussee/caveman
     skills:
       - caveman
