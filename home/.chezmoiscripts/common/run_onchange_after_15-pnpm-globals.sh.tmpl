@@ -1,0 +1,66 @@
+{{- if ne .chezmoi.os "windows" -}}
+{{- if .dev_computer -}}
+#!/usr/bin/env bash
+# Reconcile pnpm globals against .chezmoidata/pnpm-globals.yaml. v11's atomic
+# single-workspace model needs all packages in one `pnpm add -g` transaction;
+# this skips the call when actual already covers the desired set.
+set -euo pipefail
+
+# Inlining the desired list makes run_onchange retrigger when the YAML changes:
+{{- range .pnpm_globals }}
+#   {{ . }}
+{{- end }}
+desired=(
+{{- range .pnpm_globals }}
+    '{{ . }}'
+{{- end }}
+)
+
+if ! command -v pnpm >/dev/null 2>&1; then
+    echo "[pnpm-globals] pnpm not on PATH; skipping"
+    exit 0
+fi
+
+# v11 returns [{path, dependencies: {<name>: {version, ...}}}]. jq pulls names.
+actual=()
+if list_json=$(pnpm list -g --json --depth=0 2>/dev/null) && [ -n "$list_json" ]; then
+    while IFS= read -r name; do
+        [ -n "$name" ] && actual+=("$name")
+    done < <(echo "$list_json" | jq -r '.[].dependencies // {} | keys[]' 2>/dev/null)
+fi
+
+# Set diff: missing = desired \ actual; extras = actual \ desired.
+missing=()
+extras=()
+for d in "${desired[@]}"; do
+    found=false
+    for a in "${actual[@]:-}"; do [ "$a" = "$d" ] && found=true && break; done
+    $found || missing+=("$d")
+done
+for a in "${actual[@]:-}"; do
+    found=false
+    for d in "${desired[@]}"; do [ "$d" = "$a" ] && found=true && break; done
+    $found || extras+=("$a")
+done
+
+if [ ${#missing[@]} -eq 0 ] && [ ${#extras[@]} -eq 0 ]; then
+    echo "[pnpm-globals] up to date (${#desired[@]} packages)"
+    exit 0
+fi
+
+reasons=()
+[ ${#missing[@]} -gt 0 ] && reasons+=("missing: ${missing[*]}")
+[ ${#extras[@]}  -gt 0 ] && reasons+=("extras: ${extras[*]}")
+echo "[pnpm-globals] reconciling - ${reasons[*]}"
+
+# v11: add -g is additive (new hash dir); remove -g garbage-collects.
+if [ ${#extras[@]} -gt 0 ]; then
+    pnpm remove -g "${extras[@]}"
+fi
+if [ ${#missing[@]} -gt 0 ]; then
+    specs=()
+    for d in "${missing[@]}"; do specs+=("${d}@latest"); done
+    pnpm add -g "${specs[@]}"
+fi
+{{- end }}
+{{- end }}

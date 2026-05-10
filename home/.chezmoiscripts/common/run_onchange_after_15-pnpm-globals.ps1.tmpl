@@ -1,0 +1,70 @@
+{{- if eq .chezmoi.os "windows" -}}
+{{- if .dev_computer -}}
+#!/usr/bin/env pwsh
+# Reconcile pnpm globals against .chezmoidata/pnpm-globals.yaml. v11's atomic
+# single-workspace model needs all packages in one `pnpm add -g` transaction;
+# this skips the call when actual already covers the desired set.
+
+$ErrorActionPreference = "Stop"
+
+# Inlining the desired list makes run_onchange retrigger when the YAML changes:
+{{- range .pnpm_globals }}
+#   {{ . }}
+{{- end }}
+$desired = @(
+{{- range .pnpm_globals }}
+    '{{ . }}'
+{{- end }}
+)
+
+# pnpm v11 errors any global command if PNPM_HOME/bin isn't on PATH.
+# Profile adds it for interactive shells, but chezmoi spawns scripts fresh.
+if ($env:PNPM_HOME) {
+    $pnpmBin = Join-Path $env:PNPM_HOME 'bin'
+    if ((Test-Path $pnpmBin) -and ($env:PATH -notlike "*$pnpmBin*")) {
+        $env:PATH = "$pnpmBin;$env:PATH"
+    }
+}
+
+if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+    Write-Host "[pnpm-globals] pnpm not on PATH; skipping" -ForegroundColor Yellow
+    exit 0
+}
+
+$actual = @()
+try {
+    $listOutput = & pnpm list -g --json --depth=0 2>$null | Out-String
+    if ($LASTEXITCODE -eq 0 -and $listOutput.Trim()) {
+        foreach ($workspace in ($listOutput | ConvertFrom-Json)) {
+            if ($workspace.dependencies) {
+                $actual += $workspace.dependencies.PSObject.Properties.Name
+            }
+        }
+    }
+} catch {
+    Write-Host "[pnpm-globals] couldn't read state ($($_.Exception.Message)); will rebuild" -ForegroundColor Yellow
+}
+
+$missing = $desired | Where-Object { $_ -notin $actual }
+$extras  = $actual  | Where-Object { $_ -notin $desired }
+
+if (-not $missing -and -not $extras) {
+    Write-Host "[pnpm-globals] up to date ($($desired.Count) packages)" -ForegroundColor Green
+    exit 0
+}
+
+$reasons = @()
+if ($missing) { $reasons += "missing: $($missing -join ', ')" }
+if ($extras)  { $reasons += "extras: $($extras -join ', ')" }
+Write-Host "[pnpm-globals] reconciling - $($reasons -join '; ')" -ForegroundColor Blue
+
+# v11: add -g is additive (new hash dir); remove -g garbage-collects.
+if ($extras) {
+    & pnpm remove -g @extras
+}
+if ($missing) {
+    $specs = $missing | ForEach-Object { $_ + '@latest' }
+    & pnpm add -g @specs
+}
+{{- end }}
+{{- end }}
