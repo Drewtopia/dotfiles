@@ -18,12 +18,14 @@ if command -v mise >/dev/null 2>&1; then
 fi
 
 # pnpm now managed by mise - no manual PATH setup needed
-# However, pnpm global packages need PNPM_HOME for global installs
+# However, pnpm global packages need PNPM_HOME for global installs.
+# pnpm 10 put binaries directly in $PNPM_HOME; pnpm 11+ uses $PNPM_HOME/bin.
+# Add both for backward compat with existing globals (acorn, gemini, etc.).
 if command -v pnpm >/dev/null 2>&1; then
     export PNPM_HOME="$HOME/.local/share/pnpm"
     case ":$PATH:" in
-        *":$PNPM_HOME:"*) ;;
-        *) export PATH="$PNPM_HOME:$PATH" ;;
+        *":$PNPM_HOME/bin:"*) ;;
+        *) export PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH" ;;
     esac
 fi
 {{- end }}
