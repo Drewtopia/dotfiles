@@ -1,0 +1,30 @@
+{{- if ne .chezmoi.os "windows" -}}
+{{- if .dev_computer -}}
+#!/usr/bin/env bash
+# Reconcile agent skills against .chezmoidata/skills.yaml via `npx skills`.
+# Replaces the old static $mattSkills list in .chezmoiexternal.toml.tmpl,
+# which went stale every time Pocock refactored upstream. The CLI tracks
+# whatever's currently in each declared repo.
+#
+# Inlining the desired skills below makes run_onchange retrigger when the
+# YAML changes:
+{{- range .skill_repos }}
+# {{ .repo }}:
+{{- range .skills }}
+#   {{ . }}
+{{- end }}
+{{- end }}
+
+set -euo pipefail
+
+if ! command -v npx >/dev/null 2>&1; then
+    echo "[skills] npx not on PATH; skipping"
+    exit 0
+fi
+
+{{- range .skill_repos }}
+echo "[skills] {{ .repo }}: {{ .skills | join ", " }}"
+npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
+{{- end }}
+{{- end }}
+{{- end }}

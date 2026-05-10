@@ -1,0 +1,18 @@
+# Agent skills installed via the `npx skills` CLI.
+# Consumed by run_onchange_after_60-install-skills.sh.tmpl — when this
+# file changes, the install script re-runs.
+#
+# Each entry: GitHub repo (owner/name) + the subset of skill names to
+# install. Replaces the static $mattSkills list previously held in
+# .chezmoiexternal.toml.tmpl, which went stale on upstream refactors.
+skill_repos:
+  - repo: mattpocock/skills
+    skills:
+      - diagnose
+      - grill-with-docs
+      - prototype
+      - setup-matt-pocock-skills
+      - triage
+  - repo: juliusbrussee/caveman
+    skills:
+      - caveman
