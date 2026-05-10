@@ -1,0 +1,9 @@
+# Pnpm globals — declared by name only. Reconciler installs all in one
+# `pnpm add -g <each>@latest` transaction (v11 single-workspace model).
+# Use topgrade or `pnpm update -g` to bump versions.
+pnpm_globals:
+  - "@openai/codex"
+  - "@playwright/cli"
+  - "@playwright/mcp"
+  - "@typescript/native-preview"
+  - turbo
