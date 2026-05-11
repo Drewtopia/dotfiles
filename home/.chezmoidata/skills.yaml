@@ -43,3 +43,9 @@ skill_repos:
   - repo: currents-dev/playwright-best-practices-skill
     skills:
       - playwright-best-practices
+  - repo: microsoft/playwright-cli
+    # Playwright official: CLI-driven skills. playwright-generate-test is
+    # assumed to be in the same repo; adjust if upstream restructured.
+    skills:
+      - playwright-cli
+      - playwright-generate-test
