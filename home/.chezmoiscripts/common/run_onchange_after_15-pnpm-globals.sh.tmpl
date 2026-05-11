@@ -21,6 +21,16 @@ if ! command -v pnpm >/dev/null 2>&1; then
     exit 0
 fi
 
+# pnpm v11 errors any global command if PNPM_HOME/bin isn't on PATH.
+# Profile adds it for interactive shells, but chezmoi spawns scripts fresh
+# (and PNPM_HOME from .zshrc doesn't propagate to chezmoi subshells on macOS).
+export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
+pnpm_bin="$PNPM_HOME/bin"
+mkdir -p "$pnpm_bin"
+if [[ ":$PATH:" != *":$pnpm_bin:"* ]]; then
+    export PATH="$pnpm_bin:$PATH"
+fi
+
 # v11 returns [{path, dependencies: {<name>: {version, ...}}}]. jq pulls names.
 actual=()
 if list_json=$(pnpm list -g --json --depth=0 2>/dev/null) && [ -n "$list_json" ]; then
@@ -34,14 +44,18 @@ missing=()
 extras=()
 for d in "${desired[@]}"; do
     found=false
-    for a in "${actual[@]:-}"; do [ "$a" = "$d" ] && found=true && break; done
+    if [ ${#actual[@]} -gt 0 ]; then
+        for a in "${actual[@]}"; do [ "$a" = "$d" ] && found=true && break; done
+    fi
     $found || missing+=("$d")
 done
-for a in "${actual[@]:-}"; do
-    found=false
-    for d in "${desired[@]}"; do [ "$d" = "$a" ] && found=true && break; done
-    $found || extras+=("$a")
-done
+if [ ${#actual[@]} -gt 0 ]; then
+    for a in "${actual[@]}"; do
+        found=false
+        for d in "${desired[@]}"; do [ "$d" = "$a" ] && found=true && break; done
+        $found || extras+=("$a")
+    done
+fi
 
 if [ ${#missing[@]} -eq 0 ] && [ ${#extras[@]} -eq 0 ]; then
     echo "[pnpm-globals] up to date (${#desired[@]} packages)"
