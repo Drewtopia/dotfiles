@@ -5,9 +5,7 @@
 # which ensures each marketplace is registered (idempotent) and refreshes
 # all known marketplaces.
 #
-# Note: marketplaces are ALSO declared in dot_claude/settings.json.tmpl
-# under extraKnownMarketplaces. Keep both in sync until the settings
-# template is refactored to render from this data file.
+# dot_claude/settings.json.tmpl renders extraKnownMarketplaces from this table.
 #
 # Format: <marketplace-short-name> = "<github-owner/repo>"
 # The short name is what plugin references use (e.g. "caveman@caveman").
