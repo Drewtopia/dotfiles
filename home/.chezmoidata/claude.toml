@@ -1,0 +1,21 @@
+# Claude Code plugin marketplaces — single source of truth for the
+# `claude plugin marketplace add` reconciler.
+#
+# Consumed by run_onchange_after_55-update-claude-marketplaces.{sh,ps1}.tmpl,
+# which ensures each marketplace is registered (idempotent) and refreshes
+# all known marketplaces.
+#
+# Note: marketplaces are ALSO declared in dot_claude/settings.json.tmpl
+# under extraKnownMarketplaces. Keep both in sync until the settings
+# template is refactored to render from this data file.
+#
+# Format: <marketplace-short-name> = "<github-owner/repo>"
+# The short name is what plugin references use (e.g. "caveman@caveman").
+
+[marketplaces]
+caveman                   = "JuliusBrussee/caveman"
+"claude-brain-sync"       = "toroleapinc/claude-brain"
+"claude-plugins-official" = "anthropics/claude-plugins-official"
+"karpathy-skills"         = "forrestchang/andrej-karpathy-skills"
+"obsidian-skills"         = "kepano/obsidian-skills"
+qmd                       = "tobi/qmd"
