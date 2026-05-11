@@ -29,9 +29,6 @@ skill_repos:
   - repo: vercel-labs/skills
     skills:
       - find-skills
-  - repo: caidanw/skills
-    skills:
-      - karpathy-guidelines
   - repo: github/awesome-copilot
     # awesome-copilot has hundreds of skills; pull only the one we use.
     skills:
