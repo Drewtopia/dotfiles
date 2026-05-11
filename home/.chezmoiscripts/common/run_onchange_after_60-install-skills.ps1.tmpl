@@ -23,5 +23,15 @@ if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
 Write-Host "[skills] {{ .repo }}: {{ .skills | join ", " }}"
 npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
 {{- end }}
+
+# Sweep up empty skill directories that `npx skills add` leaves behind
+# during repo discovery (it scans for all available skills, leaving
+# placeholder dirs for ones not in the --skill set).
+$skillsDir = '{{ .directories.claude_dir }}/skills'
+if (Test-Path $skillsDir) {
+    Get-ChildItem -Path $skillsDir -Directory -ErrorAction SilentlyContinue | Where-Object {
+        -not (Get-ChildItem $_.FullName -Force -ErrorAction SilentlyContinue)
+    } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+}
 {{- end }}
 {{- end }}

@@ -26,5 +26,10 @@ fi
 echo "[skills] {{ .repo }}: {{ .skills | join ", " }}"
 npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
 {{- end }}
+
+# Sweep up empty skill directories that `npx skills add` leaves behind
+# during repo discovery (it scans for all available skills, leaving
+# placeholder dirs for ones not in the --skill set).
+find "{{ .directories.claude_dir }}/skills" -mindepth 1 -maxdepth 1 -type d -empty -delete 2>/dev/null || true
 {{- end }}
 {{- end }}
