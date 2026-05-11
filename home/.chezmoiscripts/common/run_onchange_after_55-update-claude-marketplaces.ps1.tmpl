@@ -1,0 +1,48 @@
+{{- if eq .chezmoi.os "windows" -}}
+# Refresh Claude Code plugin marketplaces (Windows counterpart of the .sh).
+#
+# Triggered by chezmoi's `run_onchange_after_*` semantics: re-runs whenever
+# this script's content changes. To force a refresh, bump the EPOCH below or
+# edit the tracked-plugins list to match dot_claude/settings.json.tmpl.
+#
+# EPOCH: 1
+#
+# Tracked enabled plugins (mirror of dot_claude/settings.json.tmpl).
+# Keep this list in sync with the .sh sibling — both for documentation and
+# to use as the re-run trigger when adding/removing plugins.
+#
+#   obsidian@obsidian-skills
+#   claude-brain-sync@claude-brain-sync
+#   code-review@claude-plugins-official
+#   feature-dev@claude-plugins-official
+#   typescript-lsp@claude-plugins-official
+#   commit-commands@claude-plugins-official
+#   playwright@claude-plugins-official
+#   code-simplifier@claude-plugins-official
+#   plugin-dev@claude-plugins-official
+#   greptile@claude-plugins-official
+#   explanatory-output-style@claude-plugins-official
+#   learning-output-style@claude-plugins-official
+#   claude-code-setup@claude-plugins-official
+#   security-guidance@claude-plugins-official
+#   ralph-loop@claude-plugins-official
+#   hookify@claude-plugins-official
+#   claude-md-management@claude-plugins-official
+#   qmd@qmd
+
+$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    Write-Host "i  claude CLI not on PATH; skipping marketplace update"
+    exit 0
+}
+
+Write-Host "Refreshing Claude Code plugin marketplaces..."
+try {
+    claude plugin marketplace update
+    Write-Host "Marketplaces refreshed (restart Claude Code to pick up new skills)"
+} catch {
+    Write-Warning "marketplace update failed - continuing chezmoi apply: $_"
+    exit 0
+}
+{{- end -}}

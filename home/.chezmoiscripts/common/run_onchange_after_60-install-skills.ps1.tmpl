@@ -1,0 +1,27 @@
+{{- if eq .chezmoi.os "windows" -}}
+{{- if .dev_computer -}}
+# Reconcile agent skills against .chezmoidata/skills.yaml via `npx skills`
+# (Windows counterpart of the .sh sibling).
+#
+# Inlining the desired skills below makes run_onchange retrigger when the
+# YAML changes:
+{{- range .skill_repos }}
+# {{ .repo }}:
+{{- range .skills }}
+#   {{ . }}
+{{- end }}
+{{- end }}
+
+$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
+    Write-Host "[skills] npx not on PATH; skipping"
+    exit 0
+}
+
+{{- range .skill_repos }}
+Write-Host "[skills] {{ .repo }}: {{ .skills | join ", " }}"
+npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
+{{- end }}
+{{- end }}
+{{- end }}
