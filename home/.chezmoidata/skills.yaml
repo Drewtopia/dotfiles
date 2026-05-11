@@ -33,9 +33,10 @@ skill_repos:
     skills:
       - find-skills
   - repo: github/awesome-copilot
-    # awesome-copilot has hundreds of skills; pull only the one we use.
+    # awesome-copilot has hundreds of skills; pull only what we use.
     skills:
       - conventional-commit
+      - playwright-generate-test
   - repo: pproenca/dot-skills
     # 154-skill personal collection; pull only what we use.
     skills:
@@ -44,8 +45,5 @@ skill_repos:
     skills:
       - playwright-best-practices
   - repo: microsoft/playwright-cli
-    # Playwright official: CLI-driven skills. playwright-generate-test is
-    # assumed to be in the same repo; adjust if upstream restructured.
     skills:
       - playwright-cli
-      - playwright-generate-test
