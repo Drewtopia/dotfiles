@@ -27,7 +27,7 @@ $envVars = [ordered]@{
     'UV_PYTHON_INSTALL_DIR' = '{{ .directories.tools_root }}/.local/share/uv/python'
     'UV_CACHE_DIR'          = '{{ .directories.xdg_cache_dir }}/uv'
     # cargo's bin and rustup's toolchains land in ~/.cargo and ~/.rustup by
-    # default — both outside the whitelisted dev path.
+    # default (both outside the whitelisted dev path).
     'CARGO_HOME'            = '{{ .directories.tools_root }}/.cargo'
     'RUSTUP_HOME'           = '{{ .directories.tools_root }}/.rustup'
     # bun's per-user install dir (where `bun add -g` lands binaries).
@@ -53,8 +53,8 @@ foreach ($kv in $envVars.GetEnumerator()) {
 }
 
 # GITHUB_TOKEN: source from gh CLI (already authed via 'gh auth login'). Set
-# as User-scope so child processes inherit it — including WSL via interop,
-# provided GITHUB_TOKEN is also in WSLENV (see below). Fixes mise rate-limit
+# as User-scope so child processes inherit it (including WSL via interop,
+# provided GITHUB_TOKEN is also in WSLENV; see below). Fixes mise rate-limit
 # when topgrade crosses Windows -> WSL non-interactively.
 if (Get-Command gh -ErrorAction SilentlyContinue) {
     $ghToken = (& gh auth token 2>$null)
@@ -75,7 +75,7 @@ if (Get-Command gh -ErrorAction SilentlyContinue) {
 
 # WSLENV: ensure GITHUB_TOKEN propagates into WSL processes invoked via interop
 # (e.g. topgrade -> WSL mise). WSLENV is colon-separated and may contain other
-# entries — merge, don't overwrite.
+# entries; merge, don't overwrite.
 $wantWslEnv = 'GITHUB_TOKEN'
 $currentWslEnv = [Environment]::GetEnvironmentVariable('WSLENV', 'User')
 $parts = if ($currentWslEnv) { $currentWslEnv -split ':' } else { @() }
