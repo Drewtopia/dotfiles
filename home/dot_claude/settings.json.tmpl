@@ -164,7 +164,6 @@
   },
   "enabledPlugins": {
 {{- if .personal }}
-    "obsidian@obsidian-skills": true,
     "claude-brain-sync@claude-brain-sync": true,
 {{- end }}
 {{- if .dev_computer }}
@@ -178,6 +177,7 @@
     "plugin-dev@claude-plugins-official": true,
     "greptile@claude-plugins-official": false,
     "caveman@caveman": true,
+    "obsidian@obsidian-skills": true,
 {{- end }}
     "explanatory-output-style@claude-plugins-official": true,
     "learning-output-style@claude-plugins-official": true,
@@ -216,6 +216,12 @@
       "source": {
         "source": "github",
         "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "obsidian-skills": {
+      "source": {
+        "source": "github",
+        "repo": "kepano/obsidian-skills"
       }
     }
 {{- end }}
