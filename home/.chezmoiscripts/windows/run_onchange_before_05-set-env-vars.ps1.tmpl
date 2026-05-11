@@ -51,4 +51,38 @@ foreach ($kv in $envVars.GetEnumerator()) {
     }
     Set-Item -Path "Env:$($kv.Key)" -Value $kv.Value
 }
+
+# GITHUB_TOKEN: source from gh CLI (already authed via 'gh auth login'). Set
+# as User-scope so child processes inherit it — including WSL via interop,
+# provided GITHUB_TOKEN is also in WSLENV (see below). Fixes mise rate-limit
+# when topgrade crosses Windows -> WSL non-interactively.
+if (Get-Command gh -ErrorAction SilentlyContinue) {
+    $ghToken = (& gh auth token 2>$null)
+    if ($LASTEXITCODE -eq 0 -and $ghToken) {
+        $ghToken = $ghToken.Trim()
+        $current = [Environment]::GetEnvironmentVariable('GITHUB_TOKEN', 'User')
+        if ($current -ne $ghToken) {
+            Write-Host '[Env] Setting GITHUB_TOKEN from gh auth token' -ForegroundColor Blue
+            [Environment]::SetEnvironmentVariable('GITHUB_TOKEN', $ghToken, 'User')
+        }
+        Set-Item -Path 'Env:GITHUB_TOKEN' -Value $ghToken
+    } else {
+        Write-Host '[Env] gh auth token returned empty; run `gh auth login` then re-apply' -ForegroundColor Yellow
+    }
+} else {
+    Write-Host '[Env] gh CLI not on PATH; GITHUB_TOKEN not set' -ForegroundColor DarkGray
+}
+
+# WSLENV: ensure GITHUB_TOKEN propagates into WSL processes invoked via interop
+# (e.g. topgrade -> WSL mise). WSLENV is colon-separated and may contain other
+# entries — merge, don't overwrite.
+$wantWslEnv = 'GITHUB_TOKEN'
+$currentWslEnv = [Environment]::GetEnvironmentVariable('WSLENV', 'User')
+$parts = if ($currentWslEnv) { $currentWslEnv -split ':' } else { @() }
+if ($parts -notcontains $wantWslEnv) {
+    $newWslEnv = (@($parts | Where-Object { $_ }) + $wantWslEnv) -join ':'
+    Write-Host "[Env] Appending $wantWslEnv to WSLENV" -ForegroundColor Blue
+    [Environment]::SetEnvironmentVariable('WSLENV', $newWslEnv, 'User')
+    Set-Item -Path 'Env:WSLENV' -Value $newWslEnv
+}
 {{- end }}
