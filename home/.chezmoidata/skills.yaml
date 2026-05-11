@@ -26,9 +26,6 @@ skill_repos:
       - to-prd
       - triage
       - zoom-out
-  - repo: juliusbrussee/caveman
-    skills:
-      - caveman
   - repo: vercel-labs/skills
     skills:
       - find-skills
