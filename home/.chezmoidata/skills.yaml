@@ -7,10 +7,10 @@
 # .chezmoiexternal.toml.tmpl, which went stale on upstream refactors.
 skill_repos:
   - repo: mattpocock/skills
-    # All 12 default-listed mattpocock skills (those returned by
-    # `npx skills add mattpocock/skills -l`). Skills in subdirs that
-    # the CLI hides — misc/, personal/, deprecated/, in-progress/ —
-    # aren't installable via this flow.
+    # The 12 default-listed skills plus 2 from misc/. Hidden-subdir skills
+    # (misc/, personal/, deprecated/, in-progress/) are excluded from
+    # `npx skills add mattpocock/skills -l` BUT can still be installed by
+    # name via the --skill flag, which the reconciler script uses.
     skills:
       # productivity/
       - grill-me
@@ -26,6 +26,9 @@ skill_repos:
       - to-prd
       - triage
       - zoom-out
+      # misc/ (hidden but installable by name)
+      - git-guardrails-claude-code
+      - migrate-to-shoehorn
   - repo: vercel-labs/skills
     skills:
       - find-skills
@@ -33,3 +36,10 @@ skill_repos:
     # awesome-copilot has hundreds of skills; pull only the one we use.
     skills:
       - conventional-commit
+  - repo: pproenca/dot-skills
+    # 154-skill personal collection; pull only what we use.
+    skills:
+      - zod
+  - repo: currents-dev/playwright-best-practices-skill
+    skills:
+      - playwright-best-practices
