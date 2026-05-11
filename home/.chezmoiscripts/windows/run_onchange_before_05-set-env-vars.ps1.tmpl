@@ -17,8 +17,29 @@ $envVars = [ordered]@{
     'MISE_DATA_DIR'     = '{{ .directories.mise_dir }}'
     'PNPM_HOME'         = '{{ .directories.pnpm_home }}'
 {{- if ne .directories.tools_root .chezmoi.homeDir }}
-    'CLAUDE_CONFIG_DIR' = '{{ .directories.claude_dir }}'
-    'SCOOP'             = '{{ .directories.tools_root }}/scoop'
+    'CLAUDE_CONFIG_DIR'     = '{{ .directories.claude_dir }}'
+    'SCOOP'                 = '{{ .directories.tools_root }}/scoop'
+    # uv defaults land in %APPDATA%\uv (venvs) and ~/.local/bin (trampolines);
+    # endpoint security blocks execution of the venv's python.exe from there.
+    # Relocate everything uv-managed under tools_root.
+    'UV_TOOL_DIR'           = '{{ .directories.tools_root }}/.local/share/uv/tools'
+    'UV_TOOL_BIN_DIR'       = '{{ .directories.tools_root }}/.local/bin'
+    'UV_PYTHON_INSTALL_DIR' = '{{ .directories.tools_root }}/.local/share/uv/python'
+    'UV_CACHE_DIR'          = '{{ .directories.xdg_cache_dir }}/uv'
+    # cargo's bin and rustup's toolchains land in ~/.cargo and ~/.rustup by
+    # default — both outside the whitelisted dev path.
+    'CARGO_HOME'            = '{{ .directories.tools_root }}/.cargo'
+    'RUSTUP_HOME'           = '{{ .directories.tools_root }}/.rustup'
+    # bun's per-user install dir (where `bun add -g` lands binaries).
+    'BUN_INSTALL'           = '{{ .directories.tools_root }}/.bun'
+    # deno: install root for `deno install`-produced binaries; cache holds
+    # compiled artifacts that get exec'd directly.
+    'DENO_INSTALL_ROOT'     = '{{ .directories.tools_root }}/.deno/bin'
+    'DENO_DIR'              = '{{ .directories.xdg_cache_dir }}/deno'
+    # go: workspace at the conventional path, but route `go install` binaries
+    # into the already-whitelisted .local/bin (same place uv trampolines live).
+    'GOPATH'                = '{{ .directories.tools_root }}/go'
+    'GOBIN'                 = '{{ .directories.tools_root }}/.local/bin'
 {{- end }}
 }
 
