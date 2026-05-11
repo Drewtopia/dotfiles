@@ -7,3 +7,21 @@
 # Note: .planning/codebase/*.md was committed before this entry was added and
 # remains tracked. To start tracking the rest, remove this rule and `git add`.
 .planning/
+
+# Scratch files — including identity-redaction rule files. Must never be tracked
+# on a public repo.
+*.tmp
+
+# Triage area for unsorted docs. Promote files out of here before committing them.
+/docs/inbox/
+
+# Defence in depth — never track these even if a template variant exists.
+# (chezmoi's private_*.tmpl files are safe; these patterns catch raw local files
+# that might land here by accident, e.g. a stray ~/.ssh copy.)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
