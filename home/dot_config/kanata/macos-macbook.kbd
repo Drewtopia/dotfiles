@@ -13,10 +13,14 @@
 ;;   apps       - hold Tab: per-app launchers (most commented out)
 
 (defcfg
-  ;; Exclude Voyager (firmware remap) - all other devices get kanata
+  ;; Exclude Voyager (firmware remap) and NuPhy Air75 wireless dongle.
+  ;; NuPhy: its wireless dongle cycles power every ~30-45min when the
+  ;; keyboard is idle, and kanata's failed grab attempts trigger driver
+  ;; connection flaps that affect all keyboards. Quieter to skip it.
   macos-dev-names-exclude (
     "Voyager"
     "0x3547BCE4161C4E86"
+    "NuPhy Air75 V2 Dongle"
   )
 
   process-unmapped-keys yes
