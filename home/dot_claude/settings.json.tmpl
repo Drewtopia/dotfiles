@@ -162,33 +162,12 @@
     "command": "bun x -y ccstatusline@latest",
     "padding": 0
   },
-  "enabledPlugins": {
-{{- if .personal }}
-    "claude-brain-sync@claude-brain-sync": true,
-{{- end }}
-{{- if .dev_computer }}
-    "qmd@qmd": true,
-    "code-review@claude-plugins-official": true,
-    "feature-dev@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "commit-commands@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "plugin-dev@claude-plugins-official": true,
-    "greptile@claude-plugins-official": false,
-    "caveman@caveman": true,
-    "obsidian@obsidian-skills": true,
-{{- end }}
-    "explanatory-output-style@claude-plugins-official": true,
-    "learning-output-style@claude-plugins-official": true,
-    "claude-code-setup@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": false,
-    "hookify@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
-    "context7@claude-plugins-official": true
-  },
+  {{- /* enabledPlugins: merge profile-gated plugin tables from claude.toml */ -}}
+  {{- $enabled := dict -}}
+  {{- range $k, $v := .plugins.always -}}{{- $_ := set $enabled $k $v -}}{{- end -}}
+  {{- if .personal -}}{{- range $k, $v := .plugins.personal -}}{{- $_ := set $enabled $k $v -}}{{- end -}}{{- end -}}
+  {{- if .dev_computer -}}{{- range $k, $v := .plugins.dev_computer -}}{{- $_ := set $enabled $k $v -}}{{- end -}}{{- end }}
+  "enabledPlugins": {{ $enabled | mustToPrettyJson | indent 2 | trim }},
 {{- if or .personal .dev_computer }}
   "extraKnownMarketplaces": {
 {{- if .personal }}
