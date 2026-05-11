@@ -4,6 +4,9 @@
 # register it via `claude plugin marketplace add` (no-op if already
 # registered), then refresh all known marketplaces.
 #
+# ASCII-only: chezmoi writes scripts as UTF-8 without BOM, and PowerShell
+# defaults to CP1252 parsing on Windows, which mangles multi-byte chars.
+#
 # Inlining the desired marketplaces below makes run_onchange retrigger when
 # claude.toml changes:
 {{- range $name, $repo := .marketplaces }}
@@ -13,23 +16,23 @@
 $ErrorActionPreference = "Stop"
 
 if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-    Write-Host "i  claude CLI not on PATH; skipping marketplace sync"
+    Write-Host 'i  claude CLI not on PATH; skipping marketplace sync'
     exit 0
 }
 
 {{- range $name, $repo := .marketplaces }}
 $output = & claude plugin marketplace add {{ $repo }} 2>&1
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "✓ marketplace {{ $name }} registered" -ForegroundColor Green
+    Write-Host '[ok]   marketplace {{ $name }} registered' -ForegroundColor Green
 } else {
-    Write-Host "  marketplace {{ $name }} already registered (or add failed)" -ForegroundColor DarkGray
+    Write-Host '[skip] marketplace {{ $name }} already registered or add failed' -ForegroundColor DarkGray
 }
 {{- end }}
 
-Write-Host "Refreshing marketplaces..."
+Write-Host 'Refreshing marketplaces...'
 try {
     claude plugin marketplace update
-    Write-Host "Marketplaces refreshed (restart Claude Code to pick up new plugins)" -ForegroundColor Green
+    Write-Host '[ok] marketplaces refreshed (restart Claude Code to pick up new plugins)' -ForegroundColor Green
 } catch {
     Write-Warning "marketplace update failed - continuing chezmoi apply: $_"
     exit 0
