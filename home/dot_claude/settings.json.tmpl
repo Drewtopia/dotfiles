@@ -168,50 +168,12 @@
   {{- if .personal -}}{{- range $k, $v := .plugins.personal -}}{{- $_ := set $enabled $k $v -}}{{- end -}}{{- end -}}
   {{- if .dev_computer -}}{{- range $k, $v := .plugins.dev_computer -}}{{- $_ := set $enabled $k $v -}}{{- end -}}{{- end }}
   "enabledPlugins": {{ $enabled | mustToPrettyJson | indent 2 | trim }},
-{{- if or .personal .dev_computer }}
-  "extraKnownMarketplaces": {
-{{- if .personal }}
-    "claude-brain-sync": {
-      "source": {
-        "source": "github",
-        "repo": "toroleapinc/claude-brain"
-      }
-    }{{ if .dev_computer }},{{ end }}
-{{- end }}
-{{- if .dev_computer }}
-    "qmd": {
-      "source": {
-        "source": "github",
-        "repo": "tobi/qmd"
-      }
-    },
-    "claude-plugins-official": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-plugins-official"
-      }
-    },
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
-      }
-    },
-    "obsidian-skills": {
-      "source": {
-        "source": "github",
-        "repo": "kepano/obsidian-skills"
-      }
-    },
-    "karpathy-skills": {
-      "source": {
-        "source": "github",
-        "repo": "forrestchang/andrej-karpathy-skills"
-      }
-    }
-{{- end }}
-  },
-{{- end }}
+  {{- /* extraKnownMarketplaces: render all registered marketplaces from claude.toml */ -}}
+  {{- $marketplaces := dict -}}
+  {{- range $name, $repo := .marketplaces -}}
+    {{- $_ := set $marketplaces $name (dict "source" (dict "source" "github" "repo" $repo)) -}}
+  {{- end }}
+  "extraKnownMarketplaces": {{ $marketplaces | mustToPrettyJson | indent 2 | trim }},
   "autoUpdatesChannel": "latest",
   "verbose": true,
   "preferredNotifChannel": "terminal_bell",
