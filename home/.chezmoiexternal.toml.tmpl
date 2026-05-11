@@ -122,6 +122,7 @@
 # run_onchange_after_60-install-skills.sh.tmpl (npx skills CLI). The
 # old static list here went stale every time Pocock refactored upstream.
 
+{{- if .personal }}
 # Personal memory + agent vault (private repo).
 # No refreshPeriod → chezmoi only clones once on first apply, never auto-refreshes.
 # Manual git push/pull from the vault dir stays in your control.
@@ -133,6 +134,7 @@
     url = "git@github.com:Drewtopia/claude-vault.git"
     [".claude-vault".clone]
         args = ["--depth=1"]
+{{- end }}
 
 # Tool themes (Catppuccin Mocha)
 [".config/eza/theme.yml"]

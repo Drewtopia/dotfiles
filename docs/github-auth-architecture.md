@@ -55,21 +55,21 @@ dot_ssh/id_rsa.pub.tmpl          → op://Employee/SSH Key - RSA/...     (work, 
 **Current setup (dot_zshrc.tmpl lines 135-141):**
 
 ```go
-{{ if and (not .ephemeral) (not .work) -}}
-export GITHUB_ACCESS_TOKEN={{ onepasswordRead "op://Private/GitHub Metadata Read-Only Access Token/token" | trim }}
-export MISE_GITHUB_TOKEN={{ onepasswordRead "op://Private/GitHub mise PAT/token" | trim }}
+{{- if not .ephemeral }}
+export GITHUB_TOKEN={{ onepasswordRead (printf "op://%s/GitHub PAT/token" .opVault) | trim }}
+{{- end }}
+{{- if and (not .ephemeral) (not .work) }}
 export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | trim }}
-{{ else if .work -}}
+{{- else if .work }}
 export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
-{{ end -}}
+{{- end }}
 ```
 
 **Gaps identified:**
 
 | Token | Personal machines | Work machines | Gap |
 |-------|------------------|---------------|-----|
-| `GITHUB_ACCESS_TOKEN` | Private vault | **Missing** | Work has no GitHub token for shell scripts |
-| `MISE_GITHUB_TOKEN` | Private vault | **Missing** | Work hits GitHub API rate limits during `mise install` |
+| `GITHUB_TOKEN` | Private vault | Employee vault | Requires a `GitHub PAT` item with a `token` field in both vaults |
 | `GEMINI_API_KEY` | Private vault (`/token`) | Employee vault (`/password`) | Works but field name inconsistent |
 
 ### 4. chezmoi `[github] accessToken` (optional)
@@ -141,13 +141,7 @@ The `gh auth git-credential` path is resolved dynamically via `lookPath "gh"` at
 
 ### Quick Wins (fix now)
 
-1. **Add `MISE_GITHUB_TOKEN` for work machines** — create a GitHub PAT in Employee vault, add to `.zshrc.tmpl`:
-   ```go
-   {{ else if .work -}}
-   export MISE_GITHUB_TOKEN={{ onepasswordRead "op://Employee/GitHub mise PAT/token" | trim }}
-   export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
-   {{ end -}}
-   ```
+1. **Verify `GitHub PAT` exists in both vaults** — `.zshrc.tmpl` now exports `GITHUB_TOKEN` from `op://<vault>/GitHub PAT/token` on every non-ephemeral machine.
 
 2. **Standardize 1Password field names** — Gemini uses `token` in Private but `password` in Employee. Pick one.
 
@@ -160,11 +154,10 @@ The `gh auth git-credential` path is resolved dynamically via `lookPath "gh"` at
    - Install native `op` on WSL and use 1Password SSH Agent there (independent of interop)
 
 5. **Consolidate GitHub PATs** — currently there are multiple PATs across vaults:
-   - `GitHub Metadata Read-Only Access Token` (Private) → `GITHUB_ACCESS_TOKEN`
-   - `GitHub mise PAT` (Private) → `MISE_GITHUB_TOKEN`
+   - `GitHub PAT` (Private/Employee) → `GITHUB_TOKEN`
    - `Homebrew GitHub API Token` (Private) → `HOMEBREW_GITHUB_API_TOKEN`
 
-   These could potentially be one PAT with read-only public repo scope, stored consistently in both vaults.
+   These could potentially be one PAT shape with read-only public repo scope, stored consistently in both vaults.
 
 ## Session Notes
 

@@ -1,7 +1,5 @@
 {{- $name := "" -}}
-
-{{- $dev_computer := promptBoolOnce . "dev_computer" "Install dev tools on this machine?" -}}
-
+{{- $dev_computer := false -}}
 
 {{/* set up 1Password vaults */}}
 {{- $opVault := "" -}}
@@ -75,6 +73,10 @@
 {{-   else -}}
 {{-     $ephemeral = true -}}
 {{-   end -}}
+{{- end -}}
+
+{{- if not $ephemeral -}}
+{{-   $dev_computer = promptBoolOnce . "dev_computer" "Install dev tools on this machine?" -}}
 {{- end -}}
 
 {{- $email := "" -}}
