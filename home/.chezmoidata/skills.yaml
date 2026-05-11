@@ -26,6 +26,7 @@ skill_repos:
       - to-prd
       - triage
       - zoom-out
+      - handoff
       # misc/ (hidden but installable by name)
       - git-guardrails-claude-code
       - migrate-to-shoehorn
