@@ -4,29 +4,33 @@ Drew's dotfiles, managed with [`chezmoi`](https://github.com/twpayne/chezmoi).
 
 ## Fresh-machine bootstrap
 
-### 1. Install the 1Password CLI
+    sh -c "$(curl -fsSL https://github.com/Drewtopia/dotfiles/raw/main/install.sh)"
 
-`chezmoi.toml.tmpl` calls `onepasswordRead` at init time, so `op` must be
-present AND signed in **before** running `chezmoi init`.
+That's it. The bootstrapper installs `chezmoi` if missing, then runs
+`chezmoi init --apply`. The rest is handled by chezmoi scripts:
 
-| OS      | Install                                                                  |
-|---------|--------------------------------------------------------------------------|
-| macOS   | `brew install 1password-cli`                                             |
-| Linux   | [docs](https://developer.1password.com/docs/cli/get-started/)            |
-| Windows | `scoop install 1password-cli`                                            |
+- `run_onchange_before_00-install-mise` (Mac, Linux) — installs `mise`
+- `run_onchange_before_20-install-1password` (Mac, Linux) — installs `op`
+- `run_*_after_*` scripts — mise tools, pnpm globals, Claude Code,
+  plugin marketplaces, agent skills
 
-Then sign in (or enable the desktop-app integration in 1Password settings):
+### What you'll be prompted for on first init
+
+- **Name + email**: if `op` is already installed, identity is fetched
+  from your 1Password vault automatically. If not, you'll type/paste
+  once — stored locally in `~/.config/chezmoi/chezmoi.toml` (never
+  committed to git).
+- **Dev folder** (Windows only): if work-machine, a top-level folder
+  name for relocated dev tools.
+
+### Sign in to 1Password (after install)
+
+For secrets used in `.zshrc`, SSH keys, etc., sign in with:
 
     eval $(op signin)
 
-### 2. Run the bootstrapper
-
-    sh -c "$(curl -fsSL https://github.com/Drewtopia/dotfiles/raw/main/install.sh)"
-
-This verifies the prereqs, installs `chezmoi` if missing, and runs
-`chezmoi init --apply`. The rest of the toolchain (`mise`, language
-runtimes, Claude Code, agent skills, plugin marketplaces) is installed
-by chezmoi's `run_*_before` and `run_*_after` scripts during apply.
+Or enable the desktop-app integration in 1Password settings (Touch ID
+on macOS, Windows Hello on Windows).
 
 ### Already-set-up machine
 
