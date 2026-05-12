@@ -1,0 +1,36 @@
+{{- if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+# Pre-flight bootstrap: ensure mise is installed before any downstream
+# script tries to use mise-managed tools. See the macOS sibling for the
+# full rationale; in short: silently-skipping `command -v` guards in
+# `run_onchange_*` scripts can lose work permanently on bootstrap.
+
+set -euo pipefail
+
+if command -v mise >/dev/null 2>&1; then
+    echo "[bootstrap] mise already installed: $(mise --version | head -1)"
+    exit 0
+fi
+
+echo "[bootstrap] mise not found, installing via mise.run..."
+
+if ! command -v curl >/dev/null 2>&1; then
+    echo "[bootstrap] ERROR: curl required to install mise" >&2
+    echo "[bootstrap]   sudo apt install -y curl  # (or distro equivalent)" >&2
+    exit 1
+fi
+
+curl https://mise.run | sh
+
+if ! command -v mise >/dev/null 2>&1; then
+    # mise.run installs to ~/.local/bin which may not be on PATH yet
+    if [ -x "$HOME/.local/bin/mise" ]; then
+        export PATH="$HOME/.local/bin:$PATH"
+    else
+        echo "[bootstrap] ERROR: mise install completed but mise is not on PATH" >&2
+        exit 1
+    fi
+fi
+
+echo "[bootstrap] mise installed: $(mise --version | head -1)"
+{{- end -}}
