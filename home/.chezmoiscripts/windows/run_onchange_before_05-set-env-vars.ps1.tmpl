@@ -52,6 +52,21 @@ foreach ($kv in $envVars.GetEnumerator()) {
     Set-Item -Path "Env:$($kv.Key)" -Value $kv.Value
 }
 
+# Prepend mise shims to User PATH so GUI apps (VS Code, JetBrains, etc.)
+# see mise-managed CLIs. PowerShell profile handles terminal PATH, but GUI
+# processes only inherit Windows User PATH at launch -- VS Code extensions
+# like biomejs.biome scan PATH for the biome binary and otherwise fail with
+# "Unable to find the Biome binary".
+$miseShims = '{{ .directories.mise_dir }}/shims' -replace '/', '\'
+$userPath  = [Environment]::GetEnvironmentVariable('Path', 'User')
+$pathParts = if ($userPath) { $userPath -split ';' | Where-Object { $_ } } else { @() }
+if ($pathParts -notcontains $miseShims) {
+    Write-Host "[Env] Prepending $miseShims to User PATH" -ForegroundColor Blue
+    $newPath = (@($miseShims) + $pathParts) -join ';'
+    [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+    $env:Path = "$miseShims;$env:Path"
+}
+
 # GITHUB_TOKEN: source from gh CLI (already authed via 'gh auth login'). Set
 # as User-scope so child processes inherit it (including WSL via interop,
 # provided GITHUB_TOKEN is also in WSLENV; see below). Fixes mise rate-limit
