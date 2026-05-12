@@ -52,7 +52,7 @@ foreach ($kv in $envVars.GetEnumerator()) {
     Set-Item -Path "Env:$($kv.Key)" -Value $kv.Value
 }
 
-# Clean + normalize User PATH, ensure mise shims is first.
+# Clean + normalize User PATH, ensure mise + scoop shims are first.
 #
 # Why touch User PATH at all: GUI apps (VS Code, JetBrains, etc.) only
 # inherit Windows User PATH at launch; the PowerShell profile patches
@@ -60,50 +60,44 @@ foreach ($kv in $envVars.GetEnumerator()) {
 # biomejs.biome scan PATH and otherwise fail with "Unable to find the
 # Biome binary".
 #
+# Why scoop shims is entry 1: every mise shim execs `mise` to resolve
+# the underlying binary. mise itself is installed via scoop, so its
+# exe lives under $SCOOP/shims. Without that on User PATH, every mise
+# shim fails with "mise-shim: failed to execute mise: program not found"
+# under GUI processes (and any pwsh that doesn't run the profile).
+#
 # Self-heal on every apply:
 #   - normalize to backslashes, strip trailing \ and \.
 #   - drop entries pointing at non-existent dirs (uninstalls leave junk)
-#   - resolve junctions/symlinks so e.g. C:\Users\AndrewCl\scoop and
-#     C:\vec\andrewcl\scoop (typical relocation pattern) collapse to one
-#   - dedup (preserving first occurrence)
-#   - guarantee mise shims is entry 0
-$miseShims = '{{ .directories.mise_dir }}/shims' -replace '/', '\'
-$userPath  = [Environment]::GetEnvironmentVariable('Path', 'User')
-$raw       = if ($userPath) { $userPath -split ';' | Where-Object { $_ } } else { @() }
-
-function Resolve-PathThroughJunction([string]$p) {
-    $cur = $p
-    while ($cur -and $cur -ne (Split-Path $cur -Parent)) {
-        try {
-            $it = Get-Item -LiteralPath $cur -ErrorAction Stop
-            if ($it.LinkType -in @('Junction','SymbolicLink') -and $it.Target) {
-                return (@($it.Target)[0]) + $p.Substring($cur.Length)
-            }
-        } catch {}
-        $cur = Split-Path $cur -Parent
-    }
-    return $p
-}
+#   - dedup case-insensitively, preserving first occurrence
+#   - guarantee mise shims is entry 0, scoop shims is entry 1
+$miseShims  = '{{ .directories.mise_dir }}/shims' -replace '/', '\'
+$scoopRoot  = if ($env:SCOOP) { $env:SCOOP } else { Join-Path $HOME 'scoop' }
+$scoopShims = (Join-Path $scoopRoot 'shims') -replace '/', '\'
+$prepend    = @($miseShims, $scoopShims)
+$userPath   = [Environment]::GetEnvironmentVariable('Path', 'User')
+$raw        = if ($userPath) { $userPath -split ';' | Where-Object { $_ } } else { @() }
 
 $cleaned = [System.Collections.Generic.List[string]]::new()
 $seen    = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-foreach ($p in @($miseShims) + $raw) {
+foreach ($p in $prepend + $raw) {
     $n = ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', ''
     if ([string]::IsNullOrWhiteSpace($n)) { continue }
     if (-not (Test-Path -LiteralPath $n)) { continue }
-    $key = (Resolve-PathThroughJunction $n).TrimEnd('\')
-    if (-not $seen.Add($key)) { continue }
+    if (-not $seen.Add($n)) { continue }
     [void]$cleaned.Add($n)
 }
 
 $newUserPath = $cleaned -join ';'
 if ($newUserPath -ne $userPath) {
-    $removed = ($raw.Count + 1) - $cleaned.Count
+    $removed = ($raw.Count + $prepend.Count) - $cleaned.Count
     Write-Host "[Env] Rewriting User PATH ($($raw.Count) -> $($cleaned.Count) entries, $removed pruned/normalized)" -ForegroundColor Blue
     [Environment]::SetEnvironmentVariable('Path', $newUserPath, 'User')
 }
-if (-not ($env:Path -split ';' | Where-Object { $_ -ieq $miseShims })) {
-    $env:Path = "$miseShims;$env:Path"
+foreach ($shim in $prepend) {
+    if ((Test-Path -LiteralPath $shim) -and -not ($env:Path -split ';' | Where-Object { $_ -ieq $shim })) {
+        $env:Path = "$shim;$env:Path"
+    }
 }
 
 # GITHUB_TOKEN: source from gh CLI (already authed via 'gh auth login'). Set
