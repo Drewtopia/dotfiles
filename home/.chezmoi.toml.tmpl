@@ -79,8 +79,19 @@
 
 {{- $email := "" -}}
 {{- if $opVault -}}
-{{-   $name = onepasswordRead (printf "op://%s/Identity/handle" $opVault) | trim -}}
-{{-   $email = onepasswordRead (printf "op://%s/Identity/email" $opVault) | trim -}}
+{{-   if lookPath "op" -}}
+{{/*   op installed: pull identity from the vault (preferred path) */}}
+{{-     $name = onepasswordRead (printf "op://%s/Identity/handle" $opVault) | trim -}}
+{{-     $email = onepasswordRead (printf "op://%s/Identity/email" $opVault) | trim -}}
+{{-   else -}}
+{{/*   Fresh-machine fallback: op not yet installed. Prompt and store in the
+       local chezmoi.toml (never committed to git). After this apply, the
+       run_onchange_before_install-op script installs op, so subsequent
+       inits could use the vault path — but the cached prompt value sticks
+       because of promptStringOnce. Manually delete the entry to switch. */}}
+{{-     $name = promptStringOnce . "name" "Your full name (op CLI not detected; stored locally only)" -}}
+{{-     $email = promptStringOnce . "email" "Your email" -}}
+{{-   end -}}
 {{- end -}}
 
 {{/* Relocatable dev tools root — on work Windows, prompt for a whitelisted
