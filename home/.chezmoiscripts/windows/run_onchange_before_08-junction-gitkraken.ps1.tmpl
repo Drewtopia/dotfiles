@@ -1,0 +1,46 @@
+{{- if eq .chezmoi.os "windows" -}}
+{{- if ne .directories.tools_root .chezmoi.homeDir -}}
+#!/usr/bin/env pwsh
+# Junction ~/.local/share/GitKrakenCLI -> relocated path. The gk CLI
+# (GitKraken) and the GitLens VS Code extension both self-extract a
+# "core" binary into XDG_DATA_HOME/GitKrakenCLI on first run. With
+# XDG_DATA_HOME at the home location and endpoint security enforcing
+# a path allowlist, those extractions get blocked even though the
+# binary is signed by AXOSOFT. Redirecting just GitKrakenCLI via a
+# junction lands the extracted core in the whitelisted dev path
+# without disturbing other XDG-data consumers.
+#
+# Idempotent: skips if junction already in place; merges any existing
+# real dir into the relocated target first so cached core isn't lost.
+$ErrorActionPreference = "Stop"
+
+$src = Join-Path $HOME ".local\share\GitKrakenCLI"
+$dst = '{{ .directories.tools_root }}/.local/share/GitKrakenCLI' -replace '/', '\'
+
+if (-not (Test-Path $dst)) {
+    New-Item -ItemType Directory -Path $dst -Force | Out-Null
+}
+
+if (Test-Path $src) {
+    $isJunction = (Get-Item $src -Force).Attributes.ToString().Contains("ReparsePoint")
+    if ($isJunction) { return }
+
+    Write-Host "[Migrate] Merging $src into $dst (newer files preferred)..." -ForegroundColor Blue
+    robocopy $src $dst /E /XO /R:0 /W:0 /NFL /NDL /NJH /NJS | Out-Null
+
+    Write-Host "[Migrate] Removing original $src..." -ForegroundColor Blue
+    Remove-Item $src -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $src) {
+        cmd /c rmdir /s /q "`"$src`"" 2>&1 | Out-Null
+    }
+}
+
+if (-not (Test-Path $src)) {
+    # Ensure parent .local\share exists before mklink
+    $parent = Split-Path $src -Parent
+    if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
+    Write-Host "[Junction] $src -> $dst" -ForegroundColor Cyan
+    cmd /c mklink /J "`"$src`"" "`"$dst`"" | Out-Null
+}
+{{- end }}
+{{- end }}
