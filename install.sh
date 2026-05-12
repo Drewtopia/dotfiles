@@ -24,7 +24,13 @@ else
   chezmoi=chezmoi
 fi
 
-# POSIX way to get script's dir: https://stackoverflow.com/a/29834779/12156188
-script_dir="$(cd -P -- "$(dirname -- "$(command -v -- "$0")")" && pwd -P)"
-# exec: replace current process with chezmoi init
-exec "$chezmoi" init --apply "--source=$script_dir"
+# When run from a local clone (./install.sh) use that source dir;
+# when piped in (curl ... | sh) fall back to the GitHub user `drewtopia`,
+# which chezmoi resolves to github.com/drewtopia/dotfiles.
+script_path="$(command -v -- "$0" 2>/dev/null || true)"
+if [ -n "$script_path" ] && [ -f "$script_path" ]; then
+  script_dir="$(cd -P -- "$(dirname -- "$script_path")" && pwd -P)"
+  exec "$chezmoi" init --apply "--source=$script_dir"
+else
+  exec "$chezmoi" init --apply drewtopia
+fi
