@@ -1,0 +1,43 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+# Pre-flight bootstrap: ensure mise is installed before any downstream
+# script tries to use mise-managed tools (Node, pnpm, npx, claude, ...).
+#
+# Without this, on a fresh Mac the run_*_after scripts (10-install-mise-tools,
+# 15-pnpm-globals, 40-install-claude-code, 55-update-claude-marketplaces,
+# 60-install-skills) all silently `command -v X || exit 0` and never run.
+# Because they're `run_onchange_*`, a second apply after manually installing
+# mise wouldn't re-trigger them either.
+#
+# Assumes Homebrew is installed. brew bootstrap stays manual on macOS — see
+# README. (If Homebrew is missing, falls back to mise's official installer.)
+
+set -euo pipefail
+
+if command -v mise >/dev/null 2>&1; then
+    echo "[bootstrap] mise already installed: $(mise --version | head -1)"
+    exit 0
+fi
+
+echo "[bootstrap] mise not found, installing..."
+
+if command -v brew >/dev/null 2>&1; then
+    echo "[bootstrap] Installing mise via Homebrew..."
+    brew install mise
+elif command -v curl >/dev/null 2>&1; then
+    echo "[bootstrap] Homebrew not found, falling back to mise.run installer..."
+    curl https://mise.run | sh
+else
+    echo "[bootstrap] ERROR: neither brew nor curl available; cannot install mise" >&2
+    echo "[bootstrap]   Install Homebrew: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"" >&2
+    exit 1
+fi
+
+if ! command -v mise >/dev/null 2>&1; then
+    echo "[bootstrap] ERROR: mise install completed but mise is still not on PATH" >&2
+    echo "[bootstrap]   Check /opt/homebrew/bin or \$HOME/.local/bin and ensure they're in PATH" >&2
+    exit 1
+fi
+
+echo "[bootstrap] mise installed: $(mise --version | head -1)"
+{{- end -}}
