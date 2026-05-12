@@ -4,15 +4,23 @@ Drew's dotfiles, managed with [`chezmoi`](https://github.com/twpayne/chezmoi).
 
 ## Fresh-machine bootstrap
 
+**macOS / Linux / WSL:**
+
     sh -c "$(curl -fsSL https://github.com/Drewtopia/dotfiles/raw/main/install.sh)"
 
-That's it. The bootstrapper installs `chezmoi` if missing, then runs
-`chezmoi init --apply`. The rest is handled by chezmoi scripts:
+**Windows (PowerShell):**
+
+    irm https://github.com/Drewtopia/dotfiles/raw/main/install.ps1 | iex
+
+Either bootstrapper installs `chezmoi` if missing, then runs
+`chezmoi init --apply drewtopia`. The rest is handled by chezmoi scripts:
 
 - `run_onchange_before_00-install-mise` (Mac, Linux) — installs `mise`
 - `run_onchange_before_20-install-1password` (Mac, Linux) — installs `op`
-- `run_*_after_*` scripts — mise tools, pnpm globals, Claude Code,
-  plugin marketplaces, agent skills
+- `run_onchange_before_10-install-scoop` (Windows) — installs scoop, then
+  mise + 1password-cli + other packages declared in `.chezmoidata/scoop.toml`
+- `run_*_after_*` scripts (all OSes) — mise tools, pnpm globals, Claude
+  Code, plugin marketplaces, agent skills
 
 ### What you'll be prompted for on first init
 
