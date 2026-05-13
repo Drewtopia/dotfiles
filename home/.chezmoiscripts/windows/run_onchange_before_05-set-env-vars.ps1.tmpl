@@ -80,7 +80,17 @@ $raw        = if ($userPath) { $userPath -split ';' | Where-Object { $_ } } else
 
 $cleaned = [System.Collections.Generic.List[string]]::new()
 $seen    = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-foreach ($p in $prepend + $raw) {
+# Hardcoded prepend entries: always include regardless of Test-Path. mise/scoop
+# shims may not exist on first apply (this script runs before install-scoop),
+# but the dirs WILL exist by the time pwsh reads User PATH. Pruning them here
+# left registry PATH without scoop shims forever, since onchange wouldn't re-fire.
+foreach ($p in $prepend) {
+    $n = ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', ''
+    if ([string]::IsNullOrWhiteSpace($n)) { continue }
+    if (-not $seen.Add($n)) { continue }
+    [void]$cleaned.Add($n)
+}
+foreach ($p in $raw) {
     $n = ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', ''
     if ([string]::IsNullOrWhiteSpace($n)) { continue }
     if (-not (Test-Path -LiteralPath $n)) { continue }
