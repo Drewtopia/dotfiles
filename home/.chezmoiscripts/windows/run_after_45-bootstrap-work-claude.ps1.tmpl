@@ -1,0 +1,74 @@
+{{- if and (eq .chezmoi.os "windows") .work (ne .directories.tools_root .chezmoi.homeDir) -}}
+#!/usr/bin/env pwsh
+# bootstrap-work-claude: render chezmoi dot_claude/ source tree directly into
+# the relocated CLAUDE_CONFIG_DIR. ~/.claude is a symlink to this path (set up
+# in run_onchange_before_06-bootstrap-work). Chezmoi never touches dot_claude
+# on work — .chezmoiignore drops it.
+$ErrorActionPreference = "Stop"
+
+# UTF-8 across the chezmoi-exe boundary. Without these, em-dashes and other
+# multi-byte characters in templates get double-encoded (read as CP1252, then
+# re-encoded as UTF-8 -> 6-byte mojibake instead of 3-byte em-dash).
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+
+# Resolve chezmoi by absolute path: chezmoi-spawned subprocesses don't reliably
+# inherit a PATH that includes chezmoi.exe.
+$chezmoi = '{{ .chezmoi.executable }}'
+$srcRoot = Join-Path '{{ .chezmoi.sourceDir }}' 'dot_claude'
+$dstRoot = '{{ .directories.claude_dir }}' -replace '/', '\'
+
+if (-not (Test-Path $srcRoot)) { exit 0 }
+if (-not (Test-Path $dstRoot)) { New-Item -ItemType Directory -Path $dstRoot -Force | Out-Null }
+
+function Resolve-DstName {
+    param([string]$n)
+    $n = $n -replace '^dot_', '.'
+    $n = $n -replace '^executable_', ''
+    $n = $n -replace '^symlink_', ''
+    $n = $n -replace '\.tmpl$', ''
+    return $n
+}
+
+Get-ChildItem $srcRoot -Recurse -File | ForEach-Object {
+    $rel = $_.FullName.Substring($srcRoot.Length + 1)
+    $parts = ($rel -split '[\\/]') | ForEach-Object { Resolve-DstName $_ }
+    $dstFile = Join-Path $dstRoot ($parts -join '\')
+    $dstDir = Split-Path $dstFile -Parent
+    if (-not (Test-Path $dstDir)) { New-Item -ItemType Directory -Path $dstDir -Force | Out-Null }
+
+    if ($_.Name -like 'symlink_*') {
+        $tgtLines = (Get-Content $_.FullName -Raw -Encoding utf8) | & $chezmoi execute-template
+        $tgt = (($tgtLines -join "`n").Trim())
+        $existing = Get-Item $dstFile -Force -ErrorAction SilentlyContinue
+        if ($existing) {
+            if ($existing.Attributes.ToString().Contains('ReparsePoint')) {
+                # Existing reparse (junction/symlink): unlink only — never recurse,
+                # PS 5.1 Remove-Item -Recurse follows junctions and deletes target.
+                if ($existing.PSIsContainer) {
+                    cmd /c rmdir "`"$dstFile`"" 2>&1 | Out-Null
+                } else {
+                    Remove-Item $dstFile -Force
+                }
+            } elseif ($existing.PSIsContainer) {
+                Remove-Item $dstFile -Recurse -Force
+            } else {
+                Remove-Item $dstFile -Force
+            }
+        }
+        cmd /c mklink /D "`"$dstFile`"" "`"$tgt`"" | Out-Null
+    } elseif ($_.Name -like '*.tmpl') {
+        $renderedLines = (Get-Content $_.FullName -Raw -Encoding utf8) | & $chezmoi execute-template
+        if ($null -eq $renderedLines) {
+            throw "chezmoi execute-template returned null for $($_.FullName) (chezmoi resolution failure?)"
+        }
+        $rendered = ($renderedLines -join "`r`n")
+        [System.IO.File]::WriteAllText($dstFile, $rendered, [System.Text.UTF8Encoding]::new($false))
+    } else {
+        Copy-Item $_.FullName $dstFile -Force
+    }
+}
+
+Write-Host "[bootstrap-work-claude] rendered $srcRoot -> $dstRoot"
+{{- end }}
