@@ -91,27 +91,30 @@ README.md
 .config/nvim/lazy-lock.json
 
 
-# Claude - ignore all except specific files
+# Claude
+{{- if and (eq .chezmoi.os "windows") .work }}
+# Work-Windows: chezmoi never touches ~/.claude. bootstrap-work-claude renders
+# dot_claude/ directly into the relocated CLAUDE_CONFIG_DIR.
+.claude
+.claude/**
+{{- else }}
 .claude/*
 !.claude/settings.json
 !.claude/commands/
 !.claude/agents/
 !.claude/hooks/
 !.claude/skills/
-{{ if eq .chezmoi.os "windows" -}}
-# Windows memory: junction created by run_after_99-claude-memory-junction.ps1.tmpl
-# (no Developer Mode required). Falls under the .claude/* ignore above.
-{{- if not .work }}
-# Personal Windows rules: chezmoi-managed symlink (requires Developer Mode).
+{{-   if eq .chezmoi.os "windows" }}
+# Personal Windows: chezmoi-managed symlink (requires Developer Mode).
 !.claude/rules
-{{- end }}
-{{- else -}}
+{{-   else }}
 # Mac/Linux: chezmoi-managed symlinks at .claude/memory and .claude/rules.
 !.claude/memory
 !.claude/rules
-{{- end }}
+{{-   end }}
 !.claude/mcp.json
 !.claude/CLAUDE.md
+{{- end }}
 
 {{ if and (eq .chezmoi.os "windows") (ne .directories.tools_root .chezmoi.homeDir) -}}
 # Relocated: .local/bin is a junction to tools_root — chezmoi can't manage junctions

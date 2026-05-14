@@ -122,18 +122,22 @@
 # run_onchange_after_60-install-skills.sh.tmpl (npx skills CLI). The
 # old static list here went stale every time Pocock refactored upstream.
 
-{{- if .personal }}
-# Personal memory + agent vault (private repo).
-# No refreshPeriod → chezmoi only clones once on first apply, never auto-refreshes.
-# Manual git push/pull from the vault dir stays in your control.
-# Mac/Linux: chezmoi creates a symlink at .claude/memory (dot_claude/symlink_memory.tmpl).
-# Windows: a junction is created by run_after_99-claude-memory-junction.ps1.tmpl
-#          (junctions don't require Developer Mode, unlike symlinks).
+{{- if or .personal .work }}
+# Memory + agent vault (private repo). Lives at ~/.claude-vault on all machines.
+# Inside .claude/, memory and rules are symlinks pointing here (rendered by
+# dot_claude/symlink_{memory,rules}.tmpl on personal; by
+# run_after_45-bootstrap-work-claude.ps1.tmpl on work).
+#
+# refreshPeriod = weekly ff-only pull. Local commits that diverged from origin
+# surface as fetch failures instead of force-merging.
 [".claude-vault"]
     type = "git-repo"
     url = "git@github.com:Drewtopia/claude-vault.git"
+    refreshPeriod = "168h"
     [".claude-vault".clone]
         args = ["--depth=1"]
+    [".claude-vault".pull]
+        args = ["--ff-only"]
 {{- end }}
 
 # Tool themes (Catppuccin Mocha)

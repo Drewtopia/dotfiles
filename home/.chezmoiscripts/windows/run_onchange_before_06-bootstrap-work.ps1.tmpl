@@ -1,0 +1,42 @@
+{{- if and (eq .chezmoi.os "windows") .work (ne .directories.tools_root .chezmoi.homeDir) -}}
+#!/usr/bin/env pwsh
+# bootstrap-work: relocate selected $HOME paths to the whitelisted tools_root.
+# Junctions for dirs (no Developer Mode required); symlink for ~/.claude
+# (needs Dev Mode; chezmoi-managed dot_claude is .chezmoiignored on work so
+# nothing fights this).
+$ErrorActionPreference = "Stop"
+
+$mappings = @(
+    @{ Src = "$HOME\.cache";                    Dst = '{{ .directories.xdg_cache_dir }}';                                     Kind = 'Junction'     }
+    @{ Src = "$HOME\.local\share\GitKrakenCLI"; Dst = '{{ .directories.tools_root }}/.local/share/GitKrakenCLI';              Kind = 'Junction'     }
+    @{ Src = "$HOME\.claude";                   Dst = '{{ .directories.claude_dir }}';                                        Kind = 'SymbolicLink' }
+)
+
+function Ensure-Reparse {
+    param($Src, $Dst, $Kind)
+    $Dst = $Dst -replace '/', '\'
+
+    if (-not (Test-Path $Dst)) { New-Item -ItemType Directory -Path $Dst -Force | Out-Null }
+
+    $item = Get-Item $Src -Force -ErrorAction SilentlyContinue
+    if ($item -and $item.Attributes.ToString().Contains('ReparsePoint')) { return }
+
+    if ($item -and $item.PSIsContainer) {
+        Write-Host "[bootstrap-work] merging $Src -> $Dst"
+        robocopy $Src $Dst /E /XO /R:0 /W:0 /NFL /NDL /NJH /NJS | Out-Null
+        Remove-Item $Src -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $Src) { cmd /c rmdir /s /q "`"$Src`"" 2>&1 | Out-Null }
+    } elseif ($item) {
+        Remove-Item $Src -Force
+    }
+
+    $parent = Split-Path $Src -Parent
+    if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
+
+    $flag = if ($Kind -eq 'Junction') { '/J' } else { '/D' }
+    cmd /c mklink $flag "`"$Src`"" "`"$Dst`"" | Out-Null
+    Write-Host "[bootstrap-work] $Kind $Src -> $Dst"
+}
+
+foreach ($m in $mappings) { Ensure-Reparse @m }
+{{- end }}
