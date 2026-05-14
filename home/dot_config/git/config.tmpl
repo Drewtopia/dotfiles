@@ -223,4 +223,11 @@
 	diffFilter = delta --color-only
 {{- end }}
 
+# Local overrides: machine- or work-specific entries (extra safe.directory
+# paths, work-only credential helpers) live in ~/.config/git/config.local
+# so they stay out of the public chezmoi repo. Git silently ignores the
+# include if the file is absent.
+[include]
+	path = ~/.config/git/config.local
+
 {{/* vim: set filetype=gitconfig: */}}
