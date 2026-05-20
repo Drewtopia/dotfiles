@@ -40,6 +40,9 @@ $envVars = [ordered]@{
     # into the already-whitelisted .local/bin (same place uv trampolines live).
     'GOPATH'                = '{{ .directories.tools_root }}/go'
     'GOBIN'                 = '{{ .directories.tools_root }}/.local/bin'
+    # proto: toolchain manager. Default ~/.proto sits in the user profile,
+    # where endpoint security blocks executing the tool binaries it manages.
+    'PROTO_HOME'            = '{{ .directories.tools_root }}/.proto'
 {{- end }}
 }
 
@@ -77,6 +80,12 @@ $scoopShims = (Join-Path $scoopRoot 'shims') -replace '/', '\'
 $prepend    = @($miseShims, $scoopShims)
 $userPath   = [Environment]::GetEnvironmentVariable('Path', 'User')
 $raw        = if ($userPath) { $userPath -split ';' | Where-Object { $_ } } else { @() }
+
+# Claude Code's native installer drops claude.exe in ~/.local/bin. That dir
+# always sits under the real home dir, even when dev tooling is relocated to
+# tools_root, so it is not covered by UV_TOOL_BIN_DIR/GOBIN. Append it; the
+# Test-Path + dedup loop below includes it only if the install exists.
+$raw        = @($raw) + (Join-Path $HOME '.local\bin')
 
 $cleaned = [System.Collections.Generic.List[string]]::new()
 $seen    = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
