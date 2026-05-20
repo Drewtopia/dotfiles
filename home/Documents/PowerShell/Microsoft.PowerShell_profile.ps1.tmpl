@@ -16,6 +16,13 @@ foreach ($var in 'CLAUDE_CONFIG_DIR','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DAT
 }
 
 {{ end -}}
+# 1Password CLI: default desktop-connect timeout is short enough that the
+# first call after Desktop sleeps (or a slow key-reformat with
+# ?ssh-format=openssh) times out. 30s gives Desktop room to wake + biometric
+# to be approved without aborting `chezmoi apply`. Process-scope only — this
+# only matters for shells that actually invoke `op`.
+$env:OP_CONNECT_TIMEOUT = '30'
+
 # Add scoop shims (where mise.exe lives) BEFORE mise shims. Every mise-shim
 # binary execs `mise` to resolve its target; if scoop shims isn't on PATH the
 # mise-shim crashes with "mise-shim: failed to execute mise: program not found".
