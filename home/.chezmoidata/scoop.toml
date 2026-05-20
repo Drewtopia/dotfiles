@@ -19,7 +19,7 @@ packages = [
   "kanata",
   "Meslo-NF",
   "mise",
-  "1password-cli",
+  "zed",
 ]
 
 # URLs for buckets not in scoop's "known" list. Looked up by name when
