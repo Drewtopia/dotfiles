@@ -73,6 +73,10 @@
           {
             "type": "command",
             "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/block-dangerous-commands.sh'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/git-commit-precheck.sh'"
           }
         ]
       }
