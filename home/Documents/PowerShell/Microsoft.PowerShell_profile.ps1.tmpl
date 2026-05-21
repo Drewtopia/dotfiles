@@ -72,9 +72,16 @@ if (Get-Command carapace -ErrorAction SilentlyContinue) {
     carapace _carapace | Out-String | Invoke-Expression
 }
 
-# Zoxide - smarter cd command
-if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-    (& zoxide init powershell) | Out-String | Invoke-Expression
+# Zoxide - smarter cd command. Resolve the real install binary, not the mise
+# shim: zoxide has both a shim and a direct binary on PATH and the shim wins
+# resolution. Each shim invocation re-execs mise, so initialising through it
+# triples the cold-start spawn cost (shim -> mise -> zoxide). Sibling aqua
+# tools (carapace/tv/atuin) already resolve direct.
+$zoxideAll = Get-Command zoxide -CommandType Application -All -ErrorAction SilentlyContinue
+$zoxideExe = $zoxideAll | Where-Object { $_.Source -notlike '*shims*' } | Select-Object -First 1
+if (-not $zoxideExe) { $zoxideExe = $zoxideAll | Select-Object -First 1 }
+if ($zoxideExe) {
+    (& $zoxideExe.Source init powershell) | Out-String | Invoke-Expression
 }
 
 # Television - smart fuzzy finder with context-aware channels.
@@ -101,16 +108,15 @@ if (Get-Command fnox -ErrorAction SilentlyContinue) {
     (&fnox activate pwsh) | Out-String | Invoke-Expression
 }
 
-# PowerToys CommandNotFound module
-if (Get-Module -ListAvailable -Name Microsoft.WinGet.CommandNotFound) {
-    Import-Module -Name Microsoft.WinGet.CommandNotFound
-}
-
 # Kanata toggles - manual on/off (used primarily on work machines where
 # auto-start is intentionally disabled to avoid Jump Desktop double-remap).
 # Personal machines also get these as a convenience alongside the
 # scheduled task.
-if (Get-Command kanata -ErrorAction SilentlyContinue) {
+# Probe the known scoop shim path directly rather than Get-Command: a
+# Get-Command miss triggers a full PATH scan (~400ms) across the large mise
+# shims and install dirs. kanata is installed via scoop (see
+# run_onchange_after_50-setup-kanata.ps1.tmpl).
+if (Test-Path "$env:SCOOP\shims\kanata.exe") {
     $script:KanataConfigPath = "$env:USERPROFILE\.config\kanata\kanata.kbd"
 
     function kanata-status {
