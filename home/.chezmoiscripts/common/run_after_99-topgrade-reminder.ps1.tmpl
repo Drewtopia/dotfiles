@@ -1,0 +1,9 @@
+{{- if eq .chezmoi.os "windows" -}}
+{{- if .dev_computer -}}
+# Update work (app/tool/skill/marketplace upgrades) was moved out of
+# `chezmoi apply` into topgrade. This reminder runs last so the prompt
+# to update is the final thing shown.
+Write-Host ""
+Write-Host "[chezmoi] apply complete. Run 'topgrade' to update apps, tools, skills, and Claude marketplaces."
+{{- end }}
+{{- end }}
