@@ -1,5 +1,8 @@
 {{- if .dev_computer -}}
 #!/bin/bash
+# run_onchange: re-fires only when the declared mise tool set changes.
+# mise config: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
+# Ongoing tool upgrades are handled by topgrade's native mise step.
 set -eufo pipefail
 
 # Install mise if needed
