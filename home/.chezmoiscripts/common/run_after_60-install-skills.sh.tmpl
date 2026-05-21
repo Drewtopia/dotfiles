@@ -8,7 +8,7 @@
 #
 # run_after (not run_onchange): every `chezmoi apply` re-invokes the CLI,
 # which re-clones each repo and refreshes installed skills. Self-heals
-# when a prior run aborted mid-list — next apply retries siblings instead
+# when a prior run aborted mid-list; next apply retries siblings instead
 # of waiting on a YAML edit to bump a hash.
 
 if ! command -v npx >/dev/null 2>&1; then
