@@ -57,12 +57,17 @@ if command -v tv >/dev/null 2>&1; then
 	eval "$(tv init zsh)"
 fi
 
-# fnox - secrets manager with shell integration
+# fnox - secrets manager with shell integration.
+# `command fnox`: a prior `fnox activate` defines a fnox() function that
+# shadows the binary and bakes in an absolute versioned path. When mise
+# upgrades fnox that path dies, and re-sourcing this file would hit the
+# stale function instead of the binary - unable to regenerate. `command`
+# bypasses the function so re-sourcing always re-activates cleanly.
 if command -v fnox >/dev/null 2>&1; then
 	if [[ -n ${ZSH_NAME} ]]; then
-		eval "$(fnox activate zsh)"
+		eval "$(command fnox activate zsh)"
 	elif [[ -n ${BASH} ]]; then
-		eval "$(fnox activate bash)"
+		eval "$(command fnox activate bash)"
 	fi
 fi
 
