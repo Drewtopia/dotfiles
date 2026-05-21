@@ -95,6 +95,10 @@ disable = ["shell", "containers", "go"]
 # Agent skills: chezmoi's run_onchange install-skills script ADDS declared
 # skills (fires on skills.yaml change); topgrade owns UPDATING them.
 "Agent skills" = "npx -y skills update -g -y"
+# Television cable channels: pull the community channel set. Moved out of
+# chezmoi apply (was run_before_05-update-tv-channels) so apply stays fast;
+# tv skips channels that already exist, chezmoi still owns custom overrides.
+"Television channels" = "tv update-channels"
 
 
 [python]
