@@ -180,8 +180,11 @@
     command = "pwsh"
 
 # interpreter uses powershell.exe (built-in 5.1) so scripts can bootstrap
-# pwsh before it exists on a fresh machine
+# pwsh before it exists on a fresh machine.
+# -NonInteractive: the child must not run as an interactive shell. Without
+# it, a Ctrl-C'd long-running script leaks its raw `PS>` prompt into the
+# parent terminal and corrupts PSReadLine input state (scrambled keystrokes).
 [interpreters.ps1]
     command = "powershell.exe"
-    args = ["-NoLogo", "-NoProfile"]
+    args = ["-NoLogo", "-NoProfile", "-NonInteractive"]
 {{- end }}
