@@ -6,25 +6,21 @@
 # which went stale every time Pocock refactored upstream. The CLI tracks
 # whatever's currently in each declared repo.
 #
-# Inlining the desired skills below makes run_onchange retrigger when the
-# YAML changes:
-{{- range .skill_repos }}
-# {{ .repo }}:
-{{- range .skills }}
-#   {{ . }}
-{{- end }}
-{{- end }}
-
-set -euo pipefail
+# run_after (not run_onchange): every `chezmoi apply` re-invokes the CLI,
+# which re-clones each repo and refreshes installed skills. Self-heals
+# when a prior run aborted mid-list — next apply retries siblings instead
+# of waiting on a YAML edit to bump a hash.
 
 if ! command -v npx >/dev/null 2>&1; then
     echo "[skills] npx not on PATH; skipping"
     exit 0
 fi
 
+# Per-repo failures must not abort siblings. No set -e; explicit || log.
 {{- range .skill_repos }}
 echo "[skills] {{ .repo }}: {{ .skills | join ", " }}"
-npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
+npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }} \
+    || echo "[skills] {{ .repo }}: install failed (continuing)"
 {{- end }}
 
 # Sweep up empty skill directories that `npx skills add` leaves behind
