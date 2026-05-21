@@ -5,7 +5,7 @@
 #
 # run_after (not run_onchange): every `chezmoi apply` re-invokes the CLI,
 # which re-clones each repo and refreshes installed skills. Self-heals
-# when a prior run aborted mid-list — next apply retries siblings instead
+# when a prior run aborted mid-list; next apply retries siblings instead
 # of waiting on a YAML edit to bump a hash.
 
 # Continue past per-repo failures so one bad repo cannot abort siblings.
@@ -29,7 +29,7 @@ try {
     & npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
     if ($LASTEXITCODE -ne 0) { throw "npx skills add exited $LASTEXITCODE" }
 } catch {
-    Write-Warning "[skills] {{ .repo }}: install failed ($_) — continuing"
+    Write-Warning "[skills] {{ .repo }}: install failed ($_); continuing"
 }
 {{- end }}
 
