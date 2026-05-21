@@ -116,7 +116,9 @@ disable = ["shell", "containers", "go"]
 # For the BrewCask step
 # If `Repo Cask Upgrade` exists, then use the `-a` option.
 # Otherwise, use the `--greedy` option.
-# greedy_cask = true
+# Greedy: also upgrade casks that auto-update themselves, so Homebrew's
+# tracked version stays accurate and a broken self-updater gets caught.
+greedy_cask = true
 
 # For the BrewCask step
 # If `Repo Cask Upgrade` does not exist, then use the `--greedy_latest` option.
