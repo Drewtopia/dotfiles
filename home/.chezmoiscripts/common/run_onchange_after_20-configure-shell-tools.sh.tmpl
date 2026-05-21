@@ -19,9 +19,8 @@ fi
 
 # Configure pnpm if available
 if command -v pnpm >/dev/null 2>&1; then
-    # Set pnpm configurations
-    pnpm config set auto-install-peers true 2>/dev/null || true
-    pnpm config set dedupe-peer-dependents true 2>/dev/null || true
+    # auto-install-peers and dedupe-peer-dependents are pnpm 10 defaults and
+    # are no longer accepted by `pnpm config set` for the global config.yaml.
     pnpm config set prefer-frozen-lockfile true 2>/dev/null || true
 fi
 
