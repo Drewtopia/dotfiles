@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Reconcile Claude Code plugin marketplaces against .chezmoidata/claude.toml.
-# For each declared marketplace: register it via `claude plugin marketplace add`
-# (no-op if already registered), then refresh all known marketplaces.
+# Registers each declared marketplace via `claude plugin marketplace add`
+# (no-op if already registered). Refreshing marketplaces is handled by
+# topgrade's native Claude Code step, not here.
 #
 # Inlining the desired marketplaces below makes run_onchange retrigger when
 # claude.toml changes:
@@ -21,11 +22,3 @@ output=$(claude plugin marketplace add {{ $repo }} 2>&1) && \
   echo "✓ marketplace {{ $name }} registered" || \
   echo "  marketplace {{ $name }} already registered (or add failed: ${output})"
 {{- end }}
-
-echo "🔄 Refreshing marketplaces..."
-if claude plugin marketplace update 2>&1; then
-  echo "✓ marketplaces refreshed (restart Claude Code to pick up new plugins)"
-else
-  echo "⚠️  marketplace update failed — continuing chezmoi apply" >&2
-  exit 0
-fi
