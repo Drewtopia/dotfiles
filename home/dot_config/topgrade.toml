@@ -92,6 +92,9 @@ disable = ["shell", "containers", "go"]
 [commands]
 # "Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
 # "Custom command using interactive shell (unix)" = "-i vim_upgrade"
+# Agent skills: chezmoi's run_onchange install-skills script ADDS declared
+# skills (fires on skills.yaml change); topgrade owns UPDATING them.
+"Agent skills" = "npx -y skills update -g -y"
 
 
 [python]
