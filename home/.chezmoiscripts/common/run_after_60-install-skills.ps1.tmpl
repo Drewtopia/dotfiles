@@ -3,16 +3,13 @@
 # Reconcile agent skills against .chezmoidata/skills.yaml via `npx skills`
 # (Windows counterpart of the .sh sibling).
 #
-# Inlining the desired skills below makes run_onchange retrigger when the
-# YAML changes:
-{{- range .skill_repos }}
-# {{ .repo }}:
-{{- range .skills }}
-#   {{ . }}
-{{- end }}
-{{- end }}
+# run_after (not run_onchange): every `chezmoi apply` re-invokes the CLI,
+# which re-clones each repo and refreshes installed skills. Self-heals
+# when a prior run aborted mid-list — next apply retries siblings instead
+# of waiting on a YAML edit to bump a hash.
 
-$ErrorActionPreference = "Stop"
+# Continue past per-repo failures so one bad repo cannot abort siblings.
+$ErrorActionPreference = "Continue"
 
 # Refresh PATH from registry. chezmoi-spawned scripts inherit the chezmoi
 # parent process env, which doesn't include PATH mutations made by sibling
@@ -28,7 +25,12 @@ if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
 
 {{- range .skill_repos }}
 Write-Host "[skills] {{ .repo }}: {{ .skills | join ", " }}"
-npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
+try {
+    & npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
+    if ($LASTEXITCODE -ne 0) { throw "npx skills add exited $LASTEXITCODE" }
+} catch {
+    Write-Warning "[skills] {{ .repo }}: install failed ($_) — continuing"
+}
 {{- end }}
 
 # Sweep up empty skill directories that `npx skills add` leaves behind
