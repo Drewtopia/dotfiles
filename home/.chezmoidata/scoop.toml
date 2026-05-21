@@ -15,10 +15,11 @@ buckets = ["extras", "nerd-fonts"]
 # CLI/shell tools (bat, fd, rg, delta, eza, gh, glow, jj, jq, lazygit,
 # carapace, fzf, zoxide, neovim) moved to mise — only Windows-specific
 # or non-mise-able tools belong here.
+# mise itself is bootstrapped via winget portable (see
+# windows/run_onchange_before_00-install-mise.ps1.tmpl).
 packages = [
   "kanata",
   "Meslo-NF",
-  "mise",
   "zed",
 ]
 
