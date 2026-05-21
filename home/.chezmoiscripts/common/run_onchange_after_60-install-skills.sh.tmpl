@@ -6,10 +6,10 @@
 # which went stale every time Pocock refactored upstream. The CLI tracks
 # whatever's currently in each declared repo.
 #
-# run_after (not run_onchange): every `chezmoi apply` re-invokes the CLI,
-# which re-clones each repo and refreshes installed skills. Self-heals
-# when a prior run aborted mid-list; next apply retries siblings instead
-# of waiting on a YAML edit to bump a hash.
+# run_onchange: fires only when this rendered script changes, i.e. when
+# .chezmoidata/skills.yaml changes the declared repo/skill set. Its job is
+# ADDING newly-declared skills. Ongoing UPDATES are owned by topgrade
+# (`npx skills update -g -y`, see dot_config/topgrade.toml).
 
 if ! command -v npx >/dev/null 2>&1; then
     echo "[skills] npx not on PATH; skipping"
