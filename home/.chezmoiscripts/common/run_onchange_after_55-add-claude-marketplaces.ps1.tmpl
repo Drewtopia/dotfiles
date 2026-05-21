@@ -1,8 +1,8 @@
 {{- if eq .chezmoi.os "windows" -}}
 # Reconcile Claude Code plugin marketplaces against .chezmoidata/claude.toml
-# (Windows counterpart of the .sh sibling). For each declared marketplace:
-# register it via `claude plugin marketplace add` (no-op if already
-# registered), then refresh all known marketplaces.
+# (Windows counterpart of the .sh sibling). Registers each declared
+# marketplace via `claude plugin marketplace add` (no-op if already
+# registered). Refreshing is handled by topgrade's native Claude Code step.
 #
 # ASCII-only: chezmoi writes scripts as UTF-8 without BOM, and PowerShell
 # defaults to CP1252 parsing on Windows, which mangles multi-byte chars.
@@ -28,13 +28,4 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host '[skip] marketplace {{ $name }} already registered or add failed' -ForegroundColor DarkGray
 }
 {{- end }}
-
-Write-Host 'Refreshing marketplaces...'
-try {
-    claude plugin marketplace update
-    Write-Host '[ok] marketplaces refreshed (restart Claude Code to pick up new plugins)' -ForegroundColor Green
-} catch {
-    Write-Warning "marketplace update failed - continuing chezmoi apply: $_"
-    exit 0
-}
 {{- end -}}
