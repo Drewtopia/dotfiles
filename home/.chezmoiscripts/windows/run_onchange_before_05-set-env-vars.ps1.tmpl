@@ -80,7 +80,10 @@ foreach ($kv in $envVars.GetEnumerator()) {
 #   - guarantee WinGet Links is entry 0, mise shims is entry 1
 $miseShims   = '{{ .directories.mise_dir }}/shims' -replace '/', '\'
 $wingetLinks = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
-$prepend     = @($wingetLinks, $miseShims)
+# tools_root\.local\bin holds chezmoi-installed CLIs (cvault), uv tool
+# binaries and GOBIN output. Prepended unconditionally like the shims.
+$localBin    = '{{ .directories.tools_root }}/.local/bin' -replace '/', '\'
+$prepend     = @($wingetLinks, $miseShims, $localBin)
 $userPath   = [Environment]::GetEnvironmentVariable('Path', 'User')
 $raw        = if ($userPath) { $userPath -split ';' | Where-Object { $_ } } else { @() }
 
@@ -89,6 +92,10 @@ $raw        = if ($userPath) { $userPath -split ';' | Where-Object { $_ } } else
 # tools_root, so it is not covered by UV_TOOL_BIN_DIR/GOBIN. Append it; the
 # Test-Path + dedup loop below includes it only if the install exists.
 $raw        = @($raw) + (Join-Path $HOME '.local\bin')
+
+# Appended only when present: Git for Windows' bin\ (narrow - avoids the
+# usr\bin Unix-tool shadowing risk) so any shell can resolve `bash`.
+$appendIfExists = @('C:\Program Files\Git\bin')
 
 $cleaned = [System.Collections.Generic.List[string]]::new()
 $seen    = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -109,10 +116,17 @@ foreach ($p in $raw) {
     if (-not $seen.Add($n)) { continue }
     [void]$cleaned.Add($n)
 }
+foreach ($p in $appendIfExists) {
+    $n = ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', ''
+    if ([string]::IsNullOrWhiteSpace($n)) { continue }
+    if (-not (Test-Path -LiteralPath $n)) { continue }
+    if (-not $seen.Add($n)) { continue }
+    [void]$cleaned.Add($n)
+}
 
 $newUserPath = $cleaned -join ';'
 if ($newUserPath -ne $userPath) {
-    $removed = ($raw.Count + $prepend.Count) - $cleaned.Count
+    $removed = ($raw.Count + $prepend.Count + $appendIfExists.Count) - $cleaned.Count
     Write-Host "[Env] Rewriting User PATH ($($raw.Count) -> $($cleaned.Count) entries, $removed pruned/normalized)" -ForegroundColor Blue
     [Environment]::SetEnvironmentVariable('Path', $newUserPath, 'User')
 }
