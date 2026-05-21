@@ -1,5 +1,8 @@
 {{- if .dev_computer }}
 #!/usr/bin/env pwsh
+# run_onchange: re-fires only when the declared mise tool set changes.
+# mise config: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
+# Ongoing tool upgrades are handled by topgrade's native mise step.
 
 # Re-launch with pwsh 7 if running under PowerShell 5.1
 if ($PSVersionTable.PSVersion.Major -lt 7) {
