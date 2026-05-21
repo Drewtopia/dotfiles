@@ -55,7 +55,7 @@ foreach ($kv in $envVars.GetEnumerator()) {
     Set-Item -Path "Env:$($kv.Key)" -Value $kv.Value
 }
 
-# Clean + normalize User PATH, ensure mise + scoop shims are first.
+# Clean + normalize User PATH, ensure mise + WinGet Links are first.
 #
 # Why touch User PATH at all: GUI apps (VS Code, JetBrains, etc.) only
 # inherit Windows User PATH at launch; the PowerShell profile patches
@@ -63,21 +63,24 @@ foreach ($kv in $envVars.GetEnumerator()) {
 # biomejs.biome scan PATH and otherwise fail with "Unable to find the
 # Biome binary".
 #
-# Why scoop shims is entry 1: every mise shim execs `mise` to resolve
-# the underlying binary. mise itself is installed via scoop, so its
-# exe lives under $SCOOP/shims. Without that on User PATH, every mise
-# shim fails with "mise-shim: failed to execute mise: program not found"
-# under GUI processes (and any pwsh that doesn't run the profile).
+# Why WinGet Links is in the prepend list: every mise shim execs `mise`
+# to resolve the underlying binary. mise itself is installed via winget
+# portable (see run_onchange_before_00-install-mise.ps1.tmpl), and the
+# winget shim lives under %LOCALAPPDATA%\Microsoft\WinGet\Links. Without
+# that on User PATH, every mise shim fails with "mise-shim: failed to
+# execute mise: program not found" under GUI processes (and any pwsh
+# that doesn't run the profile). scoop\shims still ends up on PATH via
+# the merge below (already in user PATH), but is no longer load-bearing
+# for mise.exe lookup.
 #
 # Self-heal on every apply:
 #   - normalize to backslashes, strip trailing \ and \.
 #   - drop entries pointing at non-existent dirs (uninstalls leave junk)
 #   - dedup case-insensitively, preserving first occurrence
-#   - guarantee mise shims is entry 0, scoop shims is entry 1
-$miseShims  = '{{ .directories.mise_dir }}/shims' -replace '/', '\'
-$scoopRoot  = if ($env:SCOOP) { $env:SCOOP } else { Join-Path $HOME 'scoop' }
-$scoopShims = (Join-Path $scoopRoot 'shims') -replace '/', '\'
-$prepend    = @($miseShims, $scoopShims)
+#   - guarantee WinGet Links is entry 0, mise shims is entry 1
+$miseShims   = '{{ .directories.mise_dir }}/shims' -replace '/', '\'
+$wingetLinks = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+$prepend     = @($wingetLinks, $miseShims)
 $userPath   = [Environment]::GetEnvironmentVariable('Path', 'User')
 $raw        = if ($userPath) { $userPath -split ';' | Where-Object { $_ } } else { @() }
 

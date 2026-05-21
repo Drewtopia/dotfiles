@@ -16,14 +16,14 @@ foreach ($var in 'CLAUDE_CONFIG_DIR','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DAT
 }
 
 {{ end -}}
-# Add scoop shims (where mise.exe lives) BEFORE mise shims. Every mise-shim
-# binary execs `mise` to resolve its target; if scoop shims isn't on PATH the
+# Add WinGet Links (where mise.exe lives) BEFORE mise shims. Every mise-shim
+# binary execs `mise` to resolve its target; if WinGet Links isn't on PATH the
 # mise-shim crashes with "mise-shim: failed to execute mise: program not found".
 # User PATH carries this via run_onchange_before_05-set-env-vars.ps1.tmpl, but
 # terminals opened before that apply ran won't see it — self-heal here.
-$scoopShimPath = if ($env:SCOOP) { Join-Path $env:SCOOP 'shims' } else { Join-Path $HOME 'scoop\shims' }
-if ((Test-Path $scoopShimPath) -and $env:PATH -notlike "*$scoopShimPath*") {
-    $env:PATH = "$scoopShimPath;$env:PATH"
+$wingetLinksPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+if ((Test-Path $wingetLinksPath) -and $env:PATH -notlike "*$wingetLinksPath*") {
+    $env:PATH = "$wingetLinksPath;$env:PATH"
 }
 
 # Add mise shims to PATH if mise is installed
