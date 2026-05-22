@@ -92,13 +92,16 @@ disable = ["shell", "containers", "go"]
 [commands]
 # "Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
 # "Custom command using interactive shell (unix)" = "-i vim_upgrade"
-# Agent skills: chezmoi's run_onchange install-skills script ADDS declared
+# Lowercase, space-free names so `--custom-commands <name>` needs no
+# quoting or case-matching on the CLI.
+#
+# agent-skills: chezmoi's run_onchange install-skills script ADDS declared
 # skills (fires on skills.yaml change); topgrade owns UPDATING them.
-"Agent skills" = "npx -y skills update -g -y"
-# Television cable channels: pull the community channel set. Moved out of
-# chezmoi apply (was run_before_05-update-tv-channels) so apply stays fast;
-# tv skips channels that already exist, chezmoi still owns custom overrides.
-"Television channels" = "tv update-channels"
+agent-skills = "npx -y skills update -g -y"
+# tv-channels: pull the community channel set. Moved out of chezmoi apply
+# (was run_before_05-update-tv-channels) so apply stays fast; tv skips
+# channels that already exist, chezmoi still owns custom overrides.
+tv-channels = "tv update-channels"
 
 
 [python]
