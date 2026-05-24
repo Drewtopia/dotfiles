@@ -20,6 +20,20 @@
 # go disabled - mise handles Go, Homebrew go conflicts with mise paths
 disable = ["shell", "containers", "go"]
 
+# Refresh dotfiles first so the rest of the run upgrades against current config.
+first = ["chezmoi"]
+
+# Surface skipped steps so silent no-ops are visible.
+show_skipped = true
+
+# Notify only on failure at end of run (replaces legacy `skip_notify` below).
+notify_end = "on_failure"
+
+# Don't ask what to do after a failed step; auto-retry once before giving up
+# (replaces legacy `no_retry` below).
+ask_retry = false
+auto_retry = 1
+
 # Ignore failures for these steps
 # ignore_failures = ["powershell"]
 
@@ -131,11 +145,50 @@ greedy_cask = true
 
 # For the BrewFormula step
 # Execute `brew autoremove` after the step.
-# autoremove = true
+# Trim orphaned formula dependencies after upgrade.
+autoremove = true
 
 # For the BrewFormula step
 # Upgrade formulae built from the HEAD branch; `brew upgrade --fetch-HEAD`
 # fetch_head = true
+
+
+[chezmoi]
+# Skip age-encrypted files during chezmoi update
+# (default: false)
+# exclude_encrypted = false
+
+
+[mise]
+# Bump pinned versions in mise.toml to latest. Entries pinned to "latest"
+# (like topgrade itself) are no-ops; specific-version pins get bumped and
+# the lockfile is updated so other machines pull the new version.
+bump = true
+
+# Number of parallel install jobs (default: 4)
+# jobs = 4
+
+# Run interactively (default: false)
+# interactive = false
+
+# Suppress non-error messages (default: false)
+# quiet = false
+
+# Suppress all task output and mise non-error messages (default: false)
+# silent = false
+
+# Show extra output (default: false)
+# verbose = false
+
+
+[cargo]
+# Whether `cargo install-update` also updates git-originating packages
+# (default: true)
+# git = false
+
+# Run `cargo install-update` quietly
+# (default: false)
+# quiet = true
 
 
 [linux]
@@ -204,16 +257,35 @@ greedy_cask = true
 # Manually select Windows updates
 # accept_all_updates = false
 
+# Controls whether to auto-reboot when updates request it.
+# Allowed: "yes", "no", "ask". Default "no".
+# "ask" = explicit consent before reboot during a topgrade run.
+updates_auto_reboot = "ask"
+
 # open_remotes_in_new_terminal = true
 
 # wsl_update_pre_release = true
 
-# wsl_update_use_web_download = true
+# Pull WSL update direct from Microsoft (bypass Microsoft Store).
+# Useful in environments where Store is blocked or slow.
+wsl_update_use_web_download = true
+
+# Silent winget installs. Default is already `true`; set explicit so the
+# behavior is obvious in this file. Set to `false` if you want to see
+# winget's interactive UI per package.
+# (Field name is `winget_silent_install` in topgrade 17.x; upstream example
+# uses `winget_install_silently` which is rejected by the binary.)
+winget_silent_install = true
 
 # Causes Topgrade to rename itself during the run to allow package managers
 # to upgrade it. Use this only if you installed Topgrade by using a package
-# manager such as Scoop or Cargo
+# manager such as Scoop or Cargo. Skip for mise/aqua install — mise owns
+# the binary path and updates topgrade via the `mise` step instead.
 # self_rename = true
+
+# Run winget elevated. Discouraged upstream — some packages break under
+# sudo-mode. Leave off unless you hit a specific permission error.
+# winget_use_sudo = true
 
 
 [npm]
