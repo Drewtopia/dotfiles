@@ -1,0 +1,83 @@
+{{- if and (eq .chezmoi.os "windows") .dev_computer -}}
+#!/usr/bin/env pwsh
+# Install winget packages declared in home/.chezmoidata/winget.toml.
+#
+# Slot 08: lands after mise/pwsh bootstrap (00) and env-vars (05), before
+# scoop (10). Any winget-managed prereq is on PATH for downstream scripts.
+#
+# Idempotent: `winget list --id <id> --exact` returns exit 0 only when the
+# package is installed; non-zero means "not found" and we trigger install.
+#
+# Scope/location strategy:
+#   - Personal: pass nothing extra. winget chooses the manifest's default
+#     scope. Inno/MSI installers prompt UAC (acceptable on personal).
+#   - Work + relocated tools_root: pass --scope user --location to keep
+#     portable manifests inside the whitelisted dev path. Non-portable
+#     manifests will reject these flags — those packages belong in
+#     scoop.toml [scoop.work], not here.
+
+$ErrorActionPreference = 'Stop'
+
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Host '[winget] CLI not on PATH; skipping winget package install' -ForegroundColor Yellow
+    exit 0
+}
+
+$wingetPackages = @(
+{{- range .winget.packages }}
+    '{{ . }}'
+{{- end }}
+{{- if .personal }}
+{{- range .winget.personal.packages }}
+    '{{ . }}'
+{{- end }}
+{{- end }}
+{{- if .work }}
+{{- range .winget.work.packages }}
+    '{{ . }}'
+{{- end }}
+{{- end }}
+)
+
+if ($wingetPackages.Count -eq 0) {
+    Write-Host '[winget] No packages declared; nothing to do' -ForegroundColor DarkGray
+    exit 0
+}
+
+{{- if and .work (ne .directories.tools_root .chezmoi.homeDir) }}
+$workLocation = '{{ .directories.tools_root }}\tools' -replace '/', '\'
+if (-not (Test-Path $workLocation)) {
+    New-Item -ItemType Directory -Force -Path $workLocation | Out-Null
+}
+{{- end }}
+
+$failed = @()
+foreach ($id in $wingetPackages) {
+    & winget list --id $id --exact --accept-source-agreements 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] $id already installed" -ForegroundColor Green
+        continue
+    }
+
+    Write-Host "[Install] winget install $id" -ForegroundColor Blue
+{{- if and .work (ne .directories.tools_root .chezmoi.homeDir) }}
+    & winget install --id $id --exact `
+        --accept-package-agreements --accept-source-agreements `
+        --scope user --location $workLocation
+{{- else }}
+    & winget install --id $id --exact `
+        --accept-package-agreements --accept-source-agreements
+{{- end }}
+    if ($LASTEXITCODE -ne 0) {
+        $failed += $id
+        Write-Host "[ERROR] winget install $id exit $LASTEXITCODE" -ForegroundColor Red
+    }
+}
+
+if ($failed.Count -gt 0) {
+    Write-Host "[ERROR] winget install failures: $($failed -join ', ')" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host '[OK] winget package install completed' -ForegroundColor Green
+{{- end -}}

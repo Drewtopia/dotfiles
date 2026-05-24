@@ -1,0 +1,31 @@
+# Winget packages for run_onchange_before_08-install-winget-pkgs.
+# Cannot use template syntax here — chezmoidata loads before the template
+# engine. Personal/work gating happens in the install script.
+#
+# Why this exists: winget is the preferred installer for Windows-native
+# GUI apps and tools that publish a manifest in winget-pkgs. mise stays
+# canonical for dev CLIs; scoop is retained on work for nerd-fonts and
+# editors whose winget manifest is machine-scope-only (e.g. Zed/Inno).
+#
+# Phase 0: schema only. All lists empty until packages are migrated
+# from scoop or declared from a `winget list` snapshot.
+
+[winget]
+# Always-install: packages installed on every Windows dev machine
+# regardless of profile. Use package IDs exactly as published in
+# winget-pkgs (e.g. 'jtroo.kanata_gui', not 'jtroo.kanata').
+packages = []
+
+# Personal-only additions (gated by .personal in the install script).
+# Machine-scope installers (Inno/MSI) are fine here — personal boxes
+# have admin and no whitelist constraint, so UAC prompts are acceptable.
+[winget.personal]
+packages = []
+
+# Work-only additions (gated by .work). The install script passes
+# --scope user --location <tools_root>\tools so portable manifests land
+# inside the whitelisted path. Manifests that don't support portable
+# mode (Inno, machine-scope MSI) will be rejected by winget — those
+# packages must go in scoop.toml [scoop.work] instead.
+[winget.work]
+packages = []
