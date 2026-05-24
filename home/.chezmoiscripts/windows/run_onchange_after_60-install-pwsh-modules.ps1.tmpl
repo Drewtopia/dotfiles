@@ -20,6 +20,14 @@ $modules = @(
     'Terminal-Icons'    # File/folder icons in Get-ChildItem
 )
 
+# Pre-trust PSGallery once. Without this, Install-Module prompts interactively
+# on first install ("Are you sure you want to install modules from PSGallery?")
+# and hangs forever in chezmoi's non-interactive context.
+$psGallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+if ($psGallery -and $psGallery.InstallationPolicy -ne 'Trusted') {
+    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+}
+
 foreach ($mod in $modules) {
     if (Get-Module -ListAvailable -Name $mod) {
         Write-Host "[OK] $mod already installed" -ForegroundColor Green
@@ -27,8 +35,16 @@ foreach ($mod in $modules) {
     }
     Write-Host "[Install] $mod" -ForegroundColor Blue
     try {
-        # PSGallery is the default repo; CurrentUser scope avoids needing admin.
-        Install-Module -Name $mod -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+        $installParams = @{
+            Name         = $mod
+            Scope        = 'CurrentUser'
+            Repository   = 'PSGallery'
+            Force        = $true
+            AllowClobber = $true
+            Confirm      = $false
+            ErrorAction  = 'Stop'
+        }
+        Install-Module @installParams
         Write-Host "[OK] $mod installed" -ForegroundColor Green
     } catch {
         Write-Host "[ERROR] Failed to install $mod : $($_.Exception.Message)" -ForegroundColor Red
