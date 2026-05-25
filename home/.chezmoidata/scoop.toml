@@ -20,20 +20,24 @@ buckets = ["extras", "nerd-fonts"]
 packages = [
   "kanata",
   "Meslo-NF",
-  "zed",
 ]
 
 # URLs for buckets not in scoop's "known" list. Looked up by name when
 # the install script adds a bucket; absent entries default to no URL
 # (which works for known buckets like extras/nerd-fonts).
 [scoop.bucket_urls]
-warthurton_scoop-misc = "https://github.com/warthurton/scoop-misc"
 
 # Work-only additions (gated by `{{ if .work }}` in the install script).
 # Add restricted-tree-friendly tooling here as you discover the need.
 [scoop.work]
-buckets = ["warthurton_scoop-misc"]
+buckets = []
+# zed lives here (not in [winget.personal]) on work because winget's
+# Zed manifest is Inno/machine-scope only; --location is rejected so
+# the binary can't be relocated into the whitelisted tools_root. Scoop
+# installs to %SCOOP%\apps\zed which already sits under tools_root on
+# relocated work setups.
 packages = [
+  "zed",
   "zen-browser",
 ]
 # admin_packages install at machine scope and require UAC. Handled

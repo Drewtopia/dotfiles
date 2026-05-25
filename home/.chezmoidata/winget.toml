@@ -20,7 +20,9 @@ packages = []
 # Machine-scope installers (Inno/MSI) are fine here — personal boxes
 # have admin and no whitelist constraint, so UAC prompts are acceptable.
 [winget.personal]
-packages = []
+packages = [
+  "ZedIndustries.Zed",
+]
 
 # Work-only additions (gated by .work). The install script passes
 # --scope user --location <tools_root>\tools so portable manifests land
