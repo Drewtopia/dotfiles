@@ -18,9 +18,10 @@
 
 $ErrorActionPreference = 'Stop'
 
-# Get-Command sees the MSIX alias stub even when SSH/session-0 can't launch it.
-& winget --version *>$null
-if ($LASTEXITCODE -ne 0) {
+# Probe launch, not file presence — MSIX alias exists but session 0 can't activate it.
+$wingetOk = $false
+try { & winget --version *>$null; $wingetOk = ($LASTEXITCODE -eq 0) } catch {}
+if (-not $wingetOk) {
     Write-Host '[winget] CLI not usable in this session; skipping' -ForegroundColor Yellow
     exit 0
 }
