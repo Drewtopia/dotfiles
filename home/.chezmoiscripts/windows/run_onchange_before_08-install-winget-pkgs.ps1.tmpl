@@ -18,8 +18,10 @@
 
 $ErrorActionPreference = 'Stop'
 
-if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Write-Host '[winget] CLI not on PATH; skipping winget package install' -ForegroundColor Yellow
+# Get-Command sees the MSIX alias stub even when SSH/session-0 can't launch it.
+& winget --version *>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host '[winget] CLI not usable in this session; skipping' -ForegroundColor Yellow
     exit 0
 }
 
