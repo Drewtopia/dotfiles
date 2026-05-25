@@ -64,6 +64,14 @@ if ((Test-Path "$winLibsBin\gcc.exe") -and $env:PATH -notlike "*$winLibsBin*") {
 # execution — which makes atuin/tv init bail with "Atuin requires the PSReadLine module".
 Import-Module PSReadLine -ErrorAction SilentlyContinue
 
+# Oh-My-Posh prompt. Was previously in the OneDrive-located $PROFILE (which
+# dot-sources this file); moved here so the prompt config is version-controlled
+# rather than living only in OneDrive's per-account sync. POSH_THEMES_PATH is
+# set by the oh-my-posh installer (winget package JanDeDobbeleer.OhMyPosh).
+if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
+    oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/spaceship.omp.json" | Invoke-Expression
+}
+
 # Carapace - multi-shell completion engine
 if (Get-Command carapace -ErrorAction SilentlyContinue) {
     $env:CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense'
