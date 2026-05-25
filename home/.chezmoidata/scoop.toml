@@ -39,6 +39,4 @@ packages = [
 # admin_packages install at machine scope and require UAC. Handled
 # by run_onchange_before_15-install-scoop-admin, which self-elevates
 # only when an entry here is missing.
-admin_packages = [
-  "jump-desktop-connect",
-]
+admin_packages = []
