@@ -1,0 +1,17 @@
+{{- /* WSL Ubuntu .bashrc — managed by chezmoi for WSL only. Tool installers
+       (atuin/deno/console-ninja/pnpm) may append lines after apply; that
+       drift is expected. The bail-early guard keeps non-interactive `bash -lc`
+       silent regardless of what installers add. */ -}}
+# ~/.bashrc: executed by bash(1) for non-login shells.
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+[[ -f ~/.fzf.bash ]] && source ~/.fzf.bash
+[[ -f ~/.bash-preexec.sh ]] && source ~/.bash-preexec.sh
+[[ -f "${HOME}/.deno/env" ]] && . "${HOME}/.deno/env"
+command -v atuin >/dev/null 2>&1 && eval "$(atuin init bash)"
+[[ -d "${HOME}/.console-ninja/.bin" ]] && PATH="${HOME}/.console-ninja/.bin:${PATH}"

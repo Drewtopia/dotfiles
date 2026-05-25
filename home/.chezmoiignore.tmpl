@@ -34,6 +34,12 @@ Library
 .local/share/fonts
 {{ end }}
 
+# Bash login files are WSL-only (other Linux uses distro defaults; Mac uses zsh)
+{{ if not .is_wsl }}
+.bashrc
+.profile
+{{ end }}
+
 # Ignore non-Windows files.
 {{ if ne .chezmoi.os "windows" }}
 .chezmoiscripts/windows/**

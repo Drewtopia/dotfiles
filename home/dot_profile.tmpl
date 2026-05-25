@@ -1,0 +1,23 @@
+{{- /* WSL Ubuntu .profile — managed by chezmoi for WSL only. Mirror of the
+       Ubuntu default plus mise/deno env loaders. atuin's old curl-installer
+       line is intentionally absent; atuin now lives in mise. */ -}}
+# ~/.profile: executed by the command interpreter for login shells.
+# This file is not read by bash(1), if ~/.bash_profile or ~/.bash_login exists.
+
+# if running bash
+if [ -n "$BASH_VERSION" ]; then
+    if [ -f "$HOME/.bashrc" ]; then
+        . "$HOME/.bashrc"
+    fi
+fi
+
+if [ -d "$HOME/bin" ]; then
+    PATH="$HOME/bin:$PATH"
+fi
+
+if [ -d "$HOME/.local/bin" ]; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+
+[[ -f "${HOME}/.local/share/mise/env" ]] && . "${HOME}/.local/share/mise/env"
+[[ -f "${HOME}/.deno/env" ]] && . "${HOME}/.deno/env"
