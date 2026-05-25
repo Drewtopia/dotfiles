@@ -162,6 +162,12 @@
 	gpgsign = true
 {{- end }}
 
+{{- if .is_wsl }}
+# Route git ssh through Windows ssh.exe so 1Password agent (Windows-side) handles auth
+[core]
+  sshCommand = ssh.exe
+{{- end }}
+
 {{- if and .work .is_wsl }}
 # Windows Git Credential Manager via interop (appendWindowsPath=false, so use full path)
 [credential]

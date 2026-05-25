@@ -73,5 +73,10 @@ fi
 
 {{- if .is_wsl }}
 # WSL2: op wrapper is created by chezmoi script (run_onchange_before_15-setup-1password-wsl.sh)
-# It delegates to Windows op.exe so chezmoi templates and shell both work
+# It delegates to Windows op.exe so chezmoi templates and shell both work.
+# SSH family routes to Windows binaries so 1Password's Windows-side agent handles auth
+# without a socket bridge (per 1password.dev/ssh/integrations/wsl).
+alias ssh=ssh.exe
+alias scp=scp.exe
+alias ssh-add=ssh-add.exe
 {{- end }}
