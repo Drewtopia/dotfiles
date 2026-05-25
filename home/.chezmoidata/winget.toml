@@ -14,7 +14,9 @@
 # Always-install: packages installed on every Windows dev machine
 # regardless of profile. Use package IDs exactly as published in
 # winget-pkgs (e.g. 'jtroo.kanata_gui', not 'jtroo.kanata').
-packages = []
+packages = [
+  "JanDeDobbeleer.OhMyPosh",
+]
 
 # Personal-only additions (gated by .personal in the install script).
 # Machine-scope installers (Inno/MSI) are fine here — personal boxes
