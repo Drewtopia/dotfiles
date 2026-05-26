@@ -16,6 +16,7 @@
 # winget-pkgs (e.g. 'jtroo.kanata_gui', not 'jtroo.kanata').
 packages = [
   "JanDeDobbeleer.OhMyPosh",
+  "marlocarlo.psmux",
 ]
 
 # Personal-only additions (gated by .personal in the install script).
