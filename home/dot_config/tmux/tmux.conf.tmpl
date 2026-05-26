@@ -1,19 +1,29 @@
 source-file ~/.config/tmux/tmux.reset.conf
 
 # Terminal configuration
-set-option -g default-terminal 'screen-256color'     # Set terminal type for color support
-set-option -g terminal-overrides ',xterm-256color:RGB'  # Enable RGB color support
-set -g default-terminal "${TERM}"                     # Use environment terminal type
+# default-terminal must describe tmux itself, not the outer terminal. The
+# previous `set default-terminal "${TERM}"` line advertised the outer
+# terminal's capabilities to programs inside tmux and broke true-color /
+# italics on some hosts. terminal-features (tmux 3.2+) layers RGB onto
+# the specific outer terminals we use across platforms.
+set -g default-terminal 'tmux-256color'
+set -as terminal-features ',xterm-256color:RGB'
+set -as terminal-features ',xterm-ghostty:RGB'
+set -as terminal-features ',xterm-kitty:RGB'
+set -as terminal-features ',alacritty:RGB'
+set -as terminal-features ',foot:RGB'
+set -as terminal-features ',WezTerm:RGB'
 
 # Basic tmux configuration
 set -g prefix ^A                                      # Set prefix key to Ctrl-A
 set -g base-index 1                                   # Start indexing windows at 1 instead of 0
+set -g pane-base-index 1                              # Match pane indexing to window indexing
 set -g detach-on-destroy off                          # Don't exit from tmux when closing a session
 set -g escape-time 0                                  # Zero-out escape time delay
 set -g history-limit 1000000                          # Increase history size (from 2,000)
 set -g renumber-windows on                            # Renumber all windows when any window is closed
-set -g set-clipboard on                               # Use system clipboard
-set -g status-position top                            # macOS / darwin style
+set -g set-clipboard on                               # OSC 52: lets terminal capture tmux selections
+set -g status-position top
 setw -g mode-keys vi                                  # Use vi-style key bindings in copy mode
 set -g pane-active-border-style 'fg=magenta,bg=default'  # Active pane border color
 set -g pane-border-style 'fg=brightblack,bg=default'     # Inactive pane border color
@@ -34,20 +44,17 @@ bind-key -n 'C-h' if-shell "$is_vim" 'send-keys C-h'  'select-pane -L'
 bind-key -n 'C-j' if-shell "$is_vim" 'send-keys C-j'  'select-pane -D'
 bind-key -n 'C-k' if-shell "$is_vim" 'send-keys C-k'  'select-pane -U'
 bind-key -n 'C-l' if-shell "$is_vim" 'send-keys C-l'  'select-pane -R'
-tmux_version='$(tmux -V | sed -En "s/^tmux ([0-9]+(.[0-9]+)?).*/\1/p")'
-if-shell -b '[ "$(echo "$tmux_version < 3.0" | bc)" = 1 ]' \
-    "bind-key -n 'C-\\' if-shell \"$is_vim\" 'send-keys C-\\'  'select-pane -l'"
-if-shell -b '[ "$(echo "$tmux_version >= 3.0" | bc)" = 1 ]' \
-    "bind-key -n 'C-\\' if-shell \"$is_vim\" 'send-keys C-\\\\'  'select-pane -l'"
+# tmux >= 3.0 needs an extra backslash escape. awk avoids a `bc` dependency
+# that isn't installed on minimal Linux images / fresh Codespaces.
+if-shell -b 'tmux -V | awk -F"[. ]" "{exit !(\$2 >= 3)}"' \
+    "bind-key -n 'C-\\' if-shell \"$is_vim\" 'send-keys C-\\\\' 'select-pane -l'" \
+    "bind-key -n 'C-\\' if-shell \"$is_vim\" 'send-keys C-\\' 'select-pane -l'"
 
 bind-key -T copy-mode-vi 'C-h' select-pane -L
 bind-key -T copy-mode-vi 'C-j' select-pane -D
 bind-key -T copy-mode-vi 'C-k' select-pane -U
 bind-key -T copy-mode-vi 'C-l' select-pane -R
 bind-key -T copy-mode-vi 'C-\' select-pane -l
-
-
-set-option -g status-position top
 
 bind h select-pane -L
 bind j select-pane -D
@@ -68,6 +75,11 @@ set -g @plugin 'omerxx/tmux-sessionx'
 set -g @plugin 'omerxx/tmux-floax'
 
 # Plugin configurations
+{{- if .is_wsl }}
+# WSL: route tmux-yank copies through clip.exe so selections land in the
+# Windows clipboard regardless of whether the outer terminal honours OSC 52.
+set -g @override_copy_command 'clip.exe'
+{{- end }}
 set -g @floax-width '80%'
 set -g @floax-height '80%'
 set -g @floax-border-color 'magenta'
@@ -76,9 +88,9 @@ set -g @floax-bind 'p'
 set -g @floax-change-path 'true'
 set -g @sessionx-bind-zo-new-window 'ctrl-y'
 set -g @sessionx-auto-accept 'off'
-set -g @sessionx-custom-paths '/Users/drew/dotfiles'
+set -g @sessionx-custom-paths '{{ .chezmoi.homeDir }}/dotfiles'
 set -g @sessionx-bind 'o'
-set -g @sessionx-x-path '~/dotfiles'
+set -g @sessionx-x-path '{{ .chezmoi.homeDir }}/dotfiles'
 set -g @sessionx-window-height '85%'
 set -g @sessionx-window-width '75%'
 set -g @sessionx-zoxide-mode 'on'
