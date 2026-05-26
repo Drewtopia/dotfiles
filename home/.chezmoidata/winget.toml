@@ -17,6 +17,7 @@
 packages = [
   "JanDeDobbeleer.OhMyPosh",
   "marlocarlo.psmux",
+  "arndawg.zellij-windows",
 ]
 
 # Personal-only additions (gated by .personal in the install script).
