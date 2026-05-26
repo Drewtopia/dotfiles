@@ -68,8 +68,11 @@ AppData
 .config/shell
 .config/shell/**
 .config/shell-loader.sh
-.config/tmux
+# tmux: drop everything (e.g. a synced plugins/ dir) but keep the two
+# conf files — psmux reads tmux.conf via $PSMUX_CONFIG_FILE on Windows.
 .config/tmux/**
+!.config/tmux/tmux.conf
+!.config/tmux/tmux.reset.conf
 .config/zsh
 .config/zsh/**
 .inputrc
