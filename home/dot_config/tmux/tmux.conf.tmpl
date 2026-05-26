@@ -28,15 +28,21 @@ setw -g mode-keys vi                                  # Use vi-style key binding
 set -g pane-active-border-style 'fg=magenta,bg=default'  # Active pane border color
 set -g pane-border-style 'fg=brightblack,bg=default'     # Inactive pane border color
 
+{{- if ne .chezmoi.os "windows" }}
 # FZF URL plugin configuration
 set -g @fzf-url-fzf-options '-p 60%,30% --prompt="   " --border-label=" Open URL "'
 set -g @fzf-url-history-limit '2000'
+{{- end }}
 
 # Key bindings (R for reload is handled in tmux.reset.conf)
 set-option -g mouse on                                # Enable mouse support
 
+{{- if ne .chezmoi.os "windows" }}
 # Smart pane switching with awareness of Vim splits.
 # See: https://github.com/christoomey/vim-tmux-navigator
+# Skipped on Windows (psmux): `ps -o state= -o comm=` is POSIX-only, and
+# psmux exposes neither the same process inspection nor a comparable shim.
+# Inside vim on Windows, use <C-w>hjkl for splits and prefix+hjkl for panes.
 vim_pattern='(\S+/)?g?\.?(view|l?n?vim?x?|fzf)(diff)?(-wrapped)?'
 is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
     | grep -iqE '^[^TXZ ]+ +${vim_pattern}$'"
@@ -49,6 +55,7 @@ bind-key -n 'C-l' if-shell "$is_vim" 'send-keys C-l'  'select-pane -R'
 if-shell -b 'tmux -V | awk -F"[. ]" "{exit !(\$2 >= 3)}"' \
     "bind-key -n 'C-\\' if-shell \"$is_vim\" 'send-keys C-\\\\' 'select-pane -l'" \
     "bind-key -n 'C-\\' if-shell \"$is_vim\" 'send-keys C-\\' 'select-pane -l'"
+{{- end }}
 
 bind-key -T copy-mode-vi 'C-h' select-pane -L
 bind-key -T copy-mode-vi 'C-j' select-pane -D
@@ -61,7 +68,12 @@ bind j select-pane -D
 bind k select-pane -U
 bind l select-pane -R
 
+{{- if ne .chezmoi.os "windows" }}
 # List of plugins
+# Windows (psmux): TPM and every plugin below are bash scripts that need
+# sed/awk/coreutils on PATH plus POSIX process inspection — none of which
+# psmux can provide. Plugins stay gated to mac/Linux/WSL; psmux gets core
+# tmux only (sessions, panes, copy mode, status bar, prefix+hjkl nav).
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
 set -g @plugin 'tmux-plugins/tmux-yank'
@@ -119,3 +131,4 @@ set -g @catppuccin_date_time_text "%H:%M"
 
 # Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
 run '~/.config/tmux/plugins/tpm/tpm'
+{{- end }}

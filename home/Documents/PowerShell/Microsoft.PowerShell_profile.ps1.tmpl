@@ -204,4 +204,48 @@ if (Test-Path "$env:SCOOP\shims\kanata.exe") {
         }
     }
 }
+
+# psmux - tmux on native Windows. Points psmux at the same conf file used
+# on mac/Linux/WSL; chezmoi renders the Windows variant with plugins/TPM
+# stripped. Helper functions mirror the `t`/`tn`/`tk`/... family from
+# home/dot_config/shell/025-tmux.sh.tmpl so muscle memory carries over.
+$env:PSMUX_CONFIG_FILE = Join-Path $HOME ".config/tmux/tmux.conf"
+
+if (Get-Command psmux -ErrorAction SilentlyContinue) {
+    function t {
+        param([string]$Name)
+        if ($env:PSMUX) {
+            psmux list-sessions
+            return
+        }
+        if (-not $Name) {
+            psmux attach 2>$null
+            if ($LASTEXITCODE -ne 0) { psmux new-session -s main }
+            return
+        }
+        psmux new-session -A -s $Name
+    }
+
+    function ta  { param([Parameter(Mandatory)][string]$Name) psmux attach -t $Name }
+    function tl  { psmux list-sessions }
+    function tk  { param([Parameter(Mandatory)][string]$Name) psmux kill-session -t $Name }
+    function tka { psmux kill-server }
+    function tn  { param([Parameter(Mandatory)][string]$Name) psmux new-session -s $Name }
+    function tq  { psmux kill-session }
+    function th  { t (Split-Path -Leaf $PWD) }
+
+    function tp {
+        param([string]$Dir = ".", [string]$Name)
+        if (-not $Name) { $Name = Split-Path -Leaf (Resolve-Path $Dir) }
+        if ($env:PSMUX) {
+            Write-Host "Already in psmux. Detach first or use: tn $Name"
+            return
+        }
+        psmux new-session -d -s $Name -c $Dir
+        psmux rename-window -t "${Name}:1" "code"
+        psmux split-window -h -t $Name -c $Dir -l 40%
+        psmux select-pane -t "${Name}:1.0"
+        psmux attach -t $Name
+    }
+}
 {{- end }}
