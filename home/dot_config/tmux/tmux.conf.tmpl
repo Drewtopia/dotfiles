@@ -14,6 +14,14 @@ set -as terminal-features ',alacritty:RGB'
 set -as terminal-features ',foot:RGB'
 set -as terminal-features ',WezTerm:RGB'
 
+# Claude Code inside tmux: without these, desktop notifications and the
+# progress bar get swallowed, and Shift+Enter submits instead of inserting
+# a newline.
+# https://code.claude.com/docs/en/terminal-config#configure-tmux
+set -g allow-passthrough on
+set -s extended-keys on
+set -as terminal-features 'xterm*:extkeys'
+
 # Basic tmux configuration
 set -g prefix ^A                                      # Set prefix key to Ctrl-A
 set -g base-index 1                                   # Start indexing windows at 1 instead of 0
