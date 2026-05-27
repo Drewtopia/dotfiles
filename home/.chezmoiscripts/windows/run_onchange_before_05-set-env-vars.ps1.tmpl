@@ -141,8 +141,21 @@ foreach ($shim in $prepend) {
 # provided GITHUB_TOKEN is also in WSLENV; see below). Fixes mise rate-limit
 # when topgrade crosses Windows -> WSL non-interactively.
 if (Get-Command gh -ErrorAction SilentlyContinue) {
-    $ghToken = (& gh auth token 2>$null)
-    if ($LASTEXITCODE -eq 0 -and $ghToken) {
+    $ghToken = $null
+    $ghExitCode = 1
+    $nativeErrPrefVar = Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue
+    $oldNativeErrPref = if ($nativeErrPrefVar) { [bool]$nativeErrPrefVar.Value } else { $null }
+    try {
+        if ($nativeErrPrefVar) { $PSNativeCommandUseErrorActionPreference = $false }
+        $ghToken = (& gh auth token 2>$null)
+        $ghExitCode = $LASTEXITCODE
+    } catch {
+        $ghExitCode = 1
+    } finally {
+        if ($nativeErrPrefVar) { $PSNativeCommandUseErrorActionPreference = $oldNativeErrPref }
+    }
+
+    if ($ghExitCode -eq 0 -and $ghToken) {
         $ghToken = $ghToken.Trim()
         $current = [Environment]::GetEnvironmentVariable('GITHUB_TOKEN', 'User')
         if ($current -ne $ghToken) {
