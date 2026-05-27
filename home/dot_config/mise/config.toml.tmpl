@@ -83,8 +83,31 @@ yt-dlp = "latest"
 
 [settings]
 experimental = true
-activate_aggressive = true
 idiomatic_version_file_enable_tools = ['node', 'pnpm']
+
+# Persist computed env to disk so cold mise spawns skip the full tool walk.
+env_cache = true
+env_cache_ttl = '1h'
+
+# Disable command-not-found hook. The pwsh profile has 7+ `Get-Command -EA SilentlyContinue`
+# probes; with this off, a missed probe no longer spawns `mise hook-not-found`. Safe on
+# Unix too — explicit `mise install` / `mise x` still auto-install.
+not_found_auto_install = false
+
+# Avoid opportunistic GitHub version checks during normal use; refresh on `mise upgrade`.
+prefer_offline = true
+fetch_remote_versions_cache = '24h'
+
+{{ if eq .chezmoi.os "windows" -}}
+# Windows-only: process spawn is ~10x more expensive than fork on Unix, and
+# `mise activate pwsh` installs prompt/chpwd hooks that oh-my-posh re-fires on every
+# redraw. chpwd_only restricts hook-env to actual `cd`s; cache_ttl reuses stat results.
+# Tradeoff: editing a .mise.toml in the current dir no longer triggers a re-resolve
+# until the next `cd`. Acceptable on Windows; not worth it on Unix where the flood
+# doesn't manifest and per-prompt refresh is essentially free.
+hook_env.chpwd_only = true
+hook_env.cache_ttl = '5s'
+{{ end -}}
 
 [settings.node]
 gpg_verify = false
