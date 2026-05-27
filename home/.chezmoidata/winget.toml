@@ -26,6 +26,8 @@ packages = [
 [winget.personal]
 packages = [
   "ZedIndustries.Zed",
+  "wez.wezterm",
+  "Warp.Warp",
 ]
 
 # Work-only additions (gated by .work). The install script passes
