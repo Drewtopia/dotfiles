@@ -36,8 +36,18 @@ $suffixMap = @{
     ".ttc" = "(TrueType)"
 }
 
-$fontFiles = Get-ChildItem -LiteralPath $fontsDir -Recurse -File -ErrorAction SilentlyContinue |
-    Where-Object { $suffixMap.ContainsKey($_.Extension.ToLower()) }
+# Only register fonts in subdirs owned by this dotfiles setup. scoop's
+# nerd-fonts installer drops its TTFs directly into $fontsDir and handles
+# its own HKCU registration; recursing the whole tree would re-register
+# scoop fonts under different (BaseName-derived) keys.
+$managedSubdirs = @("MapleMono", "MapleMono-NF", "MapleMonoNL-NF")
+$fontFiles = foreach ($subdir in $managedSubdirs) {
+    $path = Join-Path $fontsDir $subdir
+    if (Test-Path -LiteralPath $path) {
+        Get-ChildItem -LiteralPath $path -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $suffixMap.ContainsKey($_.Extension.ToLower()) }
+    }
+}
 
 $registered = 0
 $skipped = 0
