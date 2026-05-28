@@ -56,7 +56,11 @@ if (-not (Test-Path $workLocation)) {
 
 $failed = @()
 foreach ($id in $wingetPackages) {
-    & winget list --id $id --exact --accept-source-agreements 2>$null | Out-Null
+    # --source winget skips the msstore source, whose query hangs on
+    # restricted networks; --disable-interactivity guarantees no prompt
+    # can block a non-interactive `chezmoi apply`.
+    & winget list --id $id --exact --source winget `
+        --accept-source-agreements --disable-interactivity 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "[OK] $id already installed" -ForegroundColor Green
         continue
@@ -64,11 +68,11 @@ foreach ($id in $wingetPackages) {
 
     Write-Host "[Install] winget install $id" -ForegroundColor Blue
 {{- if and .work (ne .directories.tools_root .chezmoi.homeDir) }}
-    & winget install --id $id --exact `
+    & winget install --id $id --exact --source winget --disable-interactivity `
         --accept-package-agreements --accept-source-agreements `
         --scope user --location $workLocation
 {{- else }}
-    & winget install --id $id --exact `
+    & winget install --id $id --exact --source winget --disable-interactivity `
         --accept-package-agreements --accept-source-agreements
 {{- end }}
     if ($LASTEXITCODE -ne 0) {
