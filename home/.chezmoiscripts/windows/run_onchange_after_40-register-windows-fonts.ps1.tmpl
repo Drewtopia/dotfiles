@@ -1,0 +1,79 @@
+{{- if eq .chezmoi.os "windows" -}}
+#!/usr/bin/env pwsh
+# Register user-scope fonts dropped under %LOCALAPPDATA%\Microsoft\Windows\Fonts\
+# by .chezmoiexternal in HKCU so apps actually see them.
+#
+# Why this is needed: dropping a TTF in the fonts directory is necessary but
+# not sufficient on Windows. Apps enumerate fonts via HKCU\...\Fonts (user
+# scope) and HKLM\...\Fonts (machine scope). Without a registry entry the
+# file might as well not exist. The right-click "Install for me" path does
+# both atomically; programmatic installs must do the same.
+#
+# Trigger hash forces re-render whenever the managed font list changes:
+{{- $hashInput := list }}
+{{- range (list "MapleMono-TTF.zip" "MapleMono-NF.zip" "MapleMonoNL-NF.zip") }}
+{{-   $hashInput = append $hashInput . }}
+{{- end }}
+# Managed fonts: {{ $hashInput | join ", " }}
+
+$ErrorActionPreference = "Stop"
+
+$fontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+if (-not (Test-Path -LiteralPath $fontsDir)) {
+    Write-Host "[register-windows-fonts] $fontsDir missing; nothing to register" -ForegroundColor DarkGray
+    return
+}
+
+$regKey = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
+if (-not (Test-Path -LiteralPath $regKey)) {
+    New-Item -Path $regKey -Force | Out-Null
+}
+
+# Map file extension to the registry suffix Windows expects in the value name.
+$suffixMap = @{
+    ".ttf" = "(TrueType)"
+    ".otf" = "(OpenType)"
+    ".ttc" = "(TrueType)"
+}
+
+$fontFiles = Get-ChildItem -LiteralPath $fontsDir -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $suffixMap.ContainsKey($_.Extension.ToLower()) }
+
+$registered = 0
+$skipped = 0
+foreach ($font in $fontFiles) {
+    $suffix = $suffixMap[$font.Extension.ToLower()]
+    # Strip the extension and append the type suffix. e.g. "MapleMono-Regular (TrueType)"
+    $name = "{0} {1}" -f $font.BaseName, $suffix
+    $existing = (Get-ItemProperty -Path $regKey -Name $name -ErrorAction SilentlyContinue).$name
+    if ($existing -eq $font.FullName) {
+        $skipped++
+        continue
+    }
+    Set-ItemProperty -Path $regKey -Name $name -Value $font.FullName -Type String
+    $registered++
+}
+
+Write-Host ("[register-windows-fonts] {0} registered, {1} already current" -f $registered, $skipped) -ForegroundColor Blue
+
+if ($registered -gt 0) {
+    # Broadcast WM_FONTCHANGE so running apps pick up the new fonts without
+    # requiring a logout. Best-effort — silent failure is fine.
+    try {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class FontBroadcast {
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+}
+"@ -ErrorAction Stop
+        $HWND_BROADCAST = [IntPtr]0xffff
+        $WM_FONTCHANGE = 0x001D
+        $result = [IntPtr]::Zero
+        [void][FontBroadcast]::SendMessageTimeout($HWND_BROADCAST, $WM_FONTCHANGE, [IntPtr]::Zero, [IntPtr]::Zero, 0, 5000, [ref]$result)
+    } catch {
+        Write-Host "[register-windows-fonts] WM_FONTCHANGE broadcast skipped: $_" -ForegroundColor DarkGray
+    }
+}
+{{- end }}
