@@ -27,4 +27,44 @@ config.show_new_tab_button_in_tab_bar = false
 
 config.window_padding = { left = 6, right = 6, top = 4, bottom = 4 }
 
+-- tmux-style leader. Ctrl+Space, distinct from the tmux/psmux prefix
+-- (Ctrl+a) so a multiplexer nested inside wezterm still gets its prefix.
+local act = wezterm.action
+config.leader = { key = "Space", mods = "CTRL", timeout_milliseconds = 1000 }
+
+config.keys = {
+	-- Splits. | looks like the divider for side-by-side (SplitHorizontal),
+	-- - for stacked (SplitVertical) — wezterm's names are the visual inverse.
+	{ key = "|", mods = "LEADER|SHIFT", action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
+	{ key = "-", mods = "LEADER", action = act.SplitVertical({ domain = "CurrentPaneDomain" }) },
+
+	-- Pane focus (vim keys) + zoom + close.
+	{ key = "h", mods = "LEADER", action = act.ActivatePaneDirection("Left") },
+	{ key = "j", mods = "LEADER", action = act.ActivatePaneDirection("Down") },
+	{ key = "k", mods = "LEADER", action = act.ActivatePaneDirection("Up") },
+	{ key = "l", mods = "LEADER", action = act.ActivatePaneDirection("Right") },
+	{ key = "z", mods = "LEADER", action = act.TogglePaneZoomState },
+	{ key = "x", mods = "LEADER", action = act.CloseCurrentPane({ confirm = true }) },
+
+	-- Tabs.
+	{ key = "c", mods = "LEADER", action = act.SpawnTab("CurrentPaneDomain") },
+	{ key = "n", mods = "LEADER", action = act.ActivateTabRelative(1) },
+	{ key = "p", mods = "LEADER", action = act.ActivateTabRelative(-1) },
+
+	-- Workspaces (≈ tmux sessions): fuzzy picker.
+	{ key = "w", mods = "LEADER", action = act.ShowLauncherArgs({ flags = "FUZZY|WORKSPACES" }) },
+
+	-- Send a literal Ctrl+Space to the shell (the leader otherwise eats it).
+	{ key = "Space", mods = "LEADER|CTRL", action = act.SendKey({ key = "Space", mods = "CTRL" }) },
+}
+
+-- LEADER then a digit jumps to that tab (1-indexed in the keymap, 0-indexed internally).
+for i = 1, 9 do
+	table.insert(config.keys, {
+		key = tostring(i),
+		mods = "LEADER",
+		action = act.ActivateTab(i - 1),
+	})
+end
+
 return config
