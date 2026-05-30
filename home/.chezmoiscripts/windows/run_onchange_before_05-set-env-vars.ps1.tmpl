@@ -80,6 +80,13 @@ foreach ($kv in $envVars.GetEnumerator()) {
 #   - guarantee WinGet Links is entry 0, mise shims is entry 1
 $miseShims   = '{{ .directories.mise_dir }}/shims' -replace '/', '\'
 $wingetLinks = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+# Old mise defaults can remain on PATH after moving MISE_DATA_DIR to ~/.mise.
+# They are dangerous when the directory still exists: cargo.exe can resolve to
+# the stale shim, which re-enters mise and recurses as `mise x -- cargo --version`.
+$blockedPathEntries = @(
+    "$env:LOCALAPPDATA\mise\shims",
+    "$HOME\AppData\Local\mise\shims"
+)
 # tools_root\.local\bin holds chezmoi-installed CLIs (cvault), uv tool
 # binaries and GOBIN output. Prepended unconditionally like the shims.
 $localBin    = '{{ .directories.tools_root }}/.local/bin' -replace '/', '\'
@@ -112,6 +119,7 @@ foreach ($p in $prepend) {
 foreach ($p in $raw) {
     $n = ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', ''
     if ([string]::IsNullOrWhiteSpace($n)) { continue }
+    if ($blockedPathEntries | Where-Object { $_ -ieq $n }) { continue }
     if (-not (Test-Path -LiteralPath $n)) { continue }
     if (-not $seen.Add($n)) { continue }
     [void]$cleaned.Add($n)
