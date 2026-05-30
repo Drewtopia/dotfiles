@@ -1,0 +1,79 @@
+{{- if and (eq .chezmoi.os "windows") (ne .directories.tools_root .chezmoi.homeDir) -}}
+#!/usr/bin/env pwsh
+# Relocate VS Code's two exec-source dirs onto a whitelisted dev folder via
+# directory junctions. Endpoint security blocks execution of binaries that
+# extensions ship or download into the user profile - the same exec-from-
+# profile block that hit Codex/uv. Confirmed example:
+#   C:\Users\<u>\AppData\Roaming\Code\User\globalStorage\eamodio.gitlens\gk.exe
+#   -> BLOCKED/ENFORCED
+# Two exec sources land binaries in the user profile. Junction each at its
+# hardcoded default path - the one lever that covers both GUI and terminal
+# launches (real files under tools_root, default path resolves there):
+#   1. ~/.vscode/extensions                  extension-shipped binaries
+#   2. %APPDATA%/Code/User/globalStorage     extension-downloaded helpers, e.g.
+#      eamodio.gitlens/gk.exe (the confirmed BLOCKED/ENFORCED case)
+# NOTE: junction the globalStorage LEAF, not the whole %APPDATA%/Code. chezmoi
+# manages %APPDATA%/Code/User/mcp.json, and it cannot traverse a junction to
+# reach a managed file's parent (fails with "unsupported file type ...
+# ModeIrregular"). globalStorage is a sibling of mcp.json, never an ancestor,
+# so relocating it leaves chezmoi's path to mcp.json on real directories.
+$ErrorActionPreference = "Stop"
+$banner = "[vscode-extensions]"
+
+# Each pair: the default path VS Code reads (Link) -> whitelisted real dir (Target).
+$pairs = @(
+    @{ Link = (Join-Path $HOME ".vscode\extensions");                Target = ('{{ .directories.vscode_ext_dir }}'            -replace '/', '\') }
+    @{ Link = (Join-Path $env:APPDATA "Code\User\globalStorage");    Target = ('{{ .directories.vscode_global_storage_dir }}' -replace '/', '\') }
+)
+
+function Set-RelocationJunction {
+    param([string]$Link, [string]$Target)
+
+    # Ensure the relocated target exists (VS Code populates it on next launch).
+    if (-not (Test-Path -LiteralPath $Target)) {
+        New-Item -ItemType Directory -Path $Target -Force | Out-Null
+        Write-Host "$banner Created target $Target" -ForegroundColor Blue
+    }
+
+    $linkItem = Get-Item -LiteralPath $Link -Force -ErrorAction SilentlyContinue
+
+    # Already a junction/symlink: idempotent no-op. (PS 5.1 can't reliably read a
+    # junction's target, so trust it rather than risk recreating.)
+    if ($linkItem -and ($linkItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        Write-Host "$banner Junction already present at $Link" -ForegroundColor DarkGray
+        return
+    }
+
+    # A real directory sits at the default path: migrate its contents into the
+    # whitelisted target, then replace the emptied dir with a junction. Move (not
+    # copy) per child; never delete anything that did not move.
+    if ($linkItem) {
+        foreach ($child in Get-ChildItem -LiteralPath $Link -Force) {
+            $dest = Join-Path $Target $child.Name
+            if (Test-Path -LiteralPath $dest) {
+                Write-Host "$banner Skip (already in target): $($child.Name)" -ForegroundColor DarkGray
+            } else {
+                Move-Item -LiteralPath $child.FullName -Destination $dest
+            }
+        }
+        $remaining = Get-ChildItem -LiteralPath $Link -Force
+        if ($remaining) {
+            throw "$banner Source $Link still has items after migration; aborting before junction so nothing is lost."
+        }
+        Remove-Item -LiteralPath $Link -Force
+        Write-Host "$banner Migrated existing contents into $Target" -ForegroundColor Blue
+    }
+
+    # Ensure the parent of the link exists, then create the junction.
+    $linkParent = Split-Path -Parent $Link
+    if (-not (Test-Path -LiteralPath $linkParent)) {
+        New-Item -ItemType Directory -Path $linkParent -Force | Out-Null
+    }
+    New-Item -ItemType Junction -Path $Link -Target $Target | Out-Null
+    Write-Host "$banner Junction $Link -> $Target" -ForegroundColor Blue
+}
+
+foreach ($pair in $pairs) {
+    Set-RelocationJunction -Link $pair.Link -Target $pair.Target
+}
+{{- end }}

@@ -112,6 +112,8 @@
 {{- $mise_dir := printf "%s/.mise" $tools_root -}}
 {{- $claude_dir := printf "%s/.claude" $tools_root -}}
 {{- $pnpm_home := printf "%s/.local/share/pnpm" $tools_root -}}
+{{- $vscode_ext_dir := printf "%s/.vscode/extensions" $tools_root -}}
+{{- $vscode_global_storage_dir := printf "%s/.vscode/globalStorage" $tools_root -}}
 
 # Make mise-managed tools visible to chezmoi templates (lookPath, etc.)
 [env]
@@ -157,6 +159,8 @@
     dev_root = "{{ $dev_root }}"
     claude_dir = "{{ $claude_dir }}"
     pnpm_home = "{{ $pnpm_home }}"
+    vscode_ext_dir = "{{ $vscode_ext_dir }}"
+    vscode_global_storage_dir = "{{ $vscode_global_storage_dir }}"
     mise_dir = "{{ $mise_dir }}"
     repos_dir = "{{ $tools_root }}/repos"
     ssh_keys_dir = "{{ .chezmoi.homeDir }}/.ssh_keys"
