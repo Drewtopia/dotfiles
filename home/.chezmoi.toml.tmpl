@@ -117,11 +117,15 @@
 [env]
 {{ if eq .chezmoi.os "windows" -}}
 {{-   $miseShims := printf "%s/shims" $mise_dir | replace "/" "\\" -}}
-{{-   $oldLocalAppDataMise := printf "%s\\mise\\shims" (env "LOCALAPPDATA") -}}
 {{-   $cleanPathParts := list -}}
+{{/*  Drop EVERY mise shim dir (relocated `<root>\.mise\shims` and legacy
+      `%LOCALAPPDATA%\mise\shims`); the canonical one is prepended below. Two
+      mise shim dirs on PATH defeat mise's re-entry guard and fork-bomb
+      (jdx/mise dual-dir shim recursion). */}}
 {{-   range $part := splitList ";" (env "PATH") -}}
 {{-     $normalized := $part | replace "/" "\\" | trimSuffix "\\" -}}
-{{-     if and $normalized (ne ($normalized | lower) ($miseShims | lower)) (ne ($normalized | lower) ($oldLocalAppDataMise | lower)) -}}
+{{-     $lower := $normalized | lower -}}
+{{-     if and $normalized (not (or (hasSuffix "\\.mise\\shims" $lower) (hasSuffix "\\mise\\shims" $lower))) -}}
 {{-       $cleanPathParts = append $cleanPathParts $normalized -}}
 {{-     end -}}
 {{-   end -}}
