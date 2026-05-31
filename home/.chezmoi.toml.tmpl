@@ -111,6 +111,7 @@
 {{/* mise data dir — always use .mise for easy access (see mise.jdx.dev/how-i-use-mise) */}}
 {{- $mise_dir := printf "%s/.mise" $tools_root -}}
 {{- $claude_dir := printf "%s/.claude" $tools_root -}}
+{{- $codex_dir := printf "%s/.codex" $tools_root -}}
 {{- $pnpm_home := printf "%s/.local/share/pnpm" $tools_root -}}
 {{- $vscode_ext_dir := printf "%s/.vscode/extensions" $tools_root -}}
 {{- $vscode_global_storage_dir := printf "%s/.vscode/globalStorage" $tools_root -}}
@@ -158,6 +159,7 @@
     tools_root = "{{ $tools_root }}"
     dev_root = "{{ $dev_root }}"
     claude_dir = "{{ $claude_dir }}"
+    codex_dir = "{{ $codex_dir }}"
     pnpm_home = "{{ $pnpm_home }}"
     vscode_ext_dir = "{{ $vscode_ext_dir }}"
     vscode_global_storage_dir = "{{ $vscode_global_storage_dir }}"
