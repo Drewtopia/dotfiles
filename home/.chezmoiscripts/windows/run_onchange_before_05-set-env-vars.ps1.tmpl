@@ -18,6 +18,10 @@ $envVars = [ordered]@{
     'PNPM_HOME'         = '{{ .directories.pnpm_home }}'
 {{- if ne .directories.tools_root .chezmoi.homeDir }}
     'CLAUDE_CONFIG_DIR'     = '{{ .directories.claude_dir }}'
+    # Codex CLI extracts its sandbox runner to $CODEX_HOME/.sandbox-bin/. Default
+    # ~/.codex sits in the user profile, where endpoint security blocks exec of
+    # codex-command-runner-*.exe. Relocate to whitelisted tools_root.
+    'CODEX_HOME'            = '{{ .directories.codex_dir }}'
     'SCOOP'                 = '{{ .directories.tools_root }}/scoop'
     # uv defaults land in %APPDATA%\uv (venvs) and ~/.local/bin (trampolines);
     # endpoint security blocks execution of the venv's python.exe from there.
