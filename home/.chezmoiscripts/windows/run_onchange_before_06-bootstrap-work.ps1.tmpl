@@ -10,6 +10,7 @@ $mappings = @(
     @{ Src = "$HOME\.cache";                    Dst = '{{ .directories.xdg_cache_dir }}';                                     Kind = 'Junction'     }
     @{ Src = "$HOME\.local\share\GitKrakenCLI"; Dst = '{{ .directories.tools_root }}/.local/share/GitKrakenCLI';              Kind = 'Junction'     }
     @{ Src = "$HOME\.claude";                   Dst = '{{ .directories.claude_dir }}';                                        Kind = 'SymbolicLink' }
+    @{ Src = "$HOME\.codex";                    Dst = '{{ .directories.codex_dir }}';                                         Kind = 'SymbolicLink' }
 )
 
 function Ensure-Reparse {
