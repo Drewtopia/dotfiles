@@ -43,6 +43,10 @@ chezmoi = "latest"
 "aqua:mikefarah/yq" = "latest"
 "aqua:alexpasmantier/television" = "latest"
 "aqua:biomejs/biome" = "latest"
+# moon: monorepo task runner. The global launcher proxies to each project's
+# pinned @moonrepo/cli version. Installed via mise so it lands in the whitelisted
+# dir and builds run on Windows without falling back to WSL.
+"aqua:moonrepo/moon" = "latest"
 # gk: GitKraken CLI. Not in aqua-registry yet, fall back to github backend.
 # Installs under MISE_DATA_DIR (whitelisted on locked-down work machines),
 # unlike GitLens's bundled gk.exe at %APPDATA%\Code\User\globalStorage\...
