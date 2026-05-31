@@ -20,4 +20,11 @@ if [ -d "$HOME/.local/bin" ]; then
 fi
 
 [[ -f "${HOME}/.local/share/mise/env" ]] && . "${HOME}/.local/share/mise/env"
+# Prepend mise's Linux shims so tool lookups (pnpm, node, ...) resolve to the
+# Linux mise even though WSL appends the Windows PATH (interop appendWindowsPath).
+# Otherwise pnpm resolves to the /mnt/c Windows shim, whose `exec mise` fails
+# under WSL with exit 127. This must live in .profile (login shell), not an
+# interactive-only rc, because non-interactive build tasks (moon, etc.) inherit
+# the login-shell PATH.
+[[ -d "${HOME}/.local/share/mise/shims" ]] && export PATH="${HOME}/.local/share/mise/shims:${PATH}"
 [[ -f "${HOME}/.deno/env" ]] && . "${HOME}/.deno/env"
