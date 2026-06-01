@@ -1,0 +1,6 @@
+{{- /* Non-Windows: topgrade honors XDG_CONFIG_HOME -> ~/.config/topgrade.toml.
+       Body lives in .chezmoitemplates/topgrade.toml (single source of truth);
+       the Windows copy at AppData/Roaming includes the same partial. */ -}}
+{{- if ne .chezmoi.os "windows" -}}
+{{- template "topgrade.toml" . -}}
+{{- end -}}
