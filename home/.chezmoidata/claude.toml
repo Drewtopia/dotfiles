@@ -17,6 +17,7 @@ caveman                   = "JuliusBrussee/caveman"
 "karpathy-skills"         = "forrestchang/andrej-karpathy-skills"
 "obsidian-skills"         = "kepano/obsidian-skills"
 qmd                       = "tobi/qmd"
+"superpowers-extended-cc-marketplace" = "pcvelz/superpowers"
 
 # Plugin enablement — grouped by profile (machine class). See CONTEXT.md.
 # Format: "<plugin-name>@<marketplace-name>" = <bool>
@@ -29,7 +30,8 @@ qmd                       = "tobi/qmd"
 "context7@claude-plugins-official"                 = true
 "hookify@claude-plugins-official"                  = true
 "claude-md-management@claude-plugins-official"     = true
-"superpowers@claude-plugins-official"              = true
+"superpowers@claude-plugins-official"              = false
+"superpowers-extended-cc@superpowers-extended-cc-marketplace" = true
 "claude-code-setup@claude-plugins-official"        = true
 "security-guidance@claude-plugins-official"        = true
 "explanatory-output-style@claude-plugins-official" = true
