@@ -1,0 +1,6 @@
+{{- /* Windows: topgrade 17.x ignores XDG_CONFIG_HOME and reads only
+       %APPDATA%\topgrade.toml. Same body as the non-Windows ~/.config copy,
+       sourced from .chezmoitemplates/topgrade.toml. */ -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{- template "topgrade.toml" . -}}
+{{- end -}}
