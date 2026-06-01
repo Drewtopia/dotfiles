@@ -47,7 +47,7 @@ if ($wingetPackages.Count -eq 0) {
     exit 0
 }
 
-{{- if and .work (ne .directories.tools_root .chezmoi.homeDir) }}
+{{- if .relocated }}
 $workLocation = '{{ .directories.tools_root }}\tools' -replace '/', '\'
 if (-not (Test-Path $workLocation)) {
     New-Item -ItemType Directory -Force -Path $workLocation | Out-Null
@@ -67,7 +67,7 @@ foreach ($id in $wingetPackages) {
     }
 
     Write-Host "[Install] winget install $id" -ForegroundColor Blue
-{{- if and .work (ne .directories.tools_root .chezmoi.homeDir) }}
+{{- if .relocated }}
     & winget install --id $id --exact --source winget --disable-interactivity `
         --accept-package-agreements --accept-source-agreements `
         --scope user --location $workLocation
