@@ -1,4 +1,4 @@
-{{- if and (eq .chezmoi.os "windows") (ne .directories.tools_root .chezmoi.homeDir) -}}
+{{- if .relocated -}}
 #!/usr/bin/env pwsh
 # Relocate VS Code's two exec-source dirs onto a whitelisted dev folder via
 # directory junctions. Endpoint security blocks execution of binaries that
@@ -18,62 +18,15 @@
 # ModeIrregular"). globalStorage is a sibling of mcp.json, never an ancestor,
 # so relocating it leaves chezmoi's path to mcp.json on real directories.
 $ErrorActionPreference = "Stop"
-$banner = "[vscode-extensions]"
-
-# Each pair: the default path VS Code reads (Link) -> whitelisted real dir (Target).
+{{ template "windows-relocation" . }}
+# Each pair: the default path VS Code reads (Src) -> whitelisted real dir (Dst).
+# Relocate (shared module) migrates contents and replaces Src with a junction.
 $pairs = @(
-    @{ Link = (Join-Path $HOME ".vscode\extensions");                Target = ('{{ .directories.vscode_ext_dir }}'            -replace '/', '\') }
-    @{ Link = (Join-Path $env:APPDATA "Code\User\globalStorage");    Target = ('{{ .directories.vscode_global_storage_dir }}' -replace '/', '\') }
+    @{ Src = (Join-Path $HOME ".vscode\extensions");             Dst = ('{{ .directories.vscode_ext_dir }}'            -replace '/', '\') }
+    @{ Src = (Join-Path $env:APPDATA "Code\User\globalStorage"); Dst = ('{{ .directories.vscode_global_storage_dir }}' -replace '/', '\') }
 )
 
-function Set-RelocationJunction {
-    param([string]$Link, [string]$Target)
-
-    # Ensure the relocated target exists (VS Code populates it on next launch).
-    if (-not (Test-Path -LiteralPath $Target)) {
-        New-Item -ItemType Directory -Path $Target -Force | Out-Null
-        Write-Host "$banner Created target $Target" -ForegroundColor Blue
-    }
-
-    $linkItem = Get-Item -LiteralPath $Link -Force -ErrorAction SilentlyContinue
-
-    # Already a junction/symlink: idempotent no-op. (PS 5.1 can't reliably read a
-    # junction's target, so trust it rather than risk recreating.)
-    if ($linkItem -and ($linkItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-        Write-Host "$banner Junction already present at $Link" -ForegroundColor DarkGray
-        return
-    }
-
-    # A real directory sits at the default path: migrate its contents into the
-    # whitelisted target, then replace the emptied dir with a junction. Move (not
-    # copy) per child; never delete anything that did not move.
-    if ($linkItem) {
-        foreach ($child in Get-ChildItem -LiteralPath $Link -Force) {
-            $dest = Join-Path $Target $child.Name
-            if (Test-Path -LiteralPath $dest) {
-                Write-Host "$banner Skip (already in target): $($child.Name)" -ForegroundColor DarkGray
-            } else {
-                Move-Item -LiteralPath $child.FullName -Destination $dest
-            }
-        }
-        $remaining = Get-ChildItem -LiteralPath $Link -Force
-        if ($remaining) {
-            throw "$banner Source $Link still has items after migration; aborting before junction so nothing is lost."
-        }
-        Remove-Item -LiteralPath $Link -Force
-        Write-Host "$banner Migrated existing contents into $Target" -ForegroundColor Blue
-    }
-
-    # Ensure the parent of the link exists, then create the junction.
-    $linkParent = Split-Path -Parent $Link
-    if (-not (Test-Path -LiteralPath $linkParent)) {
-        New-Item -ItemType Directory -Path $linkParent -Force | Out-Null
-    }
-    New-Item -ItemType Junction -Path $Link -Target $Target | Out-Null
-    Write-Host "$banner Junction $Link -> $Target" -ForegroundColor Blue
-}
-
 foreach ($pair in $pairs) {
-    Set-RelocationJunction -Link $pair.Link -Target $pair.Target
+    Relocate -Src $pair.Src -Dst $pair.Dst -Kind Junction
 }
 {{- end }}

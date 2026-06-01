@@ -1,0 +1,108 @@
+#!/usr/bin/env pwsh
+# windows-relocation - shared helpers for the work-Windows relocation layer.
+#
+# Pure PowerShell (no template syntax) so this file is both included verbatim
+# into scripts via chezmoi's template-inclusion action and dot-sourced directly
+# by tests/windows-relocation.Tests.ps1.
+#
+# Two deep modules behind small interfaces:
+#   Relocate          migrate a directory to a whitelisted target, then replace
+#                     the original path with a reparse point (junction/symlink).
+#   Get-NormalizedPath canonical PATH ordering + case-insensitive dedup + the
+#                     mise stale-shim fork-bomb guard, as a pure transform.
+
+function Relocate {
+    # Migrate $Src's contents into $Dst, then replace $Src with a reparse point
+    # of $Kind pointing at $Dst. Idempotent. Never deletes data that did not
+    # move: collisions abort before linking so nothing is lost.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Src,
+        [Parameter(Mandatory)][string]$Dst,
+        [ValidateSet('Junction', 'SymbolicLink')][string]$Kind = 'Junction'
+    )
+    $Dst = $Dst -replace '/', '\'
+
+    if (-not (Test-Path -LiteralPath $Dst)) {
+        New-Item -ItemType Directory -Path $Dst -Force | Out-Null
+    }
+
+    $item = Get-Item -LiteralPath $Src -Force -ErrorAction SilentlyContinue
+
+    # Already a reparse point: idempotent no-op. (PS 5.1 cannot reliably read a
+    # junction's target, so trust it rather than risk recreating.)
+    if ($item -and ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        return
+    }
+
+    if ($item) {
+        if (-not $item.PSIsContainer) {
+            throw "[relocate] $Src is a file, expected a directory; refusing to touch it."
+        }
+        # Migrate per child; skip names already present in the target; never
+        # delete what did not move. If anything remains at $Src afterward, abort
+        # before linking so no data is lost.
+        foreach ($child in Get-ChildItem -LiteralPath $Src -Force) {
+            $dest = Join-Path $Dst $child.Name
+            if (Test-Path -LiteralPath $dest) { continue }
+            Move-Item -LiteralPath $child.FullName -Destination $dest
+        }
+        if (Get-ChildItem -LiteralPath $Src -Force) {
+            throw "[relocate] $Src still has items after migration; aborting before link so nothing is lost."
+        }
+        Remove-Item -LiteralPath $Src -Force -Recurse
+    }
+
+    $parent = Split-Path -Parent $Src
+    if ($parent -and -not (Test-Path -LiteralPath $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    New-Item -ItemType $Kind -Path $Src -Target $Dst | Out-Null
+}
+
+function Get-NormalizedPath {
+    # Pure transform: build a canonical PATH entry list.
+    #   - $Prepend entries come first, in order, added even if absent on disk
+    #     (shim dirs may not exist on first apply but will by the time a shell
+    #     reads User PATH; pruning them would strand registry PATH forever).
+    #   - $Entries are filtered: mise fork-bomb guard, then existence, then dedup.
+    #   - $AppendIfExists are added last, only when present.
+    # Case-insensitive dedup preserves the first occurrence. Existence is resolved
+    # via $Exists so callers (and tests) can inject a predicate instead of disk.
+    [CmdletBinding()]
+    param(
+        [string[]]$Prepend = @(),
+        [string[]]$Entries = @(),
+        [string[]]$AppendIfExists = @(),
+        [string]$CanonicalMiseShims = '',
+        [scriptblock]$Exists = { param($p) Test-Path -LiteralPath $p }
+    )
+    $norm = { param($p) ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', '' }
+    $cleaned = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+
+    foreach ($p in $Prepend) {
+        $n = & $norm $p
+        if ([string]::IsNullOrWhiteSpace($n)) { continue }
+        if (-not $seen.Add($n)) { continue }
+        [void]$cleaned.Add($n)
+    }
+    foreach ($p in $Entries) {
+        $n = & $norm $p
+        if ([string]::IsNullOrWhiteSpace($n)) { continue }
+        # Drop every mise shim dir except the canonical one: two shim dirs on
+        # PATH defeat mise's re-entry guard and fork-bomb (hundreds of mise.exe).
+        if ($CanonicalMiseShims -and ($n -imatch '\\\.?mise\\shims$') -and ($n -ine $CanonicalMiseShims)) { continue }
+        if (-not (& $Exists $n)) { continue }
+        if (-not $seen.Add($n)) { continue }
+        [void]$cleaned.Add($n)
+    }
+    foreach ($p in $AppendIfExists) {
+        $n = & $norm $p
+        if ([string]::IsNullOrWhiteSpace($n)) { continue }
+        if (-not (& $Exists $n)) { continue }
+        if (-not $seen.Add($n)) { continue }
+        [void]$cleaned.Add($n)
+    }
+    return , $cleaned.ToArray()
+}

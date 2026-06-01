@@ -32,7 +32,7 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
 Write-Host "[bootstrap] mise not found, installing..." -ForegroundColor Yellow
 
 if (Get-Command winget -ErrorAction SilentlyContinue) {
-{{- if ne .directories.tools_root .chezmoi.homeDir }}
+{{- if .relocated }}
     # Relocated dev tree: install under tools_root\tools so the mise dir-per-tool
     # layout (mise\bin\mise.exe) lands inside the whitelisted path alongside
     # any other portable apps in <tools_root>\tools\.
