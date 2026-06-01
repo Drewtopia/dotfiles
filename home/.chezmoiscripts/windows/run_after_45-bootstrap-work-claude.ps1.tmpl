@@ -1,4 +1,4 @@
-{{- if and (eq .chezmoi.os "windows") .work (ne .directories.tools_root .chezmoi.homeDir) -}}
+{{- if .relocated -}}
 #!/usr/bin/env pwsh
 # bootstrap-work-claude: render chezmoi dot_claude/ source tree directly into
 # the relocated CLAUDE_CONFIG_DIR. ~/.claude is a symlink to this path (set up

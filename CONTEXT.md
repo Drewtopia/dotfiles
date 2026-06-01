@@ -15,3 +15,9 @@ Vocabulary for this dotfiles repo. Use these terms exactly in code, commits, com
   - In `claude.toml`, plugins are grouped under `[plugins.<profile>]` sections. A plugin's section *is* its profile membership.
   - `[plugins.always]` is rendered into `enabledPlugins` regardless of machine class. `[plugins.personal]` is rendered only when `.personal` is true. `[plugins.dev_computer]` only when `.dev_computer` is true.
   - A plugin needed under **multiple profiles** is duplicated across sections. The trade-off is verbosity for the rare multi-profile case in exchange for tight one-line-per-plugin readability in the common case.
+
+## Machine State
+
+- **relocated** — A machine that relocates dev tooling out of `$HOME` into a whitelisted `tools_root`, because endpoint security blocks executing binaries from the user profile. Exposed as the `.relocated` template data flag, computed once in `.chezmoi.toml.tmpl` as `tools_root != homeDir`; true only on work Windows where a `dev_folder` was supplied, so it implies both `work` and `windows`. Every relocation script and template gates on `.relocated` rather than re-deriving the `tools_root != homeDir` comparison.
+
+- **Relocate** — The shared relocation module (`.chezmoitemplates/windows-relocation`). Interface: `Relocate -Src -Dst -Kind {Junction|SymbolicLink}`. Migrates a directory's contents into a whitelisted target, then replaces the original path with a reparse point. Idempotent; aborts before linking if any data would be left behind. Two adapters (junction, symbolic link) sit behind the one interface.
