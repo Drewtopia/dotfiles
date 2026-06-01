@@ -1,9 +1,13 @@
 {{- if and (eq .chezmoi.os "windows") .dev_computer -}}
 # PowerShell Profile - Dev Tools (sourced from OneDrive profile)
 
+# Shared relocation/PATH helpers (Get-NormalizedPath). Pure PowerShell partial,
+# the same module the Windows setup scripts include via {{ "{{ template ..." }}.
+{{ template "windows-relocation" . }}
+
 # --- PATH helpers ---
 
-{{ if ne .directories.tools_root .chezmoi.homeDir -}}
+{{ if .relocated -}}
 # Re-assert relocated env vars from User scope. Windows doesn't refresh
 # already-running processes on SetEnvironmentVariable, so terminals
 # opened before chezmoi setup ran would miss the values. Source of
@@ -16,47 +20,30 @@ foreach ($var in 'CLAUDE_CONFIG_DIR','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DAT
 }
 
 {{ end -}}
-# Add WinGet Links (where mise.exe lives) BEFORE mise shims. Every mise-shim
-# binary execs `mise` to resolve its target; if WinGet Links isn't on PATH the
-# mise-shim crashes with "mise-shim: failed to execute mise: program not found".
-# User PATH carries this via run_onchange_before_05-set-env-vars.ps1.tmpl, but
-# terminals opened before that apply ran won't see it — self-heal here.
-$wingetLinksPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
-if ((Test-Path $wingetLinksPath) -and $env:PATH -notlike "*$wingetLinksPath*") {
-    $env:PATH = "$wingetLinksPath;$env:PATH"
-}
-
-# Add mise shims to PATH if mise is installed
-$miseShimPath = "{{ .directories.mise_dir }}/shims"
-if ((Test-Path $miseShimPath) -and $env:PATH -notlike "*$miseShimPath*") {
-    $env:PATH = "$miseShimPath;$env:PATH"
-}
+# Heal the session PATH with the same canonical rule that builds the User
+# registry PATH (run_onchange_before_05-set-env-vars.ps1.tmpl): WinGet Links
+# (where mise.exe lives) first, then mise shims, then the existing entries with
+# the mise stale-shim fork-bomb guard and case-insensitive dedup applied.
+# Terminals opened before that apply ran self-heal here. Get-NormalizedPath
+# comes from the windows-relocation partial included at the top of this profile.
+$wingetLinks = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+$miseShims   = "{{ .directories.mise_dir }}/shims"
+$prepend     = @($wingetLinks, $miseShims)
+# pnpm v11 moved global shims to $PNPM_HOME\bin and refuses to install unless
+# that dir is on PATH; keep both entries for cross-version coexistence.
+if ($env:PNPM_HOME) { $prepend += $env:PNPM_HOME, (Join-Path $env:PNPM_HOME 'bin') }
+# WinLibs (gcc/g++): winget installs it but does not wire PATH. Append if present.
+$winLibsBin = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin"
+$canonicalMiseShims = ($miseShims -replace '/', '\').TrimEnd('\')
+$env:PATH = (Get-NormalizedPath -Prepend $prepend -Entries ($env:PATH -split ';') -AppendIfExists $winLibsBin -CanonicalMiseShims $canonicalMiseShims) -join ';'
 
 # Activate mise. Most mise-managed tools on Windows install to
 # .local\share\mise\installs\<name>\... paths that only `mise activate` adds to
-# PATH — the shims directory isn't populated by default here. Must run BEFORE
+# PATH; the shims directory isn't populated by default here. Must run BEFORE
 # the tool inits below (carapace/atuin/tv/etc), or those inits can't find their
 # binaries and silently skip.
 if (Get-Command mise -ErrorAction SilentlyContinue) {
     (&mise activate pwsh) | Out-String | Invoke-Expression
-}
-
-# pnpm global bin shims. v11 moved them from $PNPM_HOME to $PNPM_HOME\bin
-# and refuses to install if the bin dir isn't on PATH; older shims at the
-# top level still resolve so we add both for graceful coexistence during
-# any cross-version state.
-if ($env:PNPM_HOME) {
-    $pnpmBin = Join-Path $env:PNPM_HOME 'bin'
-    if ($env:PATH -notlike "*$pnpmBin*") { $env:PATH = "$pnpmBin;$env:PATH" }
-    if ($env:PATH -notlike "*$env:PNPM_HOME*") { $env:PATH = "$env:PNPM_HOME;$env:PATH" }
-}
-
-# WinLibs (gcc/g++) — winget installs it but doesn't wire PATH, and Windows
-# Terminal caches PATH at host start, so new tabs may miss the USER PATH entry.
-# Probe the well-known winget package location and inject if present.
-$winLibsBin = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin"
-if ((Test-Path "$winLibsBin\gcc.exe") -and $env:PATH -notlike "*$winLibsBin*") {
-    $env:PATH = "$env:PATH;$winLibsBin"
 }
 
 # Ensure PSReadLine is loaded before tool inits that bind keys (atuin, tv, carapace).

@@ -127,7 +127,7 @@ README.md
 !.claude/CLAUDE.md
 {{- end }}
 
-{{ if and (eq .chezmoi.os "windows") (ne .directories.tools_root .chezmoi.homeDir) -}}
+{{ if .relocated -}}
 # Relocated: .local/bin is a junction to tools_root — chezmoi can't manage junctions
 .local/bin
 {{- end }}

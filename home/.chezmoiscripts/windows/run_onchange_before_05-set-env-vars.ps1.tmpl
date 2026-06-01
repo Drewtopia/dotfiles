@@ -4,8 +4,9 @@
 # locate relocated dev tooling. Runs before any other onchange script
 # that might depend on these values (install-scoop, mise tools, etc.).
 $ErrorActionPreference = "Stop"
+{{ template "windows-relocation" . }}
 
-{{- if ne .directories.tools_root .chezmoi.homeDir }}
+{{- if .relocated }}
 Write-Host "[Relocation] Dev tools under {{ .directories.tools_root }} (override via `dev_folder` prompt)" -ForegroundColor Cyan
 {{- end }}
 
@@ -16,7 +17,7 @@ $envVars = [ordered]@{
     'XDG_CACHE_HOME'    = '{{ .directories.xdg_cache_dir }}'
     'MISE_DATA_DIR'     = '{{ .directories.mise_dir }}'
     'PNPM_HOME'         = '{{ .directories.pnpm_home }}'
-{{- if ne .directories.tools_root .chezmoi.homeDir }}
+{{- if .relocated }}
     'CLAUDE_CONFIG_DIR'     = '{{ .directories.claude_dir }}'
     # Codex CLI extracts its sandbox runner to $CODEX_HOME/.sandbox-bin/. Default
     # ~/.codex sits in the user profile, where endpoint security blocks exec of
@@ -108,33 +109,10 @@ $raw        = @($raw) + (Join-Path $HOME '.local\bin')
 # usr\bin Unix-tool shadowing risk) so any shell can resolve `bash`.
 $appendIfExists = @('C:\Program Files\Git\bin')
 
-$cleaned = [System.Collections.Generic.List[string]]::new()
-$seen    = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-# Hardcoded prepend entries: always include regardless of Test-Path. mise/scoop
-# shims may not exist on first apply (this script runs before install-scoop),
-# but the dirs WILL exist by the time pwsh reads User PATH. Pruning them here
-# left registry PATH without scoop shims forever, since onchange wouldn't re-fire.
-foreach ($p in $prepend) {
-    $n = ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', ''
-    if ([string]::IsNullOrWhiteSpace($n)) { continue }
-    if (-not $seen.Add($n)) { continue }
-    [void]$cleaned.Add($n)
-}
-foreach ($p in $raw) {
-    $n = ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', ''
-    if ([string]::IsNullOrWhiteSpace($n)) { continue }
-    if (($n -imatch '\\\.?mise\\shims$') -and ($n -ine $miseShims)) { continue }
-    if (-not (Test-Path -LiteralPath $n)) { continue }
-    if (-not $seen.Add($n)) { continue }
-    [void]$cleaned.Add($n)
-}
-foreach ($p in $appendIfExists) {
-    $n = ($p -replace '/', '\').TrimEnd('\') -replace '\\\.$', ''
-    if ([string]::IsNullOrWhiteSpace($n)) { continue }
-    if (-not (Test-Path -LiteralPath $n)) { continue }
-    if (-not $seen.Add($n)) { continue }
-    [void]$cleaned.Add($n)
-}
+# Canonical PATH: prepend order, mise fork-bomb guard, existence prune, and
+# case-insensitive dedup all live in Get-NormalizedPath (shared module).
+$cleaned = Get-NormalizedPath -Prepend $prepend -Entries $raw `
+    -AppendIfExists $appendIfExists -CanonicalMiseShims $miseShims
 
 $newUserPath = $cleaned -join ';'
 if ($newUserPath -ne $userPath) {
