@@ -106,6 +106,11 @@
 {{-     $tools_root = printf "C:/%s/%s" $dev_folder (last (splitList "\\" (.chezmoi.username | lower))) -}}
 {{-   end -}}
 {{- end -}}
+{{/* relocated: this machine relocates dev tools out of $HOME into a
+     whitelisted tools_root. Only ever true on work Windows (set above), so it
+     implies both work and windows. The single named condition every relocation
+     script and template gates on. */}}
+{{- $relocated := ne $tools_root .chezmoi.homeDir -}}
 {{- $dev_root := printf "%s/dev" $tools_root -}}
 
 {{/* mise data dir — always use .mise for easy access (see mise.jdx.dev/how-i-use-mise) */}}
@@ -124,7 +129,11 @@
 {{/*  Drop EVERY mise shim dir (relocated `<root>\.mise\shims` and legacy
       `%LOCALAPPDATA%\mise\shims`); the canonical one is prepended below. Two
       mise shim dirs on PATH defeat mise's re-entry guard and fork-bomb
-      (jdx/mise dual-dir shim recursion). */}}
+      (jdx/mise dual-dir shim recursion).
+      CANONICAL RULE PARALLEL: this build-time (Go template) dedup is the twin
+      of the PowerShell Get-NormalizedPath fork-bomb guard in the
+      windows-relocation partial (run_onchange_before_05 + the pwsh profile).
+      Two runtimes, same rule; they cannot share code. Keep them in sync. */}}
 {{-   range $part := splitList ";" (env "PATH") -}}
 {{-     $normalized := $part | replace "/" "\\" | trimSuffix "\\" -}}
 {{-     $lower := $normalized | lower -}}
@@ -142,6 +151,7 @@
   name = {{ $name | quote }}
   email = {{ $email | quote }}
   work = {{ $work }}
+  relocated = {{ $relocated }}
   is_wsl = {{ $is_wsl }}
   dev_computer = {{ $dev_computer }}
   hostname = {{ $hostname | quote }}
