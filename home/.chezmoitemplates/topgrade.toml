@@ -111,7 +111,10 @@ auto_retry = 1
 #
 # agent-skills: chezmoi's run_onchange install-skills script ADDS declared
 # skills (fires on skills.yaml change); topgrade owns UPDATING them.
-agent-skills = "npx -y skills update -g -y"
+# Invoke via `pnx`, not `npx`: the skills package declares
+# devEngines.packageManager = pnpm, so npm trips EBADDEVENGINES on a
+# name mismatch. pnx (alias of pnpm dlx) runs it under pnpm and satisfies it.
+agent-skills = "pnx skills update -g -y"
 # tv-channels: pull the community channel set. Moved out of chezmoi apply
 # (was run_before_05-update-tv-channels) so apply stays fast; tv skips
 # channels that already exist, chezmoi still owns custom overrides.
