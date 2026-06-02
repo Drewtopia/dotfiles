@@ -40,7 +40,6 @@ buckets = []
 # relocated work setups.
 packages = [
   "zed",
-  "zen-browser",
   "wezterm",
 ]
 # admin_packages install at machine scope and require UAC. Handled
