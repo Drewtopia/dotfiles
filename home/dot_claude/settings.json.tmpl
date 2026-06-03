@@ -9,7 +9,8 @@
     "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_AUTO_BACKGROUND_TASKS": "1",
-    "ENABLE_TOOL_SEARCH": "true"{{- end }}
+    "ENABLE_TOOL_SEARCH": "true",
+    "ECC_GATEGUARD": "off"{{- end }}
   },
   "includeCoAuthoredBy": false,
   "permissions": {
@@ -72,7 +73,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/block-dangerous-commands.sh'"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-bash-dispatcher.js\"'"
           },
           {
             "type": "command",
