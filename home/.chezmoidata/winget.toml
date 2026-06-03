@@ -36,4 +36,6 @@ packages = [
 # mode (Inno, machine-scope MSI) will be rejected by winget — those
 # packages must go in scoop.toml [scoop.work] instead.
 [winget.work]
-packages = []
+packages = [
+  "Zen-Team.Zen-Browser",
+]
