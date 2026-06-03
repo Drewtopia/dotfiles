@@ -48,6 +48,14 @@ $envVars = [ordered]@{
     # proto: toolchain manager. Default ~/.proto sits in the user profile,
     # where endpoint security blocks executing the tool binaries it manages.
     'PROTO_HOME'            = '{{ .directories.tools_root }}/.proto'
+    # PESTER_MODULE_ROOT: whitelisted home for PowerShell modules whose DLLs
+    # endpoint security blocks under the user profile (Pester.dll fails to load
+    # from Documents\PowerShell\Modules with "Should operator 'Be' is not
+    # registered"). The test runner (tests/Invoke.ps1) imports Pester by
+    # explicit path from here, because PSModulePath search resolves the blocked
+    # profile copy first. Generic var keeps the machine-specific path out of the
+    # unmanaged tests/ tree.
+    'PESTER_MODULE_ROOT'    = '{{ .directories.tools_root }}/PSModules'
 {{- end }}
 }
 
