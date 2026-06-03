@@ -20,6 +20,21 @@ packages = [
   "arndawg.zellij-windows",
 ]
 
+# Install-without-scope exceptions (cross-cutting; orthogonal to the section
+# lists - keep the package in packages/work/personal for selection, list its
+# ID here to change HOW it installs). These manifests ship a scope-less
+# installer (a bare .exe with no Scope declared), so the relocated default
+# `--scope user --location` filters out the only installer ("No applicable
+# installer found"; verified: `winget show <id> --scope user`). IDs here
+# install with bare flags and land in their default location. Safe for
+# browsers/GUI apps - the endpoint-security exec block targets dev/sandbox
+# binaries under the profile, not these.
+# (Must stay above the [winget.*] sub-tables: a bare key after a sub-table
+# header would bind to that sub-table in TOML.)
+no_scope = [
+  "Zen-Team.Zen-Browser",
+]
+
 # Personal-only additions (gated by .personal in the install script).
 # Machine-scope installers (Inno/MSI) are fine here — personal boxes
 # have admin and no whitelist constraint, so UAC prompts are acceptable.
@@ -32,9 +47,10 @@ packages = [
 
 # Work-only additions (gated by .work). The install script passes
 # --scope user --location <tools_root>\tools so portable manifests land
-# inside the whitelisted path. Manifests that don't support portable
-# mode (Inno, machine-scope MSI) will be rejected by winget — those
-# packages must go in scoop.toml [scoop.work] instead.
+# inside the whitelisted path. Manifests rejected by those flags have two
+# escape hatches: list the ID in `no_scope` above (installs bare, default
+# location - for browsers/GUI apps like Zen, whose exe has no user scope),
+# or move it to scoop.toml [scoop.work] (Inno/machine-scope MSI dev tools).
 [winget.work]
 packages = [
   "Zen-Team.Zen-Browser",
