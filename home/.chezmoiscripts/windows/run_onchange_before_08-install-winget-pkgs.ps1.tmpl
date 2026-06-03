@@ -13,12 +13,12 @@
 #     scope. Inno/MSI installers prompt UAC (acceptable on personal).
 #   - Work + relocated tools_root: pass --scope user --location to keep
 #     portable manifests inside the whitelisted dev path. Non-portable
-#     manifests will reject these flags — those packages belong in
-#     scoop.toml [scoop.work], not here.
+#     manifests will reject these flags - list them in winget.toml
+#     no_scope (installs bare) or move dev tools to scoop.toml [scoop.work].
 
 $ErrorActionPreference = 'Stop'
 
-# Probe launch, not file presence — MSIX alias exists but session 0 can't activate it.
+# Probe launch, not file presence - MSIX alias exists but session 0 can't activate it.
 $wingetOk = $false
 try { & winget --version *>$null; $wingetOk = ($LASTEXITCODE -eq 0) } catch {}
 if (-not $wingetOk) {
@@ -47,6 +47,14 @@ if ($wingetPackages.Count -eq 0) {
     exit 0
 }
 
+# IDs whose manifest has no user-scoped installer; installed with bare flags
+# even on relocated machines (see winget.toml [winget] no_scope).
+$noScope = @(
+{{- range .winget.no_scope }}
+    '{{ . }}'
+{{- end }}
+)
+
 {{- if .relocated }}
 $workLocation = '{{ .directories.tools_root }}\tools' -replace '/', '\'
 if (-not (Test-Path $workLocation)) {
@@ -68,9 +76,16 @@ foreach ($id in $wingetPackages) {
 
     Write-Host "[Install] winget install $id" -ForegroundColor Blue
 {{- if .relocated }}
-    & winget install --id $id --exact --source winget --disable-interactivity `
-        --accept-package-agreements --accept-source-agreements `
-        --scope user --location $workLocation
+    # Scope-less installers (see $noScope) reject --scope user --location and
+    # winget reports "No applicable installer found"; install them bare.
+    if ($noScope -contains $id) {
+        & winget install --id $id --exact --source winget --disable-interactivity `
+            --accept-package-agreements --accept-source-agreements
+    } else {
+        & winget install --id $id --exact --source winget --disable-interactivity `
+            --accept-package-agreements --accept-source-agreements `
+            --scope user --location $workLocation
+    }
 {{- else }}
     & winget install --id $id --exact --source winget --disable-interactivity `
         --accept-package-agreements --accept-source-agreements
