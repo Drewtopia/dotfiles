@@ -7,13 +7,18 @@
 
 $ErrorActionPreference = "Stop"
 
-# Inlining the desired list makes run_onchange retrigger when the YAML changes:
+# Inlining the desired list makes run_onchange retrigger when the YAML changes.
+# @openai/codex is filtered out on work Windows (Codex isn't used there).
 {{- range .pnpm_globals }}
+{{- if not (and $.work (eq . "@openai/codex")) }}
 #   {{ . }}
+{{- end }}
 {{- end }}
 $desired = @(
 {{- range .pnpm_globals }}
+{{- if not (and $.work (eq . "@openai/codex")) }}
     '{{ . }}'
+{{- end }}
 {{- end }}
 )
 

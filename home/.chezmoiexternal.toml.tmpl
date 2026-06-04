@@ -142,40 +142,20 @@
     url = "https://github.com/zdharma-continuum/zinit.git"
     refreshPeriod = "168h"
 
-# Claude Code - Hooks from claude-code-mastery (cross-platform; bash via Git Bash on Windows)
-{{ $hookBase := "https://raw.githubusercontent.com/TheDecipherist/claude-code-mastery/main/hooks" -}}
-{{ range (list "after-edit.sh" "block-dangerous-commands.sh" "block-secrets.py" "end-of-turn.sh" "notify.sh") }}
-[".claude/hooks/{{ . }}"]
-    type = "file"
-    url = "{{ $hookBase }}/{{ . }}"
-    refreshPeriod = "168h"
-    executable = true
-{{ end -}}
-
-# Claude Code - Skills from claude-code-mastery
-[".claude/skills/commit-messages"]
-    type = "archive"
-    url = "https://github.com/TheDecipherist/claude-code-mastery/archive/main.tar.gz"
-    stripComponents = 3
-    include = ["*/skills/commit-messages/**"]
-    refreshPeriod = "168h"
-
-[".claude/skills/security-audit"]
-    type = "archive"
-    url = "https://github.com/TheDecipherist/claude-code-mastery/archive/main.tar.gz"
-    stripComponents = 3
-    include = ["*/skills/security-audit/**"]
-    refreshPeriod = "168h"
+# Claude Code hooks and the commit-messages/security-audit skills formerly
+# pulled from claude-code-mastery are gone: the hooks are maintained in-repo
+# under dot_claude/hooks/ (node suite wired via settings.json) and the skills
+# are reconciled via the npx skills CLI below.
 
 # mattpocock/skills now reconciled via .chezmoidata/skills.yaml +
 # run_onchange_after_60-install-skills.sh.tmpl (npx skills CLI). The
 # old static list here went stale every time Pocock refactored upstream.
 
-{{- if or .personal .work }}
-# Memory + agent vault (private repo). Lives at ~/.claude-vault on all machines.
-# Inside .claude/, memory and rules are symlinks pointing here (rendered by
-# dot_claude/symlink_{memory,rules}.tmpl on personal; by
-# run_after_45-bootstrap-work-claude.ps1.tmpl on work).
+{{- if or .personal (and .work (ne .chezmoi.os "windows")) }}
+# Memory + agent vault (private repo). Cloned wherever Claude Code runs:
+# personal machines, and work non-Windows. Not on work Windows, where Claude
+# Code isn't used. Inside .claude/, memory and rules are symlinks pointing
+# here (rendered by dot_claude/symlink_{memory,rules}.tmpl).
 #
 # refreshPeriod = weekly ff-only pull. Local commits that diverged from origin
 # surface as fetch failures instead of force-merging.
