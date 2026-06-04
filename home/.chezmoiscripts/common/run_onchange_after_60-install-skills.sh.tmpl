@@ -26,11 +26,6 @@ npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }} \
 # Sweep up empty skill directories that `npx skills add` leaves behind
 # during repo discovery (it scans for all available skills, leaving
 # placeholder dirs for ones not in the --skill set).
-#
-# Two paths to clean: $HOME/.claude/skills/ where npx writes (the source
-# of new empties) and the relocated CLAUDE_CONFIG_DIR/skills/ which the
-# setup-claude-config sync mirrored old empties to.
 find "$HOME/.claude/skills" -mindepth 1 -maxdepth 1 -type d -empty -delete 2>/dev/null || true
-find "{{ .directories.claude_dir }}/skills" -mindepth 1 -maxdepth 1 -type d -empty -delete 2>/dev/null || true
 {{- end }}
 {{- end }}

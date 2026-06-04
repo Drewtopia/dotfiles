@@ -1,17 +1,15 @@
 {{- if .relocated -}}
 #!/usr/bin/env pwsh
 # bootstrap-work: relocate selected $HOME paths to the whitelisted tools_root.
-# Junctions for dirs (no Developer Mode required); symlink for ~/.claude and
-# ~/.codex (need Dev Mode; chezmoi-managed dot_claude is .chezmoiignored on
-# work so nothing fights this). Relocate is the shared relocation module
+# All mappings are junctions (no Developer Mode required). Claude and Codex
+# are not used on the Windows host, so their dirs are no longer relocated
+# here. Relocate is the shared relocation module
 # (see .chezmoitemplates/windows-relocation).
 $ErrorActionPreference = "Stop"
 {{ template "windows-relocation" . }}
 $mappings = @(
     @{ Src = "$HOME\.cache";                    Dst = '{{ .directories.xdg_cache_dir }}';                        Kind = 'Junction'     }
     @{ Src = "$HOME\.local\share\GitKrakenCLI"; Dst = '{{ .directories.tools_root }}/.local/share/GitKrakenCLI'; Kind = 'Junction'     }
-    @{ Src = "$HOME\.claude";                   Dst = '{{ .directories.claude_dir }}';                           Kind = 'SymbolicLink' }
-    @{ Src = "$HOME\.codex";                    Dst = '{{ .directories.codex_dir }}';                            Kind = 'SymbolicLink' }
 )
 
 foreach ($m in $mappings) { Relocate @m }
