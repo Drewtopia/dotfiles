@@ -1,6 +1,8 @@
+{{- if not .work -}}
 # Auto-backup pre-existing ~/.claude/memory/ before chezmoi's symlink_memory
 # tries to land on Windows. Idempotent: no-op if already a symlink/junction
-# or doesn't exist.
+# or doesn't exist. Skipped on work Windows, where Claude Code isn't used and
+# nothing under ~/.claude is managed.
 
 $target = Join-Path $HOME ".claude/memory"
 
@@ -15,3 +17,4 @@ if (Test-Path $target) {
         Move-Item -Path $target -Destination $backup
     }
 }
+{{- end }}
