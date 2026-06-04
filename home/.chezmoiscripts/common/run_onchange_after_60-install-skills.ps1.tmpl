@@ -1,4 +1,4 @@
-{{- if eq .chezmoi.os "windows" -}}
+{{- if and (eq .chezmoi.os "windows") (not .work) -}}
 {{- if .dev_computer -}}
 # Reconcile agent skills against .chezmoidata/skills.yaml via `npx skills`
 # (Windows counterpart of the .sh sibling).
@@ -36,16 +36,11 @@ try {
 # Sweep up empty skill directories that `npx skills add` leaves behind
 # during repo discovery (it scans for all available skills, leaving
 # placeholder dirs for ones not in the --skill set).
-#
-# Two paths to clean: $HOME/.claude/skills/ where npx writes (the source
-# of new empties) and the relocated CLAUDE_CONFIG_DIR/skills/ which the
-# setup-claude-config sync mirrored old empties to.
-foreach ($skillsDir in @("$HOME\.claude\skills", '{{ .directories.claude_dir }}/skills')) {
-    if (Test-Path $skillsDir) {
-        Get-ChildItem -Path $skillsDir -Directory -ErrorAction SilentlyContinue | Where-Object {
-            -not (Get-ChildItem $_.FullName -Force -ErrorAction SilentlyContinue)
-        } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-    }
+$skillsDir = "$HOME\.claude\skills"
+if (Test-Path $skillsDir) {
+    Get-ChildItem -Path $skillsDir -Directory -ErrorAction SilentlyContinue | Where-Object {
+        -not (Get-ChildItem $_.FullName -Force -ErrorAction SilentlyContinue)
+    } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 }
 {{- end }}
 {{- end }}

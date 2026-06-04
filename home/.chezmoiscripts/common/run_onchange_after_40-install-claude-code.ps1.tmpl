@@ -1,4 +1,9 @@
+{{- if not .work -}}
 #!/usr/bin/env pwsh
+
+# Claude Code is not used on the Windows host on work machines, so this
+# native installer is gated off work Windows. Personal Windows still installs
+# it here; macOS/Linux use the .sh sibling.
 
 # Re-launch with pwsh 7 if running under PowerShell 5.1
 if ($PSVersionTable.PSVersion.Major -lt 7) {
@@ -39,3 +44,4 @@ try {
     Write-Host "[ERROR] Claude Code installation failed: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
+{{- end -}}
