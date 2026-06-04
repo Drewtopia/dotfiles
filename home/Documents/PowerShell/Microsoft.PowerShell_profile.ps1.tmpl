@@ -12,7 +12,7 @@
 # already-running processes on SetEnvironmentVariable, so terminals
 # opened before chezmoi setup ran would miss the values. Source of
 # truth is run_onchange_before_05-set-env-vars.ps1.tmpl.
-foreach ($var in 'CLAUDE_CONFIG_DIR','XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_STATE_HOME','MISE_DATA_DIR','SCOOP','PNPM_HOME') {
+foreach ($var in 'XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_STATE_HOME','MISE_DATA_DIR','SCOOP','PNPM_HOME') {
     $userValue = [Environment]::GetEnvironmentVariable($var, 'User')
     if ($userValue -and (Get-Item -Path "Env:$var" -ErrorAction SilentlyContinue).Value -ne $userValue) {
         Set-Item -Path "Env:$var" -Value $userValue

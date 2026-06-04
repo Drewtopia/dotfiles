@@ -111,8 +111,8 @@ README.md
 
 # Claude
 {{- if and (eq .chezmoi.os "windows") .work }}
-# Work-Windows: chezmoi never touches ~/.claude. bootstrap-work-claude renders
-# dot_claude/ directly into the relocated CLAUDE_CONFIG_DIR.
+# Work-Windows: Claude Code is not used on the Windows host, so chezmoi
+# manages nothing under ~/.claude here.
 .claude
 .claude/**
 {{- else }}
