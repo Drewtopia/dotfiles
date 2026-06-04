@@ -9,7 +9,9 @@
     "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_AUTO_BACKGROUND_TASKS": "1",
-    "ENABLE_TOOL_SEARCH": "true"{{- end }}
+    "ENABLE_TOOL_SEARCH": "true",
+    "ECC_GATEGUARD": "off",
+    "ECC_DISABLED_HOOKS": "pre:config-protection,stop:format-typecheck,post:quality-gate,post:edit:console-warn,stop:check-console-log,stop:evaluate-session,stop:cost-tracker,stop:desktop-notify,post:session-activity-tracker,stop:session-end,session:start,pre:compact"{{- end }}
   },
   "includeCoAuthoredBy": false,
   "permissions": {
@@ -52,8 +54,7 @@
       "Read(**/.env.*)",
       "Read(**/secrets/**)",
       "Write(**/.env)",
-      "Write(**/.env.*)",
-      "Bash(git push:*)"
+      "Write(**/.env.*)"
     ]
   },
   "hooks": {
@@ -63,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'python \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/block-secrets.py'"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\"'"
           }
         ]
       },
@@ -72,29 +73,36 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/block-dangerous-commands.sh'"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-bash-dispatcher.js\"'"
           },
           {
             "type": "command",
             "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/git-commit-precheck.sh'"
           }
         ]
-      }
-{{- if lookPath "jj" }},
+      },
       {
-        "matcher": "Edit|Write",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/jj-block-trunk.sh'"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\"'"
           },
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/jj-describe-claude.sh'"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-worktree-convention.js\"'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-edit-on-protected.js\"'"
           }
         ]
       }
-{{- end }}
     ],
     "PostToolUse": [
       {
@@ -102,14 +110,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/after-edit.sh'"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-edit-format.js\"'"
           }
-{{- if lookPath "jj" }},
-          {
-            "type": "command",
-            "command": "bash -c 'test -d .jj && jj diff --stat 2>/dev/null || true'"
-          }
-{{- end }}
         ]
       }
     ],
@@ -119,14 +121,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/end-of-turn.sh'"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-end-of-turn.js\"'"
           }
-{{- if lookPath "jj" }},
-          {
-            "type": "command",
-            "command": "bash -c 'test -d .jj && { jj st && jj diff --stat; } || true'"
-          }
-{{- end }}
         ]
       }
     ],
@@ -136,7 +132,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/notify.sh'"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/notify.js\"'"
           }
         ]
       }
@@ -158,7 +154,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/session-start-git-status.sh'",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-git-status.js\"'",
             "timeout": 30
           }
         ]
