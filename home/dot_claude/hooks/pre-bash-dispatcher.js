@@ -32,6 +32,10 @@ const CHECKS = [
         id: 'pre:bash:gate-push-convention',
         mod: './bash-checks/gate-push-convention',
     },
+    {
+        id: 'pre:bash:gate-commit-not-protected',
+        mod: './bash-checks/gate-commit-not-protected',
+    },
 ];
 
 async function main() {
