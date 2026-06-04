@@ -40,6 +40,13 @@ Library
 .profile
 {{ end }}
 
+# wezterm is a host GUI emulator that reaches into WSL via the WSL domain; it
+# never runs inside the guest, so don't litter ~/.wezterm.lua there. Native
+# Linux desktops can still run it, so this is WSL-only, not all Linux.
+{{ if .is_wsl }}
+.wezterm.lua
+{{ end }}
+
 # Ignore non-Windows files.
 {{ if ne .chezmoi.os "windows" }}
 .chezmoiscripts/windows/**
