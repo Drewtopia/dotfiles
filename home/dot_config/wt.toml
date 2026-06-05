@@ -1,0 +1,33 @@
+# worktrunk global config — renders to ~/.config/wt.toml
+#
+# NOT a chezmoi .tmpl on purpose: worktrunk uses {{ }} template syntax
+# (e.g. {{ branch | hash_port }}) that collides with chezmoi's. Keeping this a
+# plain file means chezmoi copies it verbatim and worktrunk gets its {{ }} intact.
+#
+# Scope: these hooks/aliases apply to EVERY repo. Keep them language-agnostic —
+# per-repo dev/test commands belong in that repo's own .config/wt.toml.
+#
+# Template vars:    {{ branch }} {{ args }} {{ env }} {{ default_branch }}
+#                   {{ worktree_path }} {{ target }} {{ base }} {{ pr_number }}
+# Filters:          {{ branch | hash_port }}  {{ branch | sanitize_hash }}
+# Defer expansion:  {% raw %}…{% endraw %}  (passes template through to nested cmd)
+
+[aliases]
+# Universally safe — works in any git repo, no language assumptions.
+since-main = "git log --oneline {{ default_branch }}..HEAD"
+
+# --- Hook reference (uncomment and fill per your workflow) -------------------
+# Blocking hooks abort the operation on non-zero exit; *-commit/*-start side
+# hooks can run in the background.
+#
+# [pre-start]      # before a worktree is created
+# [post-start]     # after creation — e.g. boot a dev server on a per-branch port
+# server = "npm run dev -- --port {{ branch | hash_port }}"
+# [pre-switch]
+# [post-switch]
+# [pre-merge]      # gate the merge — e.g. run the test suite
+# test = "npm test"
+# [pre-commit]
+# [post-commit]
+# [pre-remove]
+# [post-remove]    # cleanup after a worktree is removed
