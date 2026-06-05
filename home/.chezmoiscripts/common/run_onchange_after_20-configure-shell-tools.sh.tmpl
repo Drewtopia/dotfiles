@@ -49,7 +49,7 @@ if command -v topgrade >/dev/null 2>&1; then
     topgrade --gen-completion zsh > "$COMPLETIONS_DIR/_topgrade" 2>/dev/null || true
 fi
 
-# Note: chezmoi and jj completions managed via .tmpl files in completions/
+# Note: chezmoi completions managed via .tmpl files in completions/
 
 if command -v mise >/dev/null 2>&1; then
     mise completion zsh > "$COMPLETIONS_DIR/_mise" 2>/dev/null || true
