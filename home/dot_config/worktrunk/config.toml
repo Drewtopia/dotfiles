@@ -1,0 +1,22 @@
+# worktrunk USER config — renders to ~/.config/worktrunk/config.toml
+#
+# This is the global/user config (list display, global aliases, worktree-path
+# template, LLM-commit settings). NOT shared per-repo. Per-project hooks (dev
+# server, db, lint/test gates) belong in each repo's OWN .config/wt.toml,
+# committed inside that repo — not in dotfiles.
+#
+# NOT a chezmoi .tmpl: worktrunk uses {{ }} template syntax (e.g.
+# {{ branch | hash_port }}) that collides with chezmoi's. Plain file = chezmoi
+# copies it verbatim and worktrunk keeps its {{ }}.
+#
+# Template vars: {{ branch }} {{ args }} {{ env }} {{ default_branch }}
+#                {{ worktree_path }} {{ repo }} {{ target }}
+# Filters:       {{ branch | hash_port }}  {{ branch | sanitize }}
+
+[list]
+# LLM-generated one-line branch summaries in `wt list`.
+summary = true
+
+[aliases]
+# Universally safe — works in any git repo, no language assumptions.
+since-main = "git log --oneline {{ default_branch }}..HEAD"
