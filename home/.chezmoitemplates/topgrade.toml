@@ -23,8 +23,10 @@ disable = ["shell", "containers", "go"]
 # Refresh dotfiles first so the rest of the run upgrades against current config.
 first = ["chezmoi"]
 
-# Surface skipped steps so silent no-ops are visible.
-show_skipped = true
+# Hide skipped steps. Most skips are tools never installed or mise-owned
+# self-updaters (atuin-update, topgrade self-rename, asdf, etc.) that mise's
+# own step already handles — pure noise. Summary now shows only ran/failed.
+show_skipped = false
 
 # Notify only on failure at end of run (replaces legacy `skip_notify` below).
 notify_end = "on_failure"
