@@ -158,7 +158,9 @@ export RIPGREP_CONFIG_PATH=$XDG_CONFIG_HOME/ripgrep/config
 # Load all shell configurations via shell-loader
 source "${XDG_CONFIG_HOME}/shell-loader.sh"
 
-
+# worktrunk (wt) shell integration. `command wt` calls the binary, not the wt
+# shell function the integration defines (so `wt switch` can cd the parent shell).
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 
 # Local overrides (machine-specific shell config, not tracked by chezmoi)
 [[ -f "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
