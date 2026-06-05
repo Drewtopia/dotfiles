@@ -162,12 +162,6 @@
 	gpgsign = true
 {{- end }}
 
-{{- if .is_wsl }}
-# Route git ssh through Windows ssh.exe so 1Password agent (Windows-side) handles auth
-[core]
-  sshCommand = ssh.exe
-{{- end }}
-
 {{- if and .work .is_wsl }}
 # Windows Git Credential Manager via interop (appendWindowsPath=false, so use full path)
 [credential]
@@ -202,6 +196,10 @@
 	line-numbers = true
 	# Side-by-side view for large screens
 	side-by-side = true
+	# Disable line-wrap: works around delta panic in paint.rs:957
+	# ("superimposing style sections") triggered by syntax-highlighted
+	# wrapped lines in side-by-side mode. Upstream dandavison/delta #1839, #1726.
+	wrap-max-lines = 0
 	# File modification indicators
 	file-style = bold yellow ul
 	file-decoration-style = none
