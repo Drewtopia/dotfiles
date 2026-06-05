@@ -26,8 +26,12 @@ if command -v zoxide >/dev/null 2>&1; then
 	eval "$(zoxide init zsh)"
 fi
 
-# atuin — shell history storage + sync (data backend, no keybindings)
-# UI accessed via television's atuin-history channel (Ctrl+R)
+# atuin — shell history storage + sync (synced history backend).
+# ATUIN_NOBIND stops atuin auto-binding; we bind manually below.
+# Ctrl+R is a fallback ladder by source order (each guarded by command -v):
+#   fzf (above) → atuin (here) → tv (below). Last present wins, so normally
+#   tv's atuin-history channel owns Ctrl+R; atuin-search is the fallback if tv
+#   is missing. Up-arrow history search is atuin's alone (tv binds only ^T/^R).
 if command -v atuin >/dev/null 2>&1; then
 	export ATUIN_NOBIND="true"
 	if [[ -n ${ZSH_NAME} ]]; then
@@ -73,10 +77,5 @@ fi
 
 {{- if .is_wsl }}
 # WSL2: op wrapper is created by chezmoi script (run_onchange_before_15-setup-1password-wsl.sh)
-# It delegates to Windows op.exe so chezmoi templates and shell both work.
-# SSH family routes to Windows binaries so 1Password's Windows-side agent handles auth
-# without a socket bridge (per 1password.dev/ssh/integrations/wsl).
-alias ssh=ssh.exe
-alias scp=scp.exe
-alias ssh-add=ssh-add.exe
+# It delegates to Windows op.exe so chezmoi templates and shell both work
 {{- end }}
