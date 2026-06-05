@@ -19,6 +19,7 @@ caveman                   = "JuliusBrussee/caveman"
 qmd                       = "tobi/qmd"
 "superpowers-extended-cc-marketplace" = "pcvelz/superpowers"
 ecc                       = "affaan-m/ECC"
+worktrunk                 = "max-sixty/worktrunk"
 
 # Plugin enablement — grouped by profile (machine class). See CONTEXT.md.
 # Format: "<plugin-name>@<marketplace-name>" = <bool>
@@ -55,3 +56,4 @@ ecc                       = "affaan-m/ECC"
 "obsidian@obsidian-skills"                = true
 "greptile@claude-plugins-official"        = false
 "ecc@ecc"                                 = true
+"worktrunk@worktrunk"                     = true
