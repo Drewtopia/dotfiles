@@ -15,3 +15,7 @@ esac
 [[ -f "${HOME}/.deno/env" ]] && . "${HOME}/.deno/env"
 command -v atuin >/dev/null 2>&1 && eval "$(atuin init bash)"
 [[ -d "${HOME}/.console-ninja/.bin" ]] && PATH="${HOME}/.console-ninja/.bin:${PATH}"
+
+# worktrunk (wt) shell integration. `command wt` calls the binary, not the wt
+# shell function the integration defines (so `wt switch` can cd the parent shell).
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash)"; fi
