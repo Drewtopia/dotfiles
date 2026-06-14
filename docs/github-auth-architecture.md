@@ -101,6 +101,7 @@ git push → SSH (1Password SSH Agent) → op://Private/SSH Key
            OR
            HTTPS → osxkeychain credential helper
            HTTPS to github.com → gh auth git-credential
+           HTTPS to dev.azure.com → Git Credential Manager (Microsoft OAuth, cached in osxkeychain)
 ```
 
 ### Windows (work)
@@ -124,9 +125,13 @@ git push → SSH (needs own key or 1Password interop)
 [credential "https://github.com"]
     helper = !"<gh binary path>" auth git-credential
 
-# macOS only (line 133-135):
+# macOS only:
 [credential]
     helper = osxkeychain
+    azreposCredentialType = oauth
+[credential "https://dev.azure.com"]
+    helper = manager        # Git Credential Manager (cask: git-credential-manager)
+    useHttpPath = true
 
 # WSL2 work only (line 146-151):
 [credential]
