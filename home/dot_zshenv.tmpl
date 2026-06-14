@@ -18,6 +18,15 @@ path=("$HOME/.local/bin" ${path:#$HOME/.local/bin})
 path=("/opt/homebrew/bin" ${path:#/opt/homebrew/bin})
 {{- end }}
 
+# mise shims — on PATH for ALL shells, including non-interactive ones
+# (topgrade, cron, `zsh -c`) that never source .zshrc. Interactive shells
+# additionally run `mise activate` in shell/010-mise.sh; typeset -U above
+# dedupes the overlap. Without this, mise tools are "command not found" in
+# any non-interactive context.
+{{- if .dev_computer }}
+path=("{{ .directories.mise_dir }}/shims" ${path:#{{ .directories.mise_dir }}/shims})
+{{- end }}
+
 # XDG-aware application configurations
 alias wget="wget --hsts-file='${XDG_DATA_HOME}/wget-hsts'"
 export ANDROID_HOME="$XDG_DATA_HOME/android"
