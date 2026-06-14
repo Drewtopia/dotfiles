@@ -79,6 +79,12 @@
 {{-   $dev_computer = promptBoolOnce . "dev_computer" "Install dev tools on this machine?" -}}
 {{- end -}}
 
+{{/* WSL: Windows username for /mnt/c/Users/<name> interop paths (op-ssh-sign-wsl, etc.) */}}
+{{- $windows_username := "" -}}
+{{- if and $is_wsl (not $ephemeral) -}}
+{{-   $windows_username = promptStringOnce . "windows_username" "Windows username (for /mnt/c/Users/<name> interop paths)" -}}
+{{- end -}}
+
 {{- $email := "" -}}
 {{- if $opVault -}}
 {{-   if lookPath "op" -}}
@@ -151,6 +157,7 @@
   work = {{ $work }}
   relocated = {{ $relocated }}
   is_wsl = {{ $is_wsl }}
+  windows_username = {{ $windows_username | quote }}
   dev_computer = {{ $dev_computer }}
   hostname = {{ $hostname | quote }}
   personal = {{ $personal }}
