@@ -18,9 +18,46 @@
 .pc
 .svn
 
-# Claude Code
+# AI assistants / agent harness (personal — ignored in every repo)
 .claude/
 CLAUDE.md
+GEMINI.md
+.mcp.json
+.bg-shell/
+.agents/
+.claude-trace/
+
+# Agent harness / GSD state
+.gsd
+.gsd.migrating
+.gsd-id
+skills-lock.json
+.planning/
+.knip-*.json
+.knip-*.log
+.worktrees/
+.worktreeinclude
+
+# Other agent tooling
+.bmad/
+.bmad-custom/
+.bmad-user-memory/
+bmad-custom-src/
+.opencode/
+.spec-workflow/
+.agentvibes/
+.sandcastle/
+.github/agents/
+.github/chatmodes/bmb-*
+.github/chatmodes/bmm-*
+.github/chatmodes/cis-*
+.github/chatmodes/core-*
+
+# Other AI editors/tools
+.aider*
+.cursor/
+.continue/
+.codeium/
 
 # Temp
 /tmp
