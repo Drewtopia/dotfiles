@@ -123,10 +123,6 @@
 [trim]
 	bases = main,gh-pages
 
-{{- if .personal }}
-[url "git@github.com:Drewtopia/"]
-	insteadOf = https://github.com/Drewtopia/
-{{- end }}
 {{- /* Find gh: try lookPath first, fall back to mise shim */ -}}
 {{- $ghPath := lookPath "gh" }}
 {{- if not $ghPath }}
@@ -163,6 +159,8 @@
 	helper = osxkeychain
 {{- end }}
 {{- if .personal }}
+[url "git@github.com:Drewtopia/"]
+	insteadOf = https://github.com/Drewtopia/
 [gpg]
 	format = ssh
 [user]
