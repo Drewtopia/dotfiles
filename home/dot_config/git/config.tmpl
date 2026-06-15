@@ -19,16 +19,16 @@
 	cm = commit --message
 	co = checkout
 	cob = checkout -b
-	com = checkout master
+	com = checkout main
 	cp = cherry-pick
 	csm = commit -S --message
 	d = diff --patience
 	dc = diff --cached
-	dom = diff origin/master
+	dom = diff origin/main
 	fo = fetch origin
 	fu = "!git log -n 16 --pretty=format:'%h %s' --no-merges | fzf | cut -c -7 | xargs -o git commit --fixup"
 	g = grep --line-number
-	mbhom = merge-base HEAD origin/master
+	mbhom = merge-base HEAD origin/main
 	mff = merge --ff-only
 	ol = log --pretty=oneline
 	l = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
@@ -40,20 +40,13 @@
 	rc = rebase --continue
 	ri = rebase --interactive
 	rl = reflog
-	riom = rebase --interactive origin/master
+	riom = rebase --interactive origin/main
 	rpo = remote prune origin
 	s = status -sb
 	sh = "!git log -n 16 --pretty=format:'%h %s' --no-merges | fzf | cut -c -7 | xargs -o git show"
 	ss = "commit --message 'chore: snapshot' --no-gpg-sign"
 	su = submodule update
 	wd = diff --patience --word-diff
-	# https://golang.org/doc/contribute.html
-	change = codereview change
-	gofmt = codereview gofmt
-	mail = codereview mail
-	pending = codereview pending
-	submit = codereview submit
-	sync = codereview sync
 [branch]
 	sort = -committerdate
 [color]
@@ -128,12 +121,8 @@
 [transfer]
 	fsckobjects = true
 [trim]
-	bases = master,gh-pages
+	bases = main,gh-pages
 
-{{- if .personal }}
-[url "git@github.com:Drewtopia/"]
-	insteadOf = https://github.com/Drewtopia/
-{{- end }}
 {{- /* Find gh: try lookPath first, fall back to mise shim */ -}}
 {{- $ghPath := lookPath "gh" }}
 {{- if not $ghPath }}
@@ -149,11 +138,29 @@
 [credential "https://gist.github.com"]
 	helper = !"{{ $ghPath }}" auth git-credential
 {{- end }}
+{{- /* Azure DevOps applies on: macOS (work-on-personal), native Windows, and
+       work WSL. NOT personal WSL (azure is work-only there). */ -}}
+{{- $azure := or (eq .chezmoi.os "darwin") (and (eq .chezmoi.os "windows") (not .is_wsl)) (and .work .is_wsl) }}
+{{ if $azure -}}
+# Azure DevOps (all platforms that use it): GCM via Microsoft OAuth. useHttpPath
+# scopes tokens per-org. The helper itself is set per-platform below — on macOS
+# the general helper is osxkeychain, so `manager` is scoped to azure here; on
+# Windows/WSL a global GCM helper is set that azure inherits.
+[credential "https://dev.azure.com"]
+	useHttpPath = true
+	azreposCredentialType = oauth
+{{- if eq .chezmoi.os "darwin" }}
+	helper =
+	helper = manager
+{{- end }}
+{{- end }}
 {{ if eq .chezmoi.os "darwin" -}}
 [credential]
 	helper = osxkeychain
 {{- end }}
 {{- if .personal }}
+[url "git@github.com:Drewtopia/"]
+	insteadOf = https://github.com/Drewtopia/
 [gpg]
 	format = ssh
 [user]
@@ -166,34 +173,40 @@
 # Route git SSH transport through Windows ssh.exe so it uses the 1Password
 # SSH agent on the Windows host (interop). Full path: appendWindowsPath=false.
 [core]
-  sshCommand = /mnt/c/Windows/System32/OpenSSH/ssh.exe
-# Windows Git Credential Manager via interop (appendWindowsPath=false, so use full path)
+	sshCommand = /mnt/c/Windows/System32/OpenSSH/ssh.exe
+# Windows Git Credential Manager via interop (full path). Azure-specific settings
+# live in the shared dev.azure.com block above.
 [credential]
-  helper = /mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe
+	helper = /mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe
+# Azure-scoped headless fallback. When GCM returns no cached token and cannot
+# show its Windows sign-in dialog (e.g. headless ssh-from-mac with an expired
+# token), git falls through to this az-CLI mint helper, which mints a fresh AAD
+# token non-interactively from the cached `az` session. Listed AFTER the GCM
+# helper above so GCM stays primary — git uses the first helper that returns
+# credentials. NO `helper =` reset here: a reset would wipe GCM from the Azure
+# chain (the bug that forced az-only auth before its 2026-06-15 retirement).
+# Script is managed at ~/.git-azdo-helper.sh (work-WSL only; see .chezmoiignore).
 [credential "https://dev.azure.com"]
-  useHttpPath = true
+	helper = {{ .chezmoi.homeDir }}/.git-azdo-helper.sh
 # Sign commits ONLY in Azure DevOps repos (1Password SSH key via Windows signer).
 # Other repos stay unsigned. Matched on the repo's remote URL (git 2.36+).
 [includeIf "hasconfig:remote.*.url:https://dev.azure.com/**"]
-  path = ~/.config/git/azure-signing.inc
+	path = ~/.config/git/azure-signing.inc
 [includeIf "hasconfig:remote.*.url:git@ssh.dev.azure.com:**"]
-  path = ~/.config/git/azure-signing.inc
+	path = ~/.config/git/azure-signing.inc
 {{- end }}
 
 {{- if and (eq .chezmoi.os "windows") (not .is_wsl) }}
-# Native Windows Git Credential Manager.
-# Git-for-Windows sets `credential.helper = manager` in system config, so
-# without the empty `helper =` reset we'd chain system + user entries and
-# call GCM twice per request. `manager` is the GfW-provided alias for GCM —
-# avoids hardcoding C:/Program Files/Git/mingw64/bin/git-credential-manager.exe
-# and survives GCM being installed via scoop or moved by a GfW update.
-# Needed for non-github https remotes (Azure DevOps etc.); github.com is
-# already covered by the gh-CLI block above.
+# Native Windows Git Credential Manager. Git-for-Windows sets
+# `credential.helper = manager` in system config, so the empty `helper =` reset
+# prevents chaining system + user entries (double GCM call per request).
+# `manager` is the GfW alias for GCM — avoids hardcoding the full GCM path and
+# survives GCM moving (scoop / GfW update). Covers non-github https remotes;
+# github.com is handled by the gh-CLI block above. Azure-specific settings live
+# in the shared dev.azure.com block above.
 [credential]
 	helper =
 	helper = manager
-[credential "https://dev.azure.com"]
-	useHttpPath = true
 {{- end }}
 
 {{- if lookPath "delta" }}
