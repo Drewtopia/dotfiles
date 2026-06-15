@@ -180,6 +180,16 @@
 # live in the shared dev.azure.com block above.
 [credential]
 	helper = /mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe
+# Azure-scoped headless fallback. When GCM returns no cached token and cannot
+# show its Windows sign-in dialog (e.g. headless ssh-from-mac with an expired
+# token), git falls through to this az-CLI mint helper, which mints a fresh AAD
+# token non-interactively from the cached `az` session. Listed AFTER the GCM
+# helper above so GCM stays primary — git uses the first helper that returns
+# credentials. NO `helper =` reset here: a reset would wipe GCM from the Azure
+# chain (the bug that forced az-only auth before its 2026-06-15 retirement).
+# Script is managed at ~/.git-azdo-helper.sh (work-WSL only; see .chezmoiignore).
+[credential "https://dev.azure.com"]
+	helper = {{ .chezmoi.homeDir }}/.git-azdo-helper.sh
 # Sign commits ONLY in Azure DevOps repos (1Password SSH key via Windows signer).
 # Other repos stay unsigned. Matched on the repo's remote URL (git 2.36+).
 [includeIf "hasconfig:remote.*.url:https://dev.azure.com/**"]
