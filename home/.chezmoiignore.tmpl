@@ -47,6 +47,14 @@ Library
 .wezterm.lua
 {{ end }}
 
+# az-CLI Azure DevOps token-mint helper is the headless fallback in the WSL2
+# credential chain (see dot_config/git/config.tmpl). Only work WSL2 needs it;
+# everywhere else (mac, personal WSL, Windows) uses GCM alone, so leave any
+# stray local copy unmanaged there.
+{{ if not (and .work .is_wsl) }}
+.git-azdo-helper.sh
+{{ end }}
+
 # Ignore non-Windows files.
 {{ if ne .chezmoi.os "windows" }}
 .chezmoiscripts/windows/**
