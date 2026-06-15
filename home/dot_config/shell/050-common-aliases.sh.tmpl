@@ -16,8 +16,14 @@ alias listpaths='echo $PATH | tr ":" "\n" | uniq -c | sort -nr'
 
 ####################### WORKTRUNK #######################
 {{- if lookPath "wt" }}
+# Switch to a worktree (cd into it), e.g. wts feat
+alias wts='wt switch'
 # New worktree + launch Claude in it (runs hooks first)
-alias wsc='wt switch --create --execute=claude'
+alias wtc='wt switch --create --execute=claude'
+# Remove the current worktree + delete its branch
+alias wtr='wt remove'
+# List worktrees with status
+alias wtl='wt list'
 # Tail a worktrunk hook's log, e.g. wtlog user:post-start:server
 wtlog() { tail -f "$(wt config state logs get --hook="$1")"; }
 {{- end }}
