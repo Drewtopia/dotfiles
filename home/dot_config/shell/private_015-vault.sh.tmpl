@@ -1,0 +1,10 @@
+# 015-vault.sh — credentials rendered from 1Password at `chezmoi apply` (mode 0600).
+# Pulled at build time, not runtime — shell startup needs no op session.
+{{ if not .ephemeral -}}
+export GITHUB_TOKEN={{ onepasswordRead (printf "op://%s/GitHub PAT/token" .opVault) | trim }}
+{{ end -}}
+{{ if and (not .ephemeral) (not .work) -}}
+export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | trim }}
+{{ else if .work -}}
+export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
+{{ end -}}

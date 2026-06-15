@@ -1,0 +1,32 @@
+[metadata]
+name = "readmes"
+description = "Read README docs in the dotfiles repo (rendered with glow)"
+requirements = ["fd", "glow", "chezmoi"]
+
+# Source = the chezmoi git working tree (parent of `chezmoi source-path`, which
+# points at .../chezmoi/home). The root README.md is repo-only — never applied
+# to $HOME — so we must list from the repo, not from ~. fd respects .gitignore,
+# so vendored/external READMEs (oh-my-zsh, p10k, tpm) are excluded automatically.
+[source]
+{{ if eq .chezmoi.os "windows" -}}
+command = "fd -g 'README*' (Split-Path (chezmoi source-path))"
+{{ else -}}
+command = '''fd -g 'README*' "$(dirname "$(chezmoi source-path)")"'''
+{{ end -}}
+
+[preview]
+command = "glow -s dark '{}'"
+
+[keybindings]
+enter = "actions:read"
+ctrl-e = "actions:edit"
+
+[actions.read]
+description = "Read the rendered README in glow's pager"
+command = "glow -p '{}'"
+mode = "execute"
+
+[actions.edit]
+description = "Open the source file in the editor"
+command = "${EDITOR:-nvim} '{}'"
+mode = "execute"

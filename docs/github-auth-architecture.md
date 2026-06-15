@@ -101,6 +101,7 @@ git push → SSH (1Password SSH Agent) → op://Private/SSH Key
            OR
            HTTPS → osxkeychain credential helper
            HTTPS to github.com → gh auth git-credential
+           HTTPS to dev.azure.com → Git Credential Manager (Microsoft OAuth, cached in osxkeychain)
 ```
 
 ### Windows (work)
@@ -114,7 +115,10 @@ git push → SSH (1Password SSH Agent) → op://Employee/SSH Key
 ```
 git push → SSH (needs own key or 1Password interop)
            HTTPS to github.com → gh auth git-credential (native gh via mise)
-           HTTPS to dev.azure.com → git-credential-manager.exe via interop
+           HTTPS to dev.azure.com → GCM.exe via interop  (PRIMARY: cached AAD
+                                    token from Windows Credential Manager)
+                                    ↓ falls through only if GCM yields no token
+                                    az-CLI mint helper (HEADLESS FALLBACK)
 ```
 
 **`git/config.tmpl` credential setup:**
@@ -124,16 +128,46 @@ git push → SSH (needs own key or 1Password interop)
 [credential "https://github.com"]
     helper = !"<gh binary path>" auth git-credential
 
-# macOS only (line 133-135):
+# macOS only:
 [credential]
     helper = osxkeychain
-
-# WSL2 work only (line 146-151):
-[credential]
-    helper = /mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe
+    azreposCredentialType = oauth
 [credential "https://dev.azure.com"]
+    helper = manager        # Git Credential Manager (cask: git-credential-manager)
     useHttpPath = true
+
+# WSL2 work only — GCM primary + az-CLI mint fallback (chained):
+[credential]
+    helper = /mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe   # PRIMARY
+[credential "https://dev.azure.com"]
+    helper = ~/.git-azdo-helper.sh        # FALLBACK (managed; gated work+WSL)
+    # useHttpPath/azreposCredentialType come from the shared $azure block above
 ```
+
+**WSL2 Azure DevOps credential chain (verified 2026-06-15):**
+
+- **GCM *does* auth Azure from WSL2** — contrary to an earlier (now removed)
+  belief that it couldn't. The catch is `useHttpPath = true`: it feeds GCM the
+  org path so GCM can resolve the org and return the cached AAD token from
+  Windows Credential Manager. Without it, GCM errors with "Cannot determine the
+  organization name." This is the only Azure-specific config GCM needs (it's the
+  exact requirement in [MS Learn: Git on WSL](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-git)).
+- **Why a fallback at all:** GCM serves a *cached* token headlessly, but on
+  expiry it needs an interactive Windows sign-in dialog. A headless session
+  (e.g. `ssh work-wsl` from the Mac) can't render that dialog, so the push
+  stalls. `~/.git-azdo-helper.sh` mints a fresh AAD token non-interactively from
+  the cached `az` CLI session, closing that gap. Its `--resource` GUID
+  (`499b84ac-…`) is the **public** Azure DevOps first-party app id, not a secret.
+- **FOOTGUN — never `helper =` (empty reset) before the az-mint helper.** A
+  reset clears the *inherited global GCM helper* from the Azure chain, leaving
+  az-mint as the *only* helper. That's the bug that once forced az-only auth and
+  read as "can't push via GCM." The fallback must be appended **after** the
+  global GCM line (file order = chain order; git uses the first helper that
+  returns creds), with **no reset**.
+- The mint script lives untracked at `~/.git-azdo-helper.sh` historically; it is
+  now chezmoi-managed (`executable_dot_git-azdo-helper.sh`, gated to work+WSL in
+  `.chezmoiignore.tmpl`). Per-machine `config.local` no longer overrides Azure
+  auth — the template owns the chain.
 
 The `gh auth git-credential` path is resolved dynamically via `lookPath "gh"` at `chezmoi apply` time. When gh moves from scoop to mise, the path updates automatically on next apply.
 
