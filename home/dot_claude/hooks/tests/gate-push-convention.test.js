@@ -8,7 +8,11 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { run, isGitPush } = require('../bash-checks/gate-push-convention');
+const {
+    run,
+    isGitPush,
+    configArgs,
+} = require('../bash-checks/gate-push-convention');
 
 const input = cmd => ({ tool_input: { command: cmd } });
 const deps = (over = {}) => ({
@@ -31,6 +35,26 @@ const NON_PUSHES = ['git status', 'npm test', 'git pushd', 'pushing'];
 for (const c of PUSHES) test(`isGitPush true: ${c}`, () => assert.ok(isGitPush(c)));
 for (const c of NON_PUSHES)
     test(`isGitPush false: ${c}`, () => assert.ok(!isGitPush(c)));
+
+// --- config resolution ----------------------------------------------------
+test('repo-local config wins (no --config passed)', () => {
+    const exists = p => p === '/repo/cchk.toml';
+    assert.deepEqual(configArgs('/repo', { exists, global: '/g.toml' }), []);
+});
+test('no repo config + global present -> --config global', () => {
+    const exists = p => p === '/g.toml';
+    assert.deepEqual(configArgs('/repo', { exists, global: '/g.toml' }), [
+        '--config',
+        '/g.toml',
+    ]);
+});
+test('neither config present -> no flags (commit-check defaults)', () => {
+    assert.deepEqual(configArgs('/repo', { exists: () => false, global: '/g.toml' }), []);
+});
+test('.github/cchk.toml also counts as repo-local', () => {
+    const exists = p => p === '/repo/.github/cchk.toml';
+    assert.deepEqual(configArgs('/repo', { exists, global: '/g.toml' }), []);
+});
 
 // --- decision logic -------------------------------------------------------
 test('non-push command allowed without invoking commit-check', () => {
