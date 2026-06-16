@@ -18,16 +18,45 @@
  * cross-branch refspec (`git push origin other` while on a different branch)
  * is not separately validated — pushes are virtually always the current branch.
  *
+ * Policy: commit-check has no global config search path (it looks only in the
+ * repo + .github), so a repo-local cchk.toml wins when present, otherwise the
+ * gate points commit-check at the global ~/.config/commit-check/cchk.toml via
+ * --config. With neither, commit-check's strict defaults apply.
+ *
  * run(input, deps?) -> { exitCode: 0 } | { exitCode: 2, stderr }
  *   deps lets tests inject { check, repoRoot, currentBranch } deterministically.
  */
 
 const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const { getCommand } = require('../lib/hook-io');
 const { currentBranch, repoRoot } = require('../lib/git');
 
 const isGitPush = cmd =>
     /(^|[^a-zA-Z])git(\s+-c\s+\S+)*\s+push(\s|$)/.test(cmd);
+
+const REPO_CONFIGS = [
+    'cchk.toml',
+    'commit-check.toml',
+    '.github/cchk.toml',
+    '.github/commit-check.toml',
+];
+const GLOBAL_CONFIG = path.join(os.homedir(), '.config', 'commit-check', 'cchk.toml');
+
+/**
+ * Resolve the `--config` flags for commit-check. A repo-local config wins (so a
+ * repo / its CI can own its policy); otherwise apply the global config if it
+ * exists; otherwise nothing (commit-check defaults). `opts` is injectable for tests.
+ */
+function configArgs(cwd, opts = {}) {
+    const exists = opts.exists || fs.existsSync;
+    const global = opts.global || GLOBAL_CONFIG;
+    if (REPO_CONFIGS.some(f => exists(path.join(cwd, f)))) return [];
+    if (exists(global)) return ['--config', global];
+    return [];
+}
 
 /**
  * Run `commit-check --branch` in `cwd`, preferring it on PATH and falling back
@@ -45,7 +74,7 @@ const stripMiseNoise = s =>
         .trim();
 
 function checkBranch(cwd) {
-    const flags = ['--branch', '--no-banner'];
+    const flags = ['--branch', '--no-banner', ...configArgs(cwd)];
     const opts = { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] };
     // After `chezmoi apply` + `mise install`, commit-check is activated and the
     // bare shim works (fast) — so it is the primary runner. `mise x` resolves
@@ -119,4 +148,4 @@ function run(input, deps = {}) {
     };
 }
 
-module.exports = { run, isGitPush, checkBranch };
+module.exports = { run, isGitPush, checkBranch, configArgs, GLOBAL_CONFIG };

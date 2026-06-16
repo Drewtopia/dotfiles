@@ -1,0 +1,14 @@
+# Global commit-check policy. The push gate
+# (dot_claude/hooks/bash-checks/gate-push-convention.js) points commit-check at
+# this file via `--config` when a repo has no cchk.toml of its own; a repo-local
+# config always wins. https://commit-check.github.io
+[branch]
+# https://conventionalbranch.org, widened to the Conventional Commit type set
+# (+ wip) so everyday branches aren't rejected by the strict 7-type default.
+conventional_branch = true
+allow_branch_types = [
+  "feature", "feat", "bugfix", "fix", "hotfix", "release", "chore",
+  "refactor", "docs", "test", "perf", "ci", "style", "build", "revert", "wip",
+]
+# main/master/HEAD/PR-* are always allowed by default; add the other trunk-likes.
+allow_branch_names = ["develop", "staging"]
