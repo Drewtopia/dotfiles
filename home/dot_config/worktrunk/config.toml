@@ -13,6 +13,12 @@
 #                {{ worktree_path }} {{ repo }} {{ target }}
 # Filters:       {{ branch | hash_port }}  {{ branch | sanitize }}
 
+# Place worktrees inside the repo under .claude/worktrees/<branch>, matching the
+# Claude Code EnterWorktree layout. .claude/ is globally gitignored
+# (~/.config/git/ignore), so nested worktrees never show up as untracked.
+# Default would be a sibling dir: {{ repo_path }}/../{{ repo }}.{{ branch | sanitize }}
+worktree-path = "{{ repo_path }}/.claude/worktrees/{{ branch | sanitize }}"
+
 [list]
 # LLM-generated one-line branch summaries in `wt list`.
 summary = true
