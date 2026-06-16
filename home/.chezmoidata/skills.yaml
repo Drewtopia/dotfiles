@@ -39,6 +39,11 @@ skill_repos:
     skills:
       - conventional-commit
       - playwright-generate-test
+  - repo: conventional-branch/conventional-branch
+    # Teaches valid Conventional Branch names; pairs with commit-check
+    # enforcement in dot_claude/hooks/bash-checks/gate-push-convention.js.
+    skills:
+      - conventional-branch
   - repo: pproenca/dot-skills
     # 154-skill personal collection; pull only what we use.
     skills:
