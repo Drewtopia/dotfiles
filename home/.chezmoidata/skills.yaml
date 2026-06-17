@@ -7,27 +7,37 @@
 # .chezmoiexternal.toml.tmpl, which went stale on upstream refactors.
 skill_repos:
   - repo: mattpocock/skills
-    # The 12 default-listed skills plus 2 from misc/. Hidden-subdir skills
-    # (misc/, personal/, deprecated/, in-progress/) are excluded from
+    # 20 skills: 5 productivity/, 13 engineering/, 2 misc/. Hidden-subdir
+    # skills (misc/, personal/, deprecated/, in-progress/) are excluded from
     # `npx skills add mattpocock/skills -l` BUT can still be installed by
     # name via the --skill flag, which the reconciler script uses.
+    #
+    # Reconciled against upstream v1.0.0 (Jun 2026 "design skills" refactor):
+    #   write-a-skill → writing-great-skills (replaced)
+    #   diagnose      → diagnosing-bugs (renamed)
+    #   zoom-out      → removed upstream, no replacement
+    # Stale on-disk dirs purged via .chezmoiremove.tmpl.
     skills:
       # productivity/
       - grill-me
-      - write-a-skill
+      - grilling
+      - writing-great-skills
+      - teach
+      - handoff
       # engineering/
-      - diagnose
+      - diagnosing-bugs
       - grill-with-docs
       - improve-codebase-architecture
+      - codebase-design
+      - domain-modeling
+      - resolving-merge-conflicts
+      - ask-matt
       - prototype
       - setup-matt-pocock-skills
-      - teach
       - tdd
       - to-issues
       - to-prd
       - triage
-      - zoom-out
-      - handoff
       # misc/ (hidden but installable by name)
       - git-guardrails-claude-code
       - migrate-to-shoehorn
