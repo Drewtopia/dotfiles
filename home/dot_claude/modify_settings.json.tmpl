@@ -1,3 +1,30 @@
+#!/usr/bin/env bash
+{{/*
+  chezmoi modify_ script for ~/.claude/settings.json.
+
+  Why modify_ and not a plain template: Claude Code rewrites this file at
+  runtime (plugin enable/disable, marketplace adds, survey/tips state) and
+  plugins inject their own hook entries. A plain overwrite template fights
+  that and shows a "changed since chezmoi last wrote it" prompt every apply.
+
+  This treats the chezmoi-managed settings as a FLOOR merged over the live
+  runtime file:
+    - runtime wins on scalar conflicts (Claude's toggles survive);
+    - objects merge in the runtime file's key order (byte-clean vs Claude's
+      serializer -> no formatting drift);
+    - arrays union (managed entries enforced, runtime/plugin additions kept);
+    - hook commands enforced only if absent (never duplicated / double-fired).
+  Net: managed keys stay enforced, Claude's runtime state survives, drift gone.
+
+  The managed JSON below is the former settings.json.tmpl body verbatim; it is
+  rendered per-machine, then deep-merged over the on-disk file via jq.
+*/}}
+set -euo pipefail
+{{ if eq .chezmoi.os "windows" }}
+# chezmoi runs this via Git Bash on Windows; scoop shims (jq) aren't on PATH.
+export PATH="$HOME/scoop/shims:$PATH"
+{{ end }}
+managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 90,
@@ -174,3 +201,34 @@
   "preferredNotifChannel": "terminal_bell",
   "agentPushNotifEnabled": false
 }
+CHEZMOI_SETTINGS_EOF
+)
+
+existing=$(cat)
+[ -n "${existing//[[:space:]]/}" ] || existing='{}'
+
+printf '%s' "$existing" | jq --argjson m "$managed" '
+  # dm(a;b): merge managed (a) as a floor under runtime (b). b (runtime) wins.
+  def dm(a;b):
+    if (a|type)=="object" and (b|type)=="object" then
+      reduce (((b|keys_unsorted)+(a|keys_unsorted))
+              | reduce .[] as $x ([]; if any(.[];.==$x) then . else .+[$x] end))[] as $k ({};
+        .[$k] = (if   (b|has($k)) and (a|has($k)) then dm(a[$k]; b[$k])
+                 elif (b|has($k))                 then b[$k]
+                 else                                  a[$k] end))
+    elif (a|type)=="array" and (b|type)=="array" then
+      # hook-event arrays (objects with matcher+hooks): keep runtime verbatim,
+      # append a managed hook only if its command string is absent anywhere.
+      if ((b+a)|length>0) and ((b+a)|all(type=="object" and has("matcher") and has("hooks"))) then
+        ([b[]|.hooks[].command]) as $bc
+        | b + ( [ a[]
+                  | .hooks = [ .hooks[] | select(.command as $c | ($bc|index($c))==null) ]
+                  | select(.hooks|length>0) ] )
+      else
+        b + (a - b)
+      end
+    else b end;
+  # bind runtime input to $e first: jq args are call-by-name filters, so passing
+  # "." rebinds b to the reduce accumulator mid-merge and drops runtime-only keys.
+  . as $e | dm($m; $e)
+' | tr -d '\r'
