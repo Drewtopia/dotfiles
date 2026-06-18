@@ -7,7 +7,7 @@
 # .chezmoiexternal.toml.tmpl, which went stale on upstream refactors.
 skill_repos:
   - repo: mattpocock/skills
-    # 20 skills: 5 productivity/, 13 engineering/, 2 misc/. Hidden-subdir
+    # 21 skills: 5 productivity/, 14 engineering/, 2 misc/. Hidden-subdir
     # skills (misc/, personal/, deprecated/, in-progress/) are excluded from
     # `npx skills add mattpocock/skills -l` BUT can still be installed by
     # name via the --skill flag, which the reconciler script uses.
@@ -33,6 +33,7 @@ skill_repos:
       - resolving-merge-conflicts
       - ask-matt
       - prototype
+      - implement
       - setup-matt-pocock-skills
       - tdd
       - to-issues
