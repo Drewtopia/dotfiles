@@ -212,4 +212,12 @@
 [interpreters.ps1]
     command = "powershell.exe"
     args = ["-NoLogo", "-NoProfile", "-NonInteractive"]
+
+# dot_claude/modify_settings.json.tmpl renders to a target ending in `.json`, so
+# chezmoi keys its interpreter off the `json` extension. Unix runs it via the
+# shebang; Windows has no shebang execution, so route `.json` scripts through
+# Git Bash (same interpreter as CLAUDE_CODE_GIT_BASH_PATH). Requires `chezmoi
+# init` to regenerate the config after this lands.
+[interpreters.json]
+    command = "C:\\Program Files\\Git\\bin\\bash.exe"
 {{- end }}
