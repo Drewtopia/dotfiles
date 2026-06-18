@@ -19,6 +19,7 @@ set -eufo pipefail
     "tmux"
     "wget"
     "xz" -}}
+{{/* Excluded on purpose (do not auto-install): "logi-options+" — re-add to the list below to restore. */}}
 {{ $casks := list
 	"1password@nightly"
     "1password-cli"
@@ -51,7 +52,6 @@ set -eufo pipefail
     "keycastr"
     "keyclu"
     "leader-key"
-    "logi-options+"
     "lookaway"
     "lunar"
     "muzzle"
