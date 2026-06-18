@@ -1,6 +1,6 @@
 {
   "name": "drewtopia-dotfiles",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "Personal chezmoi-managed dotfiles. Changesets is used only for a versioned CHANGELOG — nothing is published to a registry.",
   "scripts": {
