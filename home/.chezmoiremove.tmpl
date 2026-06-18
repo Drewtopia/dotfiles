@@ -47,7 +47,13 @@
 # prd-to-issues replaced by to-issues (mattpocock renamed Apr 2026)
 .claude/skills/prd-to-issues
 
-# mattpocock/skills v1.0.0 (Jun 2026 "design skills" refactor) removed/renamed these
+# mattpocock/skills v1.0.0 (Jun 2026 "design skills" refactor) removed/renamed these.
+# Remove both the ~/.claude/skills symlink AND the ~/.agents/skills payload that
+# `npx skills` leaves behind (chezmoi doesn't manage the .agents store, so dropping
+# a skill from skills.yaml otherwise orphans the payload on every machine).
 .claude/skills/write-a-skill
 .claude/skills/diagnose
 .claude/skills/zoom-out
+.agents/skills/write-a-skill
+.agents/skills/diagnose
+.agents/skills/zoom-out
