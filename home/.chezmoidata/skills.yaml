@@ -78,3 +78,7 @@ skill_repos:
   - repo: blader/humanizer
     skills:
       - humanizer
+  - repo: microsoftdocs/agent-skills
+    # Azure Repos expert skill; replaces the lost project-vendored azure-repos.
+    skills:
+      - azure-repos
