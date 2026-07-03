@@ -5,10 +5,12 @@
 [branch]
 # https://conventionalbranch.org, widened to the Conventional Commit type set
 # (+ wip) so everyday branches aren't rejected by the strict 7-type default.
+# `agent` covers the AFK orchestrator's branches (agent/issue-<n>-*, agent/prd-<n>-*).
 conventional_branch = true
 allow_branch_types = [
   "feature", "feat", "bugfix", "fix", "hotfix", "release", "chore",
   "refactor", "docs", "test", "perf", "ci", "style", "build", "revert", "wip",
+  "agent",
 ]
 # main/master/HEAD/PR-* are always allowed by default; add the other trunk-likes.
 allow_branch_names = ["develop", "staging"]
