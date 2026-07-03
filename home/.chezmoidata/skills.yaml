@@ -51,6 +51,7 @@ skill_repos:
       - writing-fragments
       - writing-beats
       - writing-shape
+      - claude-handoff
   - repo: vercel-labs/skills
     skills:
       - find-skills
