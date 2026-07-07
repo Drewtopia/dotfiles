@@ -1,6 +1,6 @@
 ---
 name: reorganize-memory
-description: Reorganize ~/.claude/memory/ and project MEMORY.md files — migrate legacy-pattern files into the YoungLeaders folder structure, dedupe entries, merge related files, split overgrown files, re-sort by date, update memory.md index. Use when user says "reorganize memory", "tidy memory", "clean up memory", or wants to consolidate accumulated memory content.
+description: Reorganize ~/.claude/memory/, ~/.claude/rules/, and project auto-memory (a MEMORY.md index + sibling topic files) — migrate legacy global prefix-files into the structured folders, dedupe/merge/split, trim an over-budget index by moving detail to sibling files, update indexes. Use when user says "reorganize memory", "tidy memory", "clean up memory", or wants to consolidate accumulated memory content.
 ---
 
 # Reorganize Memory
@@ -21,18 +21,25 @@ Documented in `~/.claude/CLAUDE.md`. This skill enforces it.
 - `projects.md` — index of active project MEMORY.md paths
 - `personal.md` — notes about people
 
-**Behavioral rules** — `~/.claude/rules/` (instructions Drew writes; native Claude Code mechanism)
+**Behavioral rules** — native Claude Code mechanism; instructions, not facts (code.claude.com/docs/en/memory#organize-rules-with-claude/rules/). Two scopes:
 
-- `{topic}.md` — one rule per file. Loaded structurally by Claude Code at session start.
-- Rules with `paths:` frontmatter only load when Claude reads matching files. Use for style/convention rules tied to specific file types (e.g. CLAUDE.md, MEMORY.md).
-- Rules without `paths:` load every session — reserve for safety rules and universal style.
+- **User** `~/.claude/rules/{topic}.md` — personal, all projects. This skill maintains these.
+- **Project** `.claude/rules/{topic}.md` — team-shared, lives in the repo (tracked). Managed in-repo, NOT by this skill. User rules load before project rules, so project rules win on conflict.
+- One rule per file. Rules with `paths:` frontmatter load only when Claude reads matching files (use for file-type/dir-scoped conventions, e.g. CLAUDE.md, MEMORY.md, `src/api/**`). Rules without `paths:` load every session — reserve for safety + universal style (pay-per-session context).
+- `.claude/rules/` supports symlinks for sharing one rule across projects.
 
-**Project memory** — `~/.claude/projects/{mapped-cwd}/memory/MEMORY.md`
+**Project memory** — `~/.claude/projects/{mapped-cwd}/memory/`
 
-A **single file with sections** is Drew's preference — not a directory of sibling files. Note: native auto-memory (v2.1.59+) may write topic files alongside `MEMORY.md`; preserve any autonomous content rather than collapsing it. The 200-line / 25KB session-start budget applies to `MEMORY.md` itself.
+Canonical Claude Code auto-memory model (code.claude.com/docs/en/memory): a
+`MEMORY.md` **index** plus **topic/fact sibling files**. `MEMORY.md` is the index
+loaded at session start (first 200 lines / 25KB); sibling files are recalled on
+demand. Keep `MEMORY.md` concise by **moving detail OUT to sibling files** — never
+collapse siblings into `MEMORY.md` sections. Sibling granularity (broad
+`debugging.md` topic files vs one-fact-per-file) is the project's choice; preserve
+whatever auto-memory has written.
 
 **Legacy patterns (do NOT create new):**
-- Prefix-based filenames at the root of a memory directory — `feedback_X.md`, `user_X.md`, `project_X.md`, `reference_X.md`. These come from Claude Code's auto-memory default and are out of step with Drew's structured system.
+- Prefix-based filenames at the root of the **global** `~/.claude/memory/` — `feedback_X.md`, `user_X.md`, `project_X.md`, `reference_X.md`. Out of step with Drew's structured global system (general.md / tools/ / domain/ / rules/). NOTE: in **project** memory dirs (`~/.claude/projects/*/memory/`) an index + sibling files IS the canonical auto-memory model — those are NOT legacy; do not migrate them away.
 - Files under `~/.claude/memory/feedback/` — superseded by `~/.claude/rules/` (native rules mechanism). Migrate to rules/ and strip `type: feedback` frontmatter.
 
 ## Workflow
@@ -49,15 +56,15 @@ A **single file with sections** is Drew's preference — not a directory of sibl
    - `~/.claude/memory.bak.*/` directories — pre-existing memory content auto-backed-up by chezmoi when the vault symlink landed on a fresh machine. Treat as merge candidates.
 
 3. **Build a proposal** — for each candidate change, identify:
-   - **Legacy-pattern files** — any prefix-based-flat-at-root file (`feedback_*.md`, `user_*.md`, `project_*.md`, `reference_*.md`) sitting at the root of `~/.claude/memory/` or in any `~/.claude/projects/*/memory/`. Propose migration based on content:
+   - **Legacy-pattern files** — prefix-based files (`feedback_*.md`, `user_*.md`, `project_*.md`, `reference_*.md`) at the root of the **global** `~/.claude/memory/` only (NOT project memory dirs — there they are the canonical store). Propose migration based on content:
      - Behavioral rule / correction → new `~/.claude/rules/{topic}.md`
      - Cross-project convention / quality gate → merge into `general.md`
      - Tool-specific knowledge → `~/.claude/memory/tools/{tool}.md` (new file or append)
      - Domain/product knowledge → `~/.claude/memory/domain/{topic}.md`
-     - Project-specific workflow/state → fold into that project's `MEMORY.md` under a section, then delete the sibling
+     - Project-specific workflow/state → move to a topic/sibling file in that project's `memory/` dir and add a one-line `MEMORY.md` index pointer (do not inline into a MEMORY.md section)
    - **Files in legacy `~/.claude/memory/feedback/`** — migrate each to `~/.claude/rules/{topic}.md`. Strip `type: feedback` frontmatter (native rules don't use it). For file-type-specific rules, add `paths:` frontmatter so they only load when Claude reads matching files.
    - **`general.md` bloat** — if `general.md` has grown beyond ~50 lines or contains content that's clearly behavioral guidance rather than a flat convention/quality gate, propose extracting to `~/.claude/rules/{topic}.md` files.
-   - **Project memory as a directory of files** — if a project's memory dir has multiple `*.md` files alongside `MEMORY.md`, propose collapsing them into MEMORY.md sections. Sibling files don't load at session start; only `MEMORY.md` does.
+   - **Project `MEMORY.md` over budget** — when the index nears 200 lines / 25KB: keep it a lean index (one short hook per entry), shorten verbose hooks, and move any detail that crept into `MEMORY.md` OUT to sibling topic files. Dedup / merge / drop stale sibling files (extract durable content first; confirm before delete). Do NOT collapse siblings into `MEMORY.md` sections — siblings are the canonical store; the index just points to them.
    - **Stale audits/inventories** — date-stamped audit lists, `⚠ Last seen` markers older than ~30 days, snapshots of tool installs or package lists. Per the Note-keeping bias section in `~/.claude/memory/working-patterns.md`, the **content rots but the rationale survives**. For each candidate drop:
      1. Identify durable patterns / decisions / rationale (the "why" and "how" — not the "what" of static inventories).
      2. Extract those into the appropriate global file (`~/.claude/memory/tools/{tool}.md`, `~/.claude/memory/domain/{topic}.md`, or `~/.claude/rules/{topic}.md`) BEFORE proposing the drop.
@@ -100,6 +107,6 @@ A **single file with sections** is Drew's preference — not a directory of sibl
   - `~/.claude/memory/tools/{tool}.md` — tool knowledge (lazy-loaded)
   - `~/.claude/memory/domain/{topic}.md` — product/area knowledge (lazy-loaded)
   - `~/.claude/rules/{topic}.md` — behavioral rules. Strip `type:` frontmatter; add `paths:` for file-type-specific rules.
-  - Project content → that project's `MEMORY.md` as a section.
-- Project memory is conceptually one file (`MEMORY.md`), but native auto-memory (v2.1.59+) may write topic files alongside it. **Preserve any autonomous writes** — never delete sibling files without first reading them and confirming with the user. Only fold/delete siblings that are clearly handcrafted-and-stale, not auto-memory output.
+  - Project content → a topic/sibling file in that project's `memory/` dir, pointed to by a one-line `MEMORY.md` index entry.
+- Project memory = a `MEMORY.md` index + topic/sibling files (canonical auto-memory model, v2.1.59+). Compact by trimming the index and curating sibling files; never collapse siblings into `MEMORY.md` sections. **Preserve autonomous writes** — never delete a sibling without first reading it and confirming with the user.
 - Keep `general.md` lean (~50 lines target). It loads at session start every time — pay-per-byte. Behavioral rules belong in `~/.claude/rules/{topic}.md`. Rules load eagerly by default; for file-type-specific rules, use `paths:` frontmatter so they only load when relevant.
