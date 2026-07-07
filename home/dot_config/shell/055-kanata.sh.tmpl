@@ -1,0 +1,9 @@
+####################### KANATA #######################
+{{- if and (eq .chezmoi.os "darwin") (lookPath "kanata") }}
+# Kanata runs as system LaunchDaemon com.chezmoi.kanata (sudo required)
+kanata-start()   { sudo launchctl bootstrap system /Library/LaunchDaemons/com.chezmoi.kanata.plist; }
+kanata-stop()    { sudo launchctl bootout system/com.chezmoi.kanata; }
+kanata-restart() { sudo launchctl kickstart -k system/com.chezmoi.kanata; }   # reload after .kbd edit
+kanata-status()  { sudo launchctl list com.chezmoi.kanata; }
+kanata-logs()    { tail -f /tmp/kanata.log; }
+{{- end }}
