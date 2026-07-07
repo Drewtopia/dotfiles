@@ -26,3 +26,10 @@ summary = true
 [aliases]
 # Universally safe — works in any git repo, no language assumptions.
 since-main = "git log --oneline {{ default_branch }}..HEAD"
+
+# LLM commit/squash messages + the branch summaries enabled by [list] summary.
+# --safe-mode runs claude hermetically (no hooks/plugins/MCP/skills/CLAUDE.md),
+# so session hooks and project settings can't pollute the generated text;
+# --setting-sources='user' keeps auth out of a project .claude/settings.json.
+[commit.generation]
+command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --safe-mode --setting-sources='user' --system-prompt=''"

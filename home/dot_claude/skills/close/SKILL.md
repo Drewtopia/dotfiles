@@ -76,6 +76,10 @@ Mapped path: cwd with `/` → `-`, prefixed with `-`. Example: `/Users/drew/.loc
 
 Entry shape (per the global rules): `date — what — why`. Nothing more.
 
+**Project live state** — do not maintain a live-state digest in memory. Work state belongs in the project's own tracker (for this repo: GitHub issues). Never start or update a memory `CURRENT-STATE.md` or committed `STATUS.md`/`STATE-MAP.md` — those are retired patterns. `MEMORY.md` holds durable shapes and gotchas only, not live status.
+
+**Reconcile the tracker** — where the code host and the issue tracker differ (this repo: code on Azure, issues on GitHub), a merged PR does **not** auto-close its issue. As part of closeout, for each branch worked this session whose PR has merged, close the `GH-N` issue its PR body/commits reference: `gh issue close <N> --repo "$GH_ISSUE_TRACKER_REPO"`. This mirrors the sandcastle `reconcile()` pass, which only covers `agent/*` branches — manual branches need this closer. Skip silently if the project is single-host (PR merge already closes the issue).
+
 ## Phase 2 — Housekeeping
 
 ### 1. Locate the project repo
