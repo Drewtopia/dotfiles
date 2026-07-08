@@ -15,6 +15,10 @@ skill_repos:
     #   write-a-skill → writing-great-skills (replaced)
     #   diagnose      → diagnosing-bugs (renamed)
     #   zoom-out      → removed upstream, no replacement
+    #
+    # Reconciled against upstream v1.1.0 (Jul 2026):
+    #   to-issues, to-prd → unified upstream into to-spec + to-tickets
+    #   wayfinder         → graduated in-progress/ to engineering/ (now stable)
     # Stale on-disk dirs purged via .chezmoiremove.tmpl.
     skills:
       # productivity/
@@ -35,11 +39,12 @@ skill_repos:
       - implement
       - setup-matt-pocock-skills
       - tdd
-      - to-issues
-      - to-prd
+      - to-spec
+      - to-tickets
       - triage
       - code-review
       - research
+      - wayfinder
       # misc/ (hidden but installable by name)
       - git-guardrails-claude-code
       - migrate-to-shoehorn
@@ -47,7 +52,6 @@ skill_repos:
       # in-progress/ (unstable upstream; may rename/break — installable by name)
       - wizard
       - loop-me
-      - wayfinder
       - writing-fragments
       - writing-beats
       - writing-shape
