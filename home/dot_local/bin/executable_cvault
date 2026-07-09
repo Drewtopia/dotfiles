@@ -95,6 +95,21 @@ cmd_diff() {
 
 cmd_apply() {
     cd "$VAULT_DIR"
+    # Never `git add -A` over unmerged paths: it stages conflict markers as
+    # ordinary text and re-adds files an upstream commit deliberately deleted.
+    local conflicted
+    conflicted=$(conflicted_files)
+    if [ -n "$conflicted" ]; then
+        echo "✗ cvault: unresolved conflicts — refusing to commit." >&2
+        echo "$conflicted" | sed 's/^/    /' >&2
+        echo "  → resolve them, then re-run \`cvault apply\`" >&2
+        return 1
+    fi
+    if in_progress; then
+        echo "✗ cvault: rebase or merge in progress — refusing to commit." >&2
+        echo "  → run \`cvault merge\` to finish it first" >&2
+        return 1
+    fi
     if git diff --quiet && git diff --cached --quiet; then
         echo "cvault: no local changes to apply"
         return 0
@@ -107,15 +122,34 @@ cmd_apply() {
     echo "✓ Applied"
 }
 
+# Number of entries in the stash, 0 when empty.
+stash_count() {
+    git -C "$VAULT_DIR" stash list | wc -l | tr -d ' '
+}
+
 cmd_update() {
     cd "$VAULT_DIR"
     echo "→ Pulling..."
+    # `git pull --rebase --autostash` exits 0 even when the autostash fails to
+    # reapply — the conflict is reported as a warning. set -e will not catch
+    # it, so compare the stash depth across the pull instead.
+    local before after
+    before=$(stash_count)
     git pull --rebase --autostash
+    after=$(stash_count)
+    if [ "$after" -gt "$before" ]; then
+        echo "✗ cvault: autostash did not reapply — your changes are in stash@{0}." >&2
+        echo "  The working tree may hold conflict markers. Do NOT run \`cvault apply\`." >&2
+        echo "  → inspect: git -C \"$VAULT_DIR\" stash show -p stash@{0}" >&2
+        return 1
+    fi
     echo "✓ Updated"
 }
 
 cmd_sync() {
-    cmd_update
+    # A failed pull must never fall through to apply — that is how conflict
+    # markers get committed and pushed.
+    cmd_update || return 1
     cmd_apply
 }
 
