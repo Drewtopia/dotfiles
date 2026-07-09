@@ -47,6 +47,13 @@ Library
 .wezterm.lua
 {{ end }}
 
+# The op shim delegates to the Windows op.exe over WSL interop, because the
+# Linux-native op has no IPC path to 1Password for Windows. Only WSL needs it;
+# elsewhere the platform-native op talks to its own desktop app directly.
+{{ if not .is_wsl }}
+.local/bin/op
+{{ end }}
+
 # az-CLI Azure DevOps token-mint helper is the headless fallback in the WSL2
 # credential chain (see dot_config/git/config.tmpl). Only work WSL2 needs it;
 # everywhere else (mac, personal WSL, Windows) uses GCM alone, so leave any
