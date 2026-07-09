@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# 1Password CLI shim for WSL.
+#
+# The Linux-native op (/usr/bin/op) has no IPC channel to 1Password for
+# Windows. App integration is same-OS: the Linux CLI expects 1Password for
+# Linux plus a running PolKit authentication agent. With no unlock authority
+# to ask, it falls back to prompting for the account password on every
+# invocation, which makes chezmoi's onepasswordRead unusable non-interactively.
+#
+# op.exe invoked through WSL interop reaches the Windows app over Native
+# Messaging and authenticates against the app's unlocked session. Confirmed by
+# `op.exe vault list` returning vaults with no prompt while `op whoami` on the
+# Linux binary reported "account is not signed in".
+#
+# Note: `op whoami` reports session-token state, not app-integration state, and
+# still prints "account is not signed in" through this shim. That is expected.
+# Commands that need vault data authenticate transparently.
+set -euo pipefail
+
+# Resolved at chezmoi render time; the WinGet hash suffix is wildcarded so a
+# CLI version bump does not invalidate the path.
+OP_EXE="{{ glob (printf "/mnt/c/Users/%s/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe" .chezmoi.username) | first }}"
+
+# WinGet can relocate the package on reinstall. Re-resolve rather than fail.
+# The Windows profile is capitalised (AndrewCl) where the Linux user is not;
+# this matches because /mnt/c is mounted case-insensitively.
+if [ -z "$OP_EXE" ] || [ ! -f "$OP_EXE" ]; then
+    OP_EXE=$(ls -1 /mnt/c/Users/"$(id -un)"/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe 2>/dev/null | head -n1 || true)
+fi
+
+if [ -z "$OP_EXE" ]; then
+    echo "op: 1Password CLI for Windows not found." >&2
+    echo "    Install it on the Windows host:  winget install 1Password.CLI" >&2
+    echo "    The Linux op cannot reach 1Password for Windows." >&2
+    exit 127
+fi
+
+exec "$OP_EXE" "$@"
