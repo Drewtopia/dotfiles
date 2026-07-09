@@ -131,6 +131,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-edit-format.js\"'"
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-derived-artifact.js\"'"
+          }
+        ]
       }
     ],
     "Stop": [
