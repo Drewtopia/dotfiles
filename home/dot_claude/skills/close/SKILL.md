@@ -7,7 +7,7 @@ description: Close out a Claude Code session — capture relevant thoughts to Op
 
 Three phases. Run them in order. Print a counter line at the end.
 
-The memory dir is auto-pushed to `~/.claude-vault/` by the `memory-push.sh` Stop hook, so memory writes don't need a manual git push. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
+Memory writes are NOT auto-pushed — no Stop hook syncs the vault. After memory updates, run `cvault apply` (commit + push) so entries reach the other machines. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
 ## Phase 1 — Retrospective
 
@@ -66,9 +66,9 @@ Drew's memory follows the structure documented in his `~/.claude/CLAUDE.md` (You
 
 When you create a new file under `tools/` or `domain/`, add a one-line entry to `~/.claude/memory/memory.md` (the global index). Format: a row in the index table with file path, description, last-updated date.
 
-**Project memory** — `~/.claude/projects/{mapped-cwd}/memory/MEMORY.md`
+**Project memory** — `~/.claude/projects/{mapped-cwd}/memory/`
 
-A **single file** (uppercase). Append project-specific learnings — active tickets, repo-specific patterns, decisions tied to this codebase — under the appropriate section already in `MEMORY.md`. Don't create sibling files.
+A `MEMORY.md` **index** plus topic/fact **sibling files** (canonical auto-memory model — see the `verify-claude-code-internals` rule). Write project-specific learnings — active tickets, repo-specific patterns, decisions tied to this codebase — as sibling files, then add a one-line pointer to `MEMORY.md`. Keep the index lean: move detail out to siblings, never collapse siblings into the index.
 
 Mapped path: cwd with `/` → `-`, prefixed with `-`. Example: `/Users/drew/.local/share/chezmoi` → `-Users-drew--local-share-chezmoi`.
 
@@ -88,7 +88,7 @@ Entry shape (per the global rules): `date — what — why`. Nothing more.
 git rev-parse --show-toplevel 2>/dev/null
 ```
 
-If not inside a git repo, skip to step 4 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
+If not inside a git repo, skip to step 5 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
 
 ### 2. Inspect changes
 
@@ -100,7 +100,15 @@ git diff HEAD
 
 Read the full diff. Don't just look at filenames — read hunks.
 
-### 3. Split the diff into logical commits
+### 3. Get off protected branches
+
+If HEAD is on `main`, `master`, or `develop`, cut a feature branch before committing — the `gate-commit-not-protected` hook hard-blocks commits there:
+
+```bash
+git checkout -b <type>/<topic>   # Conventional Branch name, e.g. chore/session-closeout
+```
+
+### 4. Split the diff into logical commits
 
 Group hunks by **purpose**, not by file. A single file can span two commits; two files can belong to the same commit.
 
@@ -115,9 +123,9 @@ Do **not** push. Do **not** use `git add -A`.
 
 If the diff is genuinely one logical change, propose a single commit — don't manufacture splits.
 
-### 4. SESSION_LOG.md (cross-device)
+### 5. SESSION_LOG.md (cross-device)
 
-Prepend to `~/.claude/memory/SESSION_LOG.md`. This file lives in the vault (auto-pushed by `memory-push.sh`), so entries sync to all of Drew's machines.
+Prepend to `~/.claude/memory/SESSION_LOG.md`. This file lives in the vault; after writing it, `cvault apply` pushes it so entries reach all of Drew's machines.
 
 Entry format:
 
