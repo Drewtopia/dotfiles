@@ -7,7 +7,7 @@ description: Use when checking whether the upstream skill repos tracked in chezm
 
 Diff every upstream skill repo listed in chezmoi's `skills.yaml` against what's tracked, surface new / renamed / removed skills, and — on approval — reconcile `skills.yaml`.
 
-This is a **local, never-committed** skill (lives in `~/.claude/skills/`, outside the chezmoi repo).
+This skill is **chezmoi-managed** (source: `home/dot_claude/skills/audit-skill-repos/`). Edit the source, or edit the target and `chezmoi add` it — a target-only edit gets reverted on the next apply.
 
 ## Key file
 
@@ -55,6 +55,7 @@ This is a **local, never-committed** skill (lives in `~/.claude/skills/`, outsid
 - **`personal/` and `deprecated/`** — don't propose these unless asked; they're not meant for redistribution.
 - **PromptScript "failure" is cosmetic.** Command-style skills (`disable-model-invocation: true`) print `✗ … PromptScript does not support global skill installation` under a "Failed to install N" banner, yet the real install succeeds — `~/.agents/skills/<name>` payload + `~/.claude/skills/<name>` symlink both land. Verify on disk, don't trust the exit banner. Same quirk hits already-working skills (grilling, triage).
 - **Removing a skill** needs two edits: drop from `skills.yaml` AND add `.claude/skills/<name>` + `.agents/skills/<name>` lines to `home/.chezmoiremove.tmpl` — chezmoi doesn't manage the `.agents` payload store, so otherwise the payload orphans on every machine.
+- **Lock file orphans (third cleanup).** The skills CLI tracks installs in `$XDG_STATE_HOME/skills/.skill-lock.json` (`~/.local/state/skills/` here; falls back to `~/.agents/.skill-lock.json`). `.chezmoiremove` deletes dirs but never touches the lock, and `npx skills remove` only matches on-disk skills — it can't scrub orphaned entries. Result: `skills update -g` warns "appear to have been deleted upstream" forever (topgrade's `-y` just skips the prompt each run). Fix: back up the lock, then pop the stale names from its `skills` object with python/jq. (2026-07-10: diagnose, to-issues, to-prd, zoom-out, write-a-skill.)
 - **Don't commit unless asked.** Editing `skills.yaml` stages a change; leave the git commit to the user.
 
 ## Quick reference
