@@ -116,7 +116,9 @@ auto_retry = 1
 # Invoke via `pnx`, not `npx`: the skills package declares
 # devEngines.packageManager = pnpm, so npm trips EBADDEVENGINES on a
 # name mismatch. pnx (alias of pnpm dlx) runs it under pnpm and satisfies it.
-agent-skills = "pnx skills update -g -y"
+# No -y: attended runs surface the "deleted upstream" prompt so lock-file
+# entries self-clean; unattended runs (no TTY) skip prompts automatically.
+agent-skills = "pnx skills update -g"
 # tv-channels: pull the community channel set. Moved out of chezmoi apply
 # (was run_before_05-update-tv-channels) so apply stays fast; tv skips
 # channels that already exist, chezmoi still owns custom overrides.
