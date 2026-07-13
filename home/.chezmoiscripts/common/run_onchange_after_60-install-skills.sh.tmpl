@@ -8,8 +8,8 @@
 #
 # run_onchange: fires only when this rendered script changes, i.e. when
 # .chezmoidata/skills.yaml changes the declared repo/skill set. Its job is
-# ADDING newly-declared skills. Ongoing UPDATES are owned by topgrade
-# (`pnx skills update -g`, see dot_config/topgrade.toml).
+# ADDING newly-declared skills. Ongoing UPDATES are owned by topgrade's
+# native `skills` step (17.7.0+, see .chezmoitemplates/topgrade.toml).
 
 if ! command -v npx >/dev/null 2>&1; then
     echo "[skills] npx not on PATH; skipping"
