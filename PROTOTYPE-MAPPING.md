@@ -30,29 +30,28 @@ Deliberately absent: `00-env` (env lives in `.zshenv`), `30-functions` (ticket
 | 4–5, 166–167 | ZPROF profiling bookends | thin `.zshrc` (must wrap everything) |
 | 7, 16, 21, 27, 66, 68, 81 | OMZ vars (`ZSH_CUSTOM`, `ZSH`, theme, update, `HIST_STAMPS`, compfix, `plugins=()`) | `50-framework.zsh` |
 | 8–13 | p10k instant prompt | `05-instant-prompt.zsh` |
-| 23–65, 70–76 | OMZ installer boilerplate comments + commented compinit optimization | **dies** (pending confirm) |
+| 23–65, 70–76 | OMZ installer boilerplate comments + commented compinit optimization | `50-framework.zsh` (kept — decided) |
 | 85–112 | zinit init, `fzf-tab`, syntax-highlighting, `ZSH_TMUX_FIXTERM`, OMZP snippets, `oh-my-zsh.sh`, `cdreplay` | `50-framework.zsh` (order preserved exactly) |
 | 116 | `PROMPT` override | `60-prompt.zsh` |
 | 118–120 | `setopt` × 3 | `10-options.zsh` |
 | 123–124 | `zshconfig`/`zshrc` aliases | `20-aliases.zsh` (paths → `$ZDOTDIR`) |
-| 128–134 | `EDITOR` template with nvim-path fallback | **open Q** — `.zshenv` already sets `EDITOR=nvim`; either fold fallback logic into `.zshenv` or drop it |
+| 128–134 | `EDITOR` template with nvim-path fallback | `.zshenv` (fallback logic replaces its plain `EDITOR=nvim` — decided) |
 | 136–141 | `LANG`, `LC_ALL`, `LESS`, `PAGER` | **dies** — exact duplicates of `.zshenv` |
-| 144 | `RIPGREP_CONFIG_PATH` | **open Q** — belongs with XDG block in `.zshenv` (not zsh-specific) |
+| 144 | `RIPGREP_CONFIG_PATH` | `.zshenv` XDG-aware block (decided) |
 | 147, 122, 164 | stale "moved to…" comments | **dies** |
 | 149–151 | shell-loader source | thin `.zshrc` (after conf.d — carapace needs OMZ's compinit) |
-| 153–155 | worktrunk init | thin `.zshrc` — **open Q**: wt supports bash; could move to shared `020-shell-tools.sh` |
+| 153–155 | worktrunk init | shared `shell/020-shell-tools.sh` with per-shell guard, like atuin/fnox (decided) |
 | 157–159 | `.zshrc.local` / `.dotfiles.local` | thin `.zshrc` for now; final shape owned by ticket #48 |
 | 162 | p10k source | `60-prompt.zsh` (`~/.p10k.zsh` location owned by #48) |
 | 169 | vim modeline | thin `.zshrc` |
 
-## Open questions (react to these)
+## Resolved (2026-07-14)
 
-1. **One `50-framework` blob or split zinit/OMZ?** Blob keeps the fragile
-   ordering in one visibly order-critical file. Splitting looks cleaner but
-   invites reorder bugs.
-2. **EDITOR fallback** — keep the nvim-path/lookPath template logic (move to
-   `.zshenv`) or accept plain `EDITOR=nvim`?
-3. **worktrunk hook** — thin `.zshrc` or shared `shell/` tier?
-4. **`RIPGREP_CONFIG_PATH`** — move to `.zshenv` XDG block?
-5. **Deletions** — OMZ boilerplate comments (lines 23–65) and the commented-out
-   compinit optimization (lines 70–76) die. Confirm, or keep any?
+1. **Framework layer**: one order-critical `50-framework.zsh` blob — no further split.
+2. **EDITOR**: template fallback logic moves into `.zshenv`, replacing its plain export.
+3. **worktrunk hook**: moves to shared `shell/020-shell-tools.sh` (wt supports bash).
+4. **`RIPGREP_CONFIG_PATH`**: moves to `.zshenv` XDG-aware block.
+5. **Comments**: ALL commented-out content kept — OMZ boilerplate wall and
+   commented compinit optimization live on inside `50-framework.zsh`. Only
+   true duplicates (`LANG`/`LC_ALL`/`LESS`/`PAGER`) and stale "moved to…"
+   pointer comments die.

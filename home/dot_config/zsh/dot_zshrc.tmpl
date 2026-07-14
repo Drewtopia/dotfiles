@@ -18,9 +18,7 @@ unset _file
 # oh-my-zsh load provides.
 source "${XDG_CONFIG_HOME:-$HOME/.config}/shell-loader.sh"
 
-# worktrunk (wt) shell integration. `command wt` calls the binary, not the wt
-# shell function the integration defines (so `wt switch` can cd the parent shell).
-if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+# worktrunk (wt) integration moved to shared shell/020-shell-tools.sh
 
 # Local overrides (machine-specific, not tracked) — final shape owned by ticket #48
 [[ -f "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
