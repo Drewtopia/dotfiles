@@ -1,0 +1,38 @@
+# PROTOTYPE (ticket #47)
+# oh-my-zsh + zinit framework/plugin layer. Order inside this file is
+# load-bearing and preserved exactly from the old ~/.zshrc.
+
+export ZSH="$HOME/.oh-my-zsh"
+export ZSH_CUSTOM="$ZSH/custom"
+ZSH_THEME="powerlevel10k/powerlevel10k"
+DISABLE_AUTO_UPDATE="true"
+HIST_STAMPS="yyyy-mm-dd"
+ZSH_DISABLE_COMPFIX=true
+# Basic plugins loaded via .chezmoiexternal, advanced plugins via Zinit
+plugins=()
+
+# Initialize Zinit for performance-critical plugins
+ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+source "$ZINIT_HOME/zinit.zsh"
+
+zinit light Aloxaf/fzf-tab             # Fuzzy completion UI (works with carapace)
+zinit light zsh-users/zsh-syntax-highlighting  # Must be loaded last
+
+# Note: zsh-active-cheatsheet via .chezmoiexternal
+# Note: zsh-autosuggestions removed (redundant with atuin + fzf-tab)
+# Note: zsh-completions removed (carapace replaces it)
+
+# Tmux plugin config (must be set before plugin loads)
+export ZSH_TMUX_FIXTERM=false
+
+# Load Oh My Zsh plugins via Zinit snippets
+{{- range .zshPlugins }}
+zinit snippet OMZP::{{ . }}
+{{- end }}
+
+# Load Oh My Zsh framework (minimal - no plugins)
+# This loads compinit which is required before carapace
+source $ZSH/oh-my-zsh.sh
+
+# Replay Zinit completions after Oh My Zsh loads
+zinit cdreplay -q
