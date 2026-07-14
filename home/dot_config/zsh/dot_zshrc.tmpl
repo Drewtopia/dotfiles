@@ -1,0 +1,32 @@
+# PROTOTYPE (ticket #47) — thin loader replacing the 169-line ~/.zshrc.
+# Actual move of this file into the source tree is owned by ticket #46.
+
+# Early exit for non-interactive shells
+[[ -o interactive ]] || return
+
+# Enable profiling (controlled by ZPROF environment variable)
+[[ -n "$ZPROF" ]] && zmodload zsh/zprof
+
+# zsh-only fragments, numeric order
+for _file in "${ZDOTDIR}"/conf.d/*.zsh(N); do
+  source "$_file"
+done
+unset _file
+
+# Shared bash+zsh fragments (~/.config/shell/) — must come after conf.d:
+# carapace in 020-shell-tools.sh needs compinit, which 50-framework.zsh's
+# oh-my-zsh load provides.
+source "${XDG_CONFIG_HOME:-$HOME/.config}/shell-loader.sh"
+
+# worktrunk (wt) shell integration. `command wt` calls the binary, not the wt
+# shell function the integration defines (so `wt switch` can cd the parent shell).
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+
+# Local overrides (machine-specific, not tracked) — final shape owned by ticket #48
+[[ -f "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
+[[ -f "${HOME}/.dotfiles.local" ]] && source "${HOME}/.dotfiles.local"
+
+# Display profiling results
+[[ -n "$ZPROF" ]] && zprof || true
+
+{{- /* vim: set filetype=zsh: */}}
