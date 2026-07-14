@@ -138,6 +138,13 @@ README.md
 !.claude/hooks/
 !.claude/skills/
 {{-   if eq .chezmoi.os "windows" }}
+# Personal Windows: the skills installer creates community skills as NTFS
+# junctions under ~/.claude/skills, which chezmoi cannot read (irregular file
+# type). Ignore everything there except the chezmoi-managed skills.
+.claude/skills/*
+{{-     range glob (joinPath .chezmoi.sourceDir "dot_claude/skills/*") }}
+!.claude/skills/{{ base . }}
+{{-     end }}
 # Personal Windows: chezmoi-managed symlink (requires Developer Mode).
 !.claude/rules
 {{-   else }}
