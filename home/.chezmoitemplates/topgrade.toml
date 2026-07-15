@@ -111,14 +111,10 @@ auto_retry = 1
 # Lowercase, space-free names so `--custom-commands <name>` needs no
 # quoting or case-matching on the CLI.
 #
-# agent-skills: chezmoi's run_onchange install-skills script ADDS declared
-# skills (fires on skills.yaml change); topgrade owns UPDATING them.
-# Invoke via `pnx`, not `npx`: the skills package declares
-# devEngines.packageManager = pnpm, so npm trips EBADDEVENGINES on a
-# name mismatch. pnx (alias of pnpm dlx) runs it under pnpm and satisfies it.
-# No -y: attended runs surface the "deleted upstream" prompt so lock-file
-# entries self-clean; unattended runs (no TTY) skip prompts automatically.
-agent-skills = "pnx skills update -g"
+# Agent skills: chezmoi's run_onchange install-skills script ADDS declared
+# skills (fires on skills.yaml change); topgrade's native `skills` step
+# (17.7.0+) owns UPDATING them — no custom command needed.
+#
 # tv-channels: pull the community channel set. Moved out of chezmoi apply
 # (was run_before_05-update-tv-channels) so apply stays fast; tv skips
 # channels that already exist, chezmoi still owns custom overrides.
