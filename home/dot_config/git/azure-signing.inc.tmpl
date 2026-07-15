@@ -1,5 +1,7 @@
 {{- if and .work .is_wsl -}}
-{{- $localappdata := output "/mnt/c/Windows/System32/cmd.exe" "/c" "echo %LOCALAPPDATA%" | trim -}}
+{{- /* cd /mnt/c first: cmd.exe refuses a \\wsl.localhost UNC cwd and warns on
+       every render; starting from C:\ keeps it quiet. */ -}}
+{{- $localappdata := output "sh" "-c" "cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /c 'echo %LOCALAPPDATA%'" | trim -}}
 {{- $localappdata = output "wslpath" "-u" $localappdata | trim -}}
 # Included ONLY by Azure DevOps repos, via the includeIf rules in
 # ~/.config/git/config. Signs commits with the 1Password-held SSH key using the
