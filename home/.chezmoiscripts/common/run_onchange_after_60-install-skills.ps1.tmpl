@@ -5,8 +5,8 @@
 #
 # run_onchange: fires only when this rendered script changes, i.e. when
 # .chezmoidata/skills.yaml changes the declared repo/skill set. Its job is
-# ADDING newly-declared skills. Ongoing UPDATES are owned by topgrade
-# (`pnx skills update -g`, see dot_config/topgrade.toml).
+# ADDING newly-declared skills. Ongoing UPDATES are owned by topgrade's
+# native `skills` step (17.7.0+, see .chezmoitemplates/topgrade.toml).
 
 # Continue past per-repo failures so one bad repo cannot abort siblings.
 $ErrorActionPreference = "Continue"
