@@ -19,7 +19,7 @@ set -eufo pipefail
     "tmux"
     "wget"
     "xz" -}}
-{{/* Excluded on purpose (do not auto-install): "logi-options+", "lunar" (one display manager only; betterdisplay is it), "raycast" (Raycast Beta is the one in use; it ships as a manual download, not a cask) — re-add to the list below to restore. */}}
+{{/* Excluded on purpose (do not auto-install): "logi-options+", "lunar" (one display manager only; betterdisplay is it), "raycast" (Raycast Beta is the one in use; it ships as a manual download, not a cask), "elgato-stream-deck" (hardware no longer used; ran a background process and a Sentry crash reporter) — re-add to the list below to restore. */}}
 {{ $casks := list
 	"1password@nightly"
     "1password-cli"
@@ -28,7 +28,6 @@ set -eufo pipefail
     "bruno"
     "chatgpt"
     "discord"
-    "elgato-stream-deck"
 	"fmail3"
     "firefox@developer-edition"
     "font-fira-code"
