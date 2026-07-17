@@ -1,0 +1,87 @@
+{{/* chezmoi:template:left-delimiter=[[ right-delimiter=]] */}}
+{
+  "$schema" : "file:///opt/homebrew/share/macrowhisper/macrowhisper-schema.json",
+  "configVersion" : 2,
+  "defaults" : {
+    "actionDelay" : 0,
+    "activeAction" : "autoPaste",
+    "autoUpdateConfig" : true,
+    "bypassModes" : "",
+    "clipboardBuffer" : 5,
+    "clipboardIgnore" : "",
+    "clipboardStacking" : false,
+    "disableUpdateCheck" : false,
+    "history" : null,
+    "icon" : "",
+    "moveTo" : "",
+    "muteNotifications" : false,
+    "muteTriggers" : false,
+    "nextAction" : "",
+    "redactedLogs" : true,
+    "restoreClipboard" : true,
+    "restoreClipboardDelay" : 0.3,
+    "returnDelay" : 0.15,
+    "scheduledActionTimeout" : 5,
+    "scriptAsync" : true,
+    "scriptWaitTimeout" : 3,
+    "simEsc" : true,
+    "simKeypress" : false,
+    "simReturn" : false,
+    "smartCasing" : true,
+    "smartPunctuation" : true,
+    "smartSpacing" : true,
+    "watch" : "[[ joinPath .chezmoi.homeDir "Documents/superwhisper" ]]"
+  },
+  "inserts" : {
+    "autoPaste" : {
+      "action" : ".autoPaste",
+      "actionDelay" : null,
+      "icon" : "•",
+      "inputCondition" : null,
+      "moveTo" : null,
+      "nextAction" : null,
+      "restoreClipboard" : null,
+      "restoreClipboardDelay" : null,
+      "simEsc" : null,
+      "simKeypress" : null,
+      "simReturn" : null,
+      "smartCasing" : null,
+      "smartPunctuation" : null,
+      "smartSpacing" : null,
+      "triggerApps" : null,
+      "triggerLogic" : "or",
+      "triggerModes" : null,
+      "triggerUrls" : null,
+      "triggerVoice" : null
+    }
+  },
+  "scriptsAS" : {
+
+  },
+  "scriptsShell" : {
+
+  },
+  "shortcuts" : {
+
+  },
+  "urls" : {
+    "google" : {
+      "action" : "https://www.kagi.com/search?q={{swResult||\\.$||}}",
+      "actionDelay" : null,
+      "icon" : null,
+      "inputCondition" : null,
+      "moveTo" : null,
+      "nextAction" : null,
+      "openBackground" : false,
+      "openWith" : "Arc",
+      "restoreClipboard" : null,
+      "restoreClipboardDelay" : null,
+      "simEsc" : null,
+      "triggerApps" : null,
+      "triggerLogic" : "or",
+      "triggerModes" : null,
+      "triggerUrls" : null,
+      "triggerVoice" : "google|search"
+    }
+  }
+}
