@@ -7,49 +7,23 @@
 # .chezmoiexternal.toml.tmpl, which went stale on upstream refactors.
 skill_repos:
   - repo: mattpocock/skills
-    # Hidden-subdir skills (misc/, personal/, deprecated/, in-progress/) are excluded from
-    # `npx skills add mattpocock/skills -l` BUT can still be installed by
-    # name via the --skill flag, which the reconciler script uses.
+    # The stable engineering/ + productivity/ skills now come from the
+    # `mattpocock-skills@mattpocock` Claude Code plugin (see .chezmoidata/
+    # claude.toml). Upstream's plugin.json enumerates them, so their renames
+    # and removals no longer need hand-reconciling here — the trade-off is
+    # they invoke namespaced (`mattpocock-skills:tdd`, not `tdd`).
     #
-    # Reconciled against upstream v1.0.0 (Jun 2026 "design skills" refactor):
-    #   write-a-skill → writing-great-skills (replaced)
-    #   diagnose      → diagnosing-bugs (renamed)
-    #   zoom-out      → removed upstream, no replacement
+    # Only misc/ and in-progress/ remain on this path: plugin.json omits
+    # them, and `npx skills add -l` hides them, but --skill installs them
+    # by name anyway (which is what the reconciler script uses).
     #
-    # Reconciled against upstream v1.1.0 (Jul 2026):
-    #   to-issues, to-prd → unified upstream into to-spec + to-tickets
-    #   wayfinder         → graduated in-progress/ to engineering/ (now stable)
-    # Stale on-disk dirs purged via .chezmoiremove.tmpl.
+    # in-progress/ is unstable upstream — expect renames and breakage.
     skills:
-      # productivity/
-      - grill-me
-      - grilling
-      - writing-great-skills
-      - teach
-      - handoff
-      # engineering/
-      - diagnosing-bugs
-      - grill-with-docs
-      - improve-codebase-architecture
-      - codebase-design
-      - domain-modeling
-      - resolving-merge-conflicts
-      - ask-matt
-      - prototype
-      - implement
-      - setup-matt-pocock-skills
-      - tdd
-      - to-spec
-      - to-tickets
-      - triage
-      - code-review
-      - research
-      - wayfinder
-      # misc/ (hidden but installable by name)
+      # misc/
       - git-guardrails-claude-code
       - migrate-to-shoehorn
       - scaffold-exercises
-      # in-progress/ (unstable upstream; may rename/break — installable by name)
+      # in-progress/
       - wizard
       - loop-me
       - writing-fragments
