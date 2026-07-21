@@ -15,6 +15,7 @@ caveman                   = "JuliusBrussee/caveman"
 "claude-brain-sync"       = "toroleapinc/claude-brain"
 "claude-plugins-official" = "anthropics/claude-plugins-official"
 "karpathy-skills"         = "forrestchang/andrej-karpathy-skills"
+mattpocock                = "mattpocock/skills"
 "obsidian-skills"         = "kepano/obsidian-skills"
 qmd                       = "tobi/qmd"
 "superpowers-extended-cc-marketplace" = "pcvelz/superpowers"
@@ -33,7 +34,12 @@ worktrunk                 = "max-sixty/worktrunk"
 "hookify@claude-plugins-official"                  = true
 "claude-md-management@claude-plugins-official"     = true
 "superpowers@claude-plugins-official"              = false
-"superpowers-extended-cc@superpowers-extended-cc-marketplace" = true
+# Retired Jul 2026 in favour of mattpocock-skills, which covers the same
+# ground with one skill per job: test-driven-development→tdd,
+# requesting-code-review→code-review, systematic-debugging→diagnosing-bugs,
+# writing-plans→to-spec, brainstorming→grilling. Its using-superpowers skill
+# also injected itself into every session's system prompt.
+"superpowers-extended-cc@superpowers-extended-cc-marketplace" = false
 "claude-code-setup@claude-plugins-official"        = true
 "security-guidance@claude-plugins-official"        = true
 "explanatory-output-style@claude-plugins-official" = true
@@ -45,15 +51,27 @@ worktrunk                 = "max-sixty/worktrunk"
 
 [plugins.dev_computer]
 "qmd@qmd"                                 = true
-"code-review@claude-plugins-official"     = true
-"feature-dev@claude-plugins-official"     = true
+# Both retired Jul 2026 — mattpocock-skills covers them (code-review, and
+# to-spec → implement → codebase-design for feature work), and having three
+# plugins answer the same trigger made skill selection worse, not better.
+"code-review@claude-plugins-official"     = false
+"feature-dev@claude-plugins-official"     = false
 "typescript-lsp@claude-plugins-official"  = true
 "commit-commands@claude-plugins-official" = true
 "playwright@claude-plugins-official"      = true
 "code-simplifier@claude-plugins-official" = true
 "plugin-dev@claude-plugins-official"      = true
 "caveman@caveman"                         = true
+# Ships the 22 stable engineering/ + productivity/ skills, pinned to
+# plugin.json's version. The 9 misc/ + in-progress/ skills it excludes
+# stay on the `npx skills` path in .chezmoidata/skills.yaml.
+"mattpocock-skills@mattpocock"            = true
 "obsidian@obsidian-skills"                = true
 "greptile@claude-plugins-official"        = false
-"ecc@ecc"                                 = true
+# Retired Jul 2026: 889 skills + 306 agents, all of whose names and
+# descriptions load at session start. The context cost outweighed the use we
+# got from it, and it duplicated mattpocock-skills across tdd, code-review,
+# research, plan and feature-dev. Re-enable if the orchestration pipelines
+# (orch-*, multi-*, gan-*) are ever actually wanted.
+"ecc@ecc"                                 = false
 "worktrunk@worktrunk"                     = true
