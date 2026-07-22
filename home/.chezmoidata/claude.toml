@@ -14,6 +14,7 @@
 caveman                   = "JuliusBrussee/caveman"
 "claude-brain-sync"       = "toroleapinc/claude-brain"
 "claude-plugins-official" = "anthropics/claude-plugins-official"
+"i-have-adhd"             = "ayghri/i-have-adhd"
 "karpathy-skills"         = "forrestchang/andrej-karpathy-skills"
 mattpocock                = "mattpocock/skills"
 "obsidian-skills"         = "kepano/obsidian-skills"
@@ -42,6 +43,12 @@ worktrunk                 = "max-sixty/worktrunk"
 "superpowers-extended-cc@superpowers-extended-cc-marketplace" = false
 "claude-code-setup@claude-plugins-official"        = true
 "security-guidance@claude-plugins-official"        = true
+# Output shaping, not dev tooling — wanted on every machine.
+# Upstream tag 0.1.0 added a redundant "hooks": "./hooks/hooks.json" to its
+# manifest, which Claude Code rejects ("Duplicate hooks file detected") since
+# hooks/hooks.json is auto-loaded. Until that is fixed upstream, a fresh install
+# needs the key removed from the cached manifest to load.
+"i-have-adhd@i-have-adhd"                          = true
 "explanatory-output-style@claude-plugins-official" = true
 "learning-output-style@claude-plugins-official"    = true
 "ralph-loop@claude-plugins-official"               = false
