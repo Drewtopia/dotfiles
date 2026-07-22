@@ -59,6 +59,9 @@ fi
 
 # Prevent brew from reinstalling tools that mise owns
 export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-lint jless jq lazygit ripgrep yt-dlp age atuin carapace fzf zoxide gitleaks topgrade tokei yq navi neovim python go pipx lsd powerlevel10k direnv"
+
+# superwhisper CLI reads settings from ~/superwhisper, not its ~/Documents default
+export SUPERWHISPER_SETTINGS="$HOME/superwhisper/settings/settings.json"
 {{- end }}
 
 # Local overrides (machine-specific env vars, not tracked by chezmoi)
