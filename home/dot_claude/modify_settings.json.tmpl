@@ -240,4 +240,8 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # bind runtime input to $e first: jq args are call-by-name filters, so passing
   # "." rebinds b to the reduce accumulator mid-merge and drops runtime-only keys.
   . as $e | dm($m; $e)
+  # Tombstones: the merge is add-only (arrays union), so retiring a managed
+  # entry in this file cannot remove it from the live settings. List retired
+  # entries here to prune them on the next apply.
+  | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)"]
 ' | tr -d '\r'
