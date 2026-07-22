@@ -2,7 +2,6 @@
 
 set -eufo pipefail
 
-{{/* CLI + shell tools moved to mise: bat, fd, rg, delta, eza, gh, glow, gdu, jq, jless, lazygit, age, golangci-lint, yt-dlp, atuin, carapace, fzf, zoxide */}}
 {{ $brews := list
     "btop"
     "curl"
@@ -19,7 +18,6 @@ set -eufo pipefail
     "tmux"
     "wget"
     "xz" -}}
-{{/* Excluded on purpose (do not auto-install): "logi-options+", "lunar" (one display manager only; betterdisplay is it), "raycast" (Raycast Beta is the one in use; it ships as a manual download, not a cask), "elgato-stream-deck" (hardware no longer used; ran a background process and a Sentry crash reporter) — re-add to the list below to restore. */}}
 {{ $casks := list
 	"1password@nightly"
     "1password-cli"
@@ -67,7 +65,36 @@ set -eufo pipefail
     "wezterm"
     "zen"
     "qlmarkdown"
-    "quicklook-video" -}}
+    "quicklook-video"
+    "autodesk-fusion"
+    "bambu-studio"
+    "excalidrawz"
+    "localsend"
+    "navigator"
+    "rcmd"
+    "steam"
+    "supasidebar" -}}
+{{ $mas := list
+    "Actions;1586435171"
+    "CloudMounter;1130254674"
+    "Dato;1470584107"
+    "Day Progress;6450280202"
+    "Fusion;6759285919"
+    "Hyperduck;6444667067"
+    "Just Press Record;1033342465"
+    "Kagi Search;1622835804"
+    "keymapp;6472865291"
+    "Noir;1592917505"
+    "Obsidian Web Clipper;6720708363"
+    "Pandan;1569600264"
+    "Parachute;6748614170"
+    "Raycast Companion;6738274497"
+    "Refined GitHub;1519867270"
+    "Sink It;6449873635"
+    "SponsorBlock;1573461917"
+    "StopTheMadness Pro;6471380298"
+    "uBlock Origin Lite;6745342698"
+    "Xcode;497799835" -}}
 
 echo "🍎 Installing system packages via Homebrew..."
 
@@ -77,6 +104,10 @@ brew "{{ . }}"
 {{ end -}}
 {{ range ($casks | sortAlpha | uniq) -}}
 cask "{{ . }}"
+{{ end -}}
+{{ range ($mas | sortAlpha | uniq) -}}
+{{ $m := splitList ";" . -}}
+mas "{{ index $m 0 }}", id: {{ index $m 1 }}
 {{ end -}}
 EOF
 
