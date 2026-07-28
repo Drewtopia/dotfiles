@@ -6,7 +6,7 @@ Reference for the `audit-rules-and-skills` skill. Distilled from:
 - [Anthropic Claude Code docs: Memory](https://code.claude.com/docs/en/memory)
 - Jose Parreño Garcia's substack ("How Claude Code rules actually work")
 - karanb192/awesome-claude-skills, HumanLayer's "Writing a good CLAUDE.md"
-- Audit of well-shaped skills already on disk (`superpowers:executing-plans`, `commit-messages`)
+- Audit of well-shaped rules and skills already on disk (see Examples below)
 
 ## Concision principle
 
@@ -18,17 +18,36 @@ Anthropic's first rule: *"Default assumption: Claude is already very smart. Only
 
 If the answer to #1 is no, or #2 is yes, or #3 is no — cut it.
 
+## Resident vs lazy — classify before measuring
+
+Line count is not what you pay for. Only *resident* content bills every session; lazy content bills on use. Classify each target first, then rank findings by class.
+
+| Target | Resident every session | Loads on demand |
+|---|---|---|
+| Rule with no `paths:` | whole file | — |
+| Rule with `paths:` | — | whole file, when a matching file is read |
+| Skill | `name` + `description` | body, `REFERENCE.md`, other siblings |
+| Skill with `disable-model-invocation: true` | nothing — absent from the model's skill listing | everything, on `/name` |
+
+Per the docs: *"Rules without a `paths` field are loaded unconditionally… Path-scoped rules trigger when Claude reads files matching the pattern, not on every tool use."* And: *"skill descriptions are loaded into context so Claude knows what's available, but full skill content only loads when invoked."*
+
+Two consequences that invert naive line-count auditing:
+
+- A bloated **description** is worse than a bloated body. It bills every session *and* is the entire routing signal.
+- A long `paths:`-scoped rule or skill body is cheap. Over budget there is a readability finding, not a context finding — rank it below every resident one.
+
 ## Length budgets
 
 | Type | Target lines | Hard cap |
 |---|---|---|
-| Rule (`~/.claude/rules/*.md`) | 9–25 | 40 |
+| Resident rule (no `paths:`) | 9–25 | 40 |
+| Path-scoped rule | 9–40 | 60 |
 | Terse skill | 50–80 | 100 |
 | Moderate skill | 100–150 | 200 |
 | Long skill (rare) | 150–250 | 500 |
 | `CLAUDE.md` | ≤120 | 200 |
 
-500 lines is Anthropic's official SKILL.md ceiling — anything beyond should split into reference files. Our targets are tighter as a quality bar. A rule over 25 lines or a skill over 200 is a candidate for split, trim, or move-to-reference-file.
+500 lines is Anthropic's official SKILL.md ceiling — anything beyond should split into reference files. Our targets are tighter as a quality bar. A resident rule over 25 lines, or a skill over 200, is a candidate for split, trim, or move-to-reference-file.
 
 ## Frontmatter
 
@@ -61,19 +80,22 @@ If the answer to #1 is no, or #2 is yes, or #3 is no — cut it.
 - **Frontmatter descriptions over 1 sentence** or repeating the name.
 - **Combining unrelated rules** in one file when they could split cleanly.
 
-## Examples to model (already on this machine)
+## Examples to model (verify these still exist before citing them)
 
-- `superpowers/executing-plans/SKILL.md` — Overview → numbered Process steps, no preamble. Terse-skill model.
-- `~/.claude/skills/commit-messages/SKILL.md` — tables + numbered process. Moderate-skill model.
-- `~/.claude/rules/keep-comments.md` (after rewrite) — review-gate pattern. Behavior-shaping rule model.
+- `~/.claude/skills/audit-skill-repos/SKILL.md` — 73 lines, frontmatter is `name` + `description` only, description opens with "Use when…", no preamble. Terse-skill model.
+- `~/.claude/rules/keep-comments.md` — review-gate pattern, 11 lines. Behavior-shaping rule model.
+
+Exemplars rot. Confirm each is on disk and, for plugin-provided ones, that the plugin is still enabled in `home/.chezmoidata/claude.toml`.
 
 ## Audit checklist (used by step 3 of the skill)
 
 When sweeping `~/.claude/rules/` or `~/.claude/skills/`:
 
-1. Length over target? → Trim or split candidate.
-2. Frontmatter description >1 sentence? → Trim candidate.
-3. Why section in style rule? → Restructure candidate.
-4. Glossary in skill body >10 lines? → Reference-extract candidate.
-5. Narrative paragraphs where steps would work? → Restructure candidate.
-6. Two unrelated rules combined? → Split candidate.
+1. Does the description say **when** to use this, not just what it does? → Rewrite candidate. Highest priority: it is resident *and* it is the routing signal, so a vague one costs every session and still fails to fire.
+2. Length over target **for its class**? → Trim or split candidate. Weight resident targets above lazy ones.
+3. Frontmatter description >1 sentence, or repeating the name? → Trim candidate.
+4. Why section in style rule? → Restructure candidate.
+5. Glossary in skill body >10 lines? → Reference-extract candidate.
+6. Narrative paragraphs where steps would work? → Restructure candidate.
+7. Two unrelated rules combined? → Split candidate.
+8. Rule always-loaded that only matters for one file type? → Add `paths:` and move it to lazy.
