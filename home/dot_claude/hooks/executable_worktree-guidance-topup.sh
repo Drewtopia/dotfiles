@@ -47,4 +47,16 @@ if [ -d "$main/.claude/rules" ]; then
   cp -r --update=none "$main/.claude/rules" "$root/.claude/" 2>/dev/null || true
 fi
 
+# Hook scripts get a SYMLINK, not a copy. Project settings register hooks as
+# `node "$CLAUDE_PROJECT_DIR/.claude/hooks/<name>"`, and CLAUDE_PROJECT_DIR
+# resolves to the worktree -- so without this, every Bash call in a worktree
+# fails that hook with "cannot find module" (node cjs/loader). Symlinked rather
+# than copied because these are executable code: a stale copy would silently run
+# an old version. The rules above stay a copy -- content a worktree may
+# legitimately diverge on.
+if [ -d "$main/.claude/hooks" ] && [ ! -e "$root/.claude/hooks" ]; then
+  mkdir -p "$root/.claude" 2>/dev/null || true
+  ln -s "$main/.claude/hooks" "$root/.claude/hooks" 2>/dev/null || true
+fi
+
 exit 0
