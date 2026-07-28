@@ -13,12 +13,8 @@
 .chezmoiscripts/darwin/**
 .config/aerospace
 .config/homebrew
-.config/karabiner
 .config/leaderkey
 .config/macrowhisper
-.hammerspoon
-.config/iterm
-.Brewfile
 Library
 {{ end }}
 
@@ -81,6 +77,9 @@ AppData
 .bash_aliases
 .config/1Password
 .config/1Password/**
+# btop targets Linux/macOS/BSD only; btop4win is a separate fork with its own
+# config format, so this file would never be read here.
+.config/btop
 .config/cheatsheets
 .config/cheatsheets/**
 .config/fzf-tab-completion
