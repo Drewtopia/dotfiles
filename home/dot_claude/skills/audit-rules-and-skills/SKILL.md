@@ -1,6 +1,6 @@
 ---
 name: audit-rules-and-skills
-description: Audit ~/.claude/rules/ and ~/.claude/skills/ against the style guide — flag bloat, propose changes via AskUserQuestion, apply approved fixes
+description: Use when auditing ~/.claude/rules/ or ~/.claude/skills/ for bloat, stale content, or frontmatter drift — proposes trims against the style guide and applies approved fixes.
 ---
 
 # Audit rules and skills
@@ -24,7 +24,8 @@ You may show line-count data or bloat indicators alongside the question to infor
 
 - Read `REFERENCE.md` from this skill's directory.
 - Read each target file in scope.
-- For each: count lines, check frontmatter discipline, scan structure, scan for anti-patterns.
+- **Classify resident vs lazy first** (see REFERENCE.md). A rule with no `paths:` and every skill's `description` are resident; skill bodies and path-scoped rules are not. This ranks every later finding — don't measure before you've classified.
+- Then per file: count lines, check frontmatter discipline, scan structure, scan for anti-patterns.
 
 ### 3. Classify findings
 
@@ -37,12 +38,11 @@ Classify each target:
 
 ### 4. Present and decide
 
-For each non-compliant target:
-1. Show current state (line count, identified issues).
-2. Show proposed change (or set of options).
-3. AskUserQuestion: accept, modify, skip.
+Report all findings in one pass before asking anything. Per non-compliant target: current state (class, line count, issues), then the proposed change.
 
-Group questions when sensible — don't fire separate AskUserQuestions for the same fix-pattern across multiple files.
+Then gate with **one** AskUserQuestion — "apply all (recommended) / let me pick / keep everything". Only on "let me pick", follow up with a single multiSelect, one option per fix-pattern (not per file). Reserve per-target questions for the case where a single target has genuinely competing rewrites worth choosing between.
+
+Ordering within the report: resident findings first, lazy ones after. Say which class each is in — a user declining a lazy trim should know it costs no context.
 
 ### 5. Apply approved changes
 
@@ -53,12 +53,14 @@ Group questions when sensible — don't fire separate AskUserQuestions for the s
 
 ### 6. Verify
 
-- Run `/memory` in a fresh session to confirm new shapes load correctly.
-- Re-count lines; confirm targets within budget.
+- Re-count lines; confirm targets are within budget for their class.
+- Confirm rewritten frontmatter still parses — a broken `---` block makes a rule or skill load as nothing.
+- Tell the user to run `/context` in their next session and check **Memory files**: that lists what actually loaded, which is the only real confirmation that a newly-added `paths:` moved a rule off the resident set. `/memory` lists file locations, not what loaded — don't use it for this.
+- For a rule that should now be path-scoped, the `InstructionsLoaded` hook logs which instruction files load and why.
 
 ## Constraints
 
 - Never delete a rule or skill without explicit confirmation.
-- Preserve `paths:` frontmatter on path-scoped rules during rewrites.
-- Don't create new files in legacy `~/.claude/memory/feedback/` (use `~/.claude/rules/`).
+- Preserve `paths:` frontmatter on path-scoped rules during rewrites. Dropping it silently promotes the rule to always-loaded.
+- Verify any file, skill, or plugin this skill names still exists before citing it. Exemplars and paths rot.
 - Two-repo commits: cvault first (push directly with conventional commit), then chezmoi (let user commit).
