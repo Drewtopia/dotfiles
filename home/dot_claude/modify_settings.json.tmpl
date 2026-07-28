@@ -176,6 +176,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           }
         ]
       },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/worktree-guidance-topup.sh\""
+          }
+        ]
+      },
 {{- end }}
       {
         "matcher": "startup",
