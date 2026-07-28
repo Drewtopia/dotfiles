@@ -31,9 +31,13 @@ worktrunk                 = "max-sixty/worktrunk"
 # be listed in each (no multi-gate field; trade-off for tight readability).
 
 [plugins.always]
-"context7@claude-plugins-official"                 = true
+# Retired Jul 2026 — zero MCP calls across 50 sessions. Its docs-lookup role is
+# covered by WebFetch on the library's own docs when a version question comes up.
+"context7@claude-plugins-official"                 = false
 "hookify@claude-plugins-official"                  = true
-"claude-md-management@claude-plugins-official"     = true
+# Retired Jul 2026 — never invoked. This repo carries no checked-in CLAUDE.md,
+# so the audit/improve skills had nothing to act on.
+"claude-md-management@claude-plugins-official"     = false
 "superpowers@claude-plugins-official"              = false
 # Retired Jul 2026 in favour of mattpocock-skills, which covers the same
 # ground with one skill per job: test-driven-development→tdd,
@@ -41,7 +45,9 @@ worktrunk                 = "max-sixty/worktrunk"
 # writing-plans→to-spec, brainstorming→grilling. Its using-superpowers skill
 # also injected itself into every session's system prompt.
 "superpowers-extended-cc@superpowers-extended-cc-marketplace" = false
-"claude-code-setup@claude-plugins-official"        = true
+# Retired Jul 2026 — one-shot "recommend automations for this repo" skill,
+# never invoked after the initial setup pass it was installed for.
+"claude-code-setup@claude-plugins-official"        = false
 "security-guidance@claude-plugins-official"        = true
 # Output shaping, not dev tooling — wanted on every machine.
 # Upstream tag 0.1.0 added a redundant "hooks": "./hooks/hooks.json" to its
@@ -57,17 +63,27 @@ worktrunk                 = "max-sixty/worktrunk"
 "claude-brain-sync@claude-brain-sync" = true
 
 [plugins.dev_computer]
-"qmd@qmd"                                 = true
+# Retired Jul 2026 — markdown-KB search never used; the vault is reached through
+# the obsidian plugin and ripgrep instead.
+"qmd@qmd"                                 = false
 # Both retired Jul 2026 — mattpocock-skills covers them (code-review, and
 # to-spec → implement → codebase-design for feature work), and having three
 # plugins answer the same trigger made skill selection worse, not better.
 "code-review@claude-plugins-official"     = false
 "feature-dev@claude-plugins-official"     = false
-"typescript-lsp@claude-plugins-official"  = true
+# Retired Jul 2026 — no recorded activity. Caveat: LSP usage tracking shipped
+# late, so the zero may predate it; re-enable if TS work picks up again.
+"typescript-lsp@claude-plugins-official"  = false
 "commit-commands@claude-plugins-official" = true
-"playwright@claude-plugins-official"      = true
-"code-simplifier@claude-plugins-official" = true
-"plugin-dev@claude-plugins-official"      = true
+# Retired Jul 2026 — zero MCP browser calls. Playwright *authoring* help still
+# comes from the playwright-* skills in ~/.claude/skills, which are unaffected.
+"playwright@claude-plugins-official"      = false
+# Retired Jul 2026 — its agent was never dispatched; the simplify skill covers
+# the same cleanup pass.
+"code-simplifier@claude-plugins-official" = false
+# Retired Jul 2026 — plugin authoring happens rarely and by hand; its skill
+# listing was the single largest unused block in the session prompt.
+"plugin-dev@claude-plugins-official"      = false
 "caveman@caveman"                         = true
 # Ships the 22 stable engineering/ + productivity/ skills, pinned to
 # plugin.json's version. The 9 misc/ + in-progress/ skills it excludes
