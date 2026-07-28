@@ -1,10 +1,23 @@
 {{- if eq .chezmoi.os "windows" -}}
 [wsl2]
+{{- if .work }}
+# Work hosts: cap processors so a parallel test run (e.g. Playwright) can't pin
+# every core and CPU-starve the Windows host, which otherwise hangs ssh, VS Code
+# Remote, and `wsl --shutdown`. Larger swap cushions memory overflow so WSL doesn't
+# thrash the vhdx to 100% disk.
+memory=16GB
+processors=12
+swap=8GB
+{{- end }}
 gpuSupport=false
 dnsProxy=false
 autoProxy=false
-localhostForwarding=false
+localhostForwarding={{ if .work }}true{{ else }}false{{ end }}
 
 [experimental]
+{{- if .work }}
+autoMemoryReclaim=gradual
+sparseVhd=true
+{{- end }}
 bestEffortDnsParsing=true
 {{- end }}
