@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # Reconcile Claude Code plugin marketplaces against .chezmoidata/claude.toml.
-# Registers each declared marketplace via `claude plugin marketplace add`
-# (no-op if already registered). Refreshing marketplaces is handled by
-# topgrade's native Claude Code step, not here.
+# Registers each declared marketplace via `claude plugin marketplace add`,
+# which also refreshes an already-registered one — so this script is the
+# marketplace refresh path. topgrade's Claude Code step is NOT: it runs only
+# `claude update` (the CLI self-updater) and never touches plugins.
+#
+# Refreshing a marketplace does not re-install its plugins. `claude plugin
+# update` compares the version string alone, so a marketplace that edits
+# plugin.json without bumping semver leaves you pinned to the commit you
+# first installed. Forcing it needs `claude plugin uninstall` + `install`.
 #
 # Inlining the desired marketplaces below makes run_onchange retrigger when
 # claude.toml changes:
