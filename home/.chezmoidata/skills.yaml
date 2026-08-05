@@ -24,8 +24,8 @@ skill_repos:
       - migrate-to-shoehorn
       - scaffold-exercises
       # in-progress/
-      - wizard
       - loop-me
+      - setup-ts-deep-modules
       - writing-fragments
       - writing-beats
       - writing-shape
