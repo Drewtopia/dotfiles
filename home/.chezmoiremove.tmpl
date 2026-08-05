@@ -68,15 +68,24 @@
 # mattpocock/skills v1.2.0 (Jul 2026): the stable engineering/ + productivity/
 # skills moved from `npx skills` to the mattpocock-skills@mattpocock plugin
 # (see .chezmoidata/claude.toml). Sweep the old copies so they don't shadow
-# the plugin's namespaced versions with a stale duplicate. Exactly the 22
-# names in upstream's .claude-plugin/plugin.json — misc/ and in-progress/
-# are deliberately absent, they stay on the `npx skills` path.
+# the plugin's namespaced versions with a stale duplicate. Mirrors the names
+# in upstream's .claude-plugin/plugin.json — misc/ and in-progress/ are
+# deliberately absent, they stay on the `npx skills` path.
+#
+# writing-great-skills is upstream's retired name for writing-for-agents;
+# both listed so machines that installed the old one get swept too.
+#
+# Aug 2026: wizard graduated in-progress/ → engineering/ and to-questionnaire
+# graduated into productivity/, so the plugin now covers both. Note upstream
+# grew plugin.json without bumping past 1.2.0 — `claude plugin update` compares
+# only the version string, so picking those up needed an uninstall+reinstall.
 {{- $pluginSkills := list
   "ask-matt" "code-review" "codebase-design" "diagnosing-bugs" "domain-modeling"
   "grill-with-docs" "implement" "improve-codebase-architecture" "prototype"
   "research" "resolving-merge-conflicts" "setup-matt-pocock-skills" "tdd"
-  "to-spec" "to-tickets" "triage" "wayfinder"
-  "grill-me" "grilling" "handoff" "teach" "writing-great-skills" }}
+  "to-spec" "to-tickets" "triage" "wayfinder" "wizard"
+  "grill-me" "grilling" "handoff" "teach" "to-questionnaire"
+  "writing-for-agents" "writing-great-skills" }}
 {{- range $pluginSkills }}
 .claude/skills/{{ . }}
 .agents/skills/{{ . }}
