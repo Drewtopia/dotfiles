@@ -1,11 +1,12 @@
 # Claude Code plugin marketplaces — single source of truth for the
 # `claude plugin marketplace add` reconciler.
 #
-# Consumed by run_onchange_after_55-update-claude-marketplaces.{sh,ps1}.tmpl,
-# which ensures each marketplace is registered (idempotent) and refreshes
-# all known marketplaces.
+# Consumed by run_onchange_after_55-add-claude-marketplaces.{sh,ps1}.tmpl,
+# which registers each marketplace (idempotent) — and since `marketplace add`
+# also refreshes an already-registered one, that loop is the refresh path too.
 #
-# dot_claude/settings.json.tmpl renders extraKnownMarketplaces from this table.
+# dot_claude/modify_settings.json.tmpl renders extraKnownMarketplaces from
+# this table.
 #
 # Format: <marketplace-short-name> = "<github-owner/repo>"
 # The short name is what plugin references use (e.g. "caveman@caveman").
@@ -31,9 +32,15 @@ worktrunk                 = "max-sixty/worktrunk"
 # be listed in each (no multi-gate field; trade-off for tight readability).
 
 [plugins.always]
-# Retired Jul 2026 — zero MCP calls across 50 sessions. Its docs-lookup role is
-# covered by WebFetch on the library's own docs when a version question comes up.
-"context7@claude-plugins-official"                 = false
+# Retired Jul 2026 (zero MCP calls across 50 sessions), reinstated Aug 2026.
+# WebFetch on a library's own docs turned out to be a poorer substitute than
+# the retirement note assumed.
+#
+# Flipping this to true is not enough on its own: modify_settings.json.tmpl
+# merges managed settings as a floor UNDER runtime, so a `false` already
+# sitting in ~/.claude/settings.json wins. Each machine also needs
+# `claude plugin enable context7@claude-plugins-official` once.
+"context7@claude-plugins-official"                 = true
 "hookify@claude-plugins-official"                  = true
 # Retired Jul 2026 — never invoked. This repo carries no checked-in CLAUDE.md,
 # so the audit/improve skills had nothing to act on.
