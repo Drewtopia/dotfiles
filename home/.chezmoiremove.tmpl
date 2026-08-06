@@ -81,3 +81,11 @@
 .claude/skills/{{ . }}
 .agents/skills/{{ . }}
 {{- end }}
+
+# warn-edit-on-protected.js became block-edit-on-protected.js (2026-07-22).
+# chezmoi leaves the old target in place on any machine that already applied the
+# previous name. It is unregistered in settings.json so it never runs, but a
+# stale hook sitting in ~/.claude/hooks is exactly the orphan this file exists
+# to sweep.
+.claude/hooks/warn-edit-on-protected.js
+.claude/hooks/tests/warn-edit-on-protected.test.js
