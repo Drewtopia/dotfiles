@@ -1,13 +1,13 @@
 ---
 name: close
-description: Close out a Claude Code session — capture relevant thoughts to Open Brain, update memory files, propose git commits split by purpose, write SESSION_LOG.md, and print a rename suggestion. Use when user invokes /close, says "close the session", "wrap up", "end session", or asks for a session closeout.
+description: Close out a Claude Code session — update memory files, reconcile the tracker, propose git commits split by purpose, tidy merged worktrees, write SESSION_LOG.md, and print a rename suggestion. Use when user invokes /close, says "close the session", "wrap up", "end session", or asks for a session closeout.
 ---
 
 # /close — session closeout
 
 Three phases. Run them in order. Print a counter line at the end.
 
-Memory writes are NOT auto-pushed — no Stop hook syncs the vault. After memory updates, run `cvault apply` (commit + push) so entries reach the other machines. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
+Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. Project auto-memory (`~/.claude/projects/<repo>/memory/`) is machine-local — nothing to push. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
 ## Phase 1 — Retrospective
 
@@ -22,41 +22,13 @@ Read back through the session and pull out only what's worth persisting:
 
 Skip ephemeral debugging steps, retracted ideas, and anything already obvious from the diff.
 
-### 2. Survey recent topics for context
+### 2. Update memory files
 
-Open Brain has no namespace concept and topics are **set by the server**, not the caller — `capture_thought` only takes `content`, and the server runs an LLM (GPT-4o-mini) over it to extract `type`, `topics` (1–3 tags), `people`, etc. So this step is observational, not decisional:
-
-```
-mcp__claude_ai_Open_Brain__list_thoughts({ days: 30, limit: 50 })
-```
-
-Note which topic tags are already in use. When phrasing the `content` in step 3, lean on existing topic vocabulary so the server-side extractor lands on the same tags — that's the only lever you have over topic clustering.
-
-### 3. Capture thoughts to Open Brain
-
-Call `mcp__claude_ai_Open_Brain__capture_thought({ content })` with a self-contained statement (will make sense to a future AI with no session context).
-
-The server's LLM extracts `type` from one of `observation | task | idea | reference | person_note` based on what the content sounds like. You influence that extraction — and your own future keyword searches via `search_thoughts` — by leading the content with a consistent prefix word.
-
-| Drew's term | Lead `content` with… | Server typically extracts `type` | Why the prefix |
-|---|---|---|---|
-| decision  | `Decision: …`  | observation | searchable by `Decision` later; decisions stay distinguishable from generic notes |
-| insight   | `Insight: …`   | idea        | distinguishes "aha" findings from action items |
-| task      | `TODO: …`      | task        | matches the standard convention the LLM and humans both recognise |
-| reference | `Reference: …` | reference   | leading word + URL/path keeps refs findable by keyword |
-| general   | (no prefix)    | observation | factual context with no need for a category prefix |
-
-> **TODO (Drew):** confirm or edit the prefix words in column 2. These literal strings end up inside every captured thought, so they're what `search_thoughts` will hit on later. If you already use different conventions (e.g. `Note:` instead of `Decision:`), change them here. Leave a one-sentence rationale under this TODO once decided.
-
-A captured thought always reads as a self-contained paragraph — the prefix is part of the sentence, not a tag header.
-
-Example: `Decision: chose option (c) for /close commit splitting because logical-grouping needs LLM judgment, not a pre-baked rule. Topic: claude-code-skills, /close.`
-
-### 4. Update memory files
-
-Drew's memory follows the structure documented in his `~/.claude/CLAUDE.md` (YoungLeaders / Pawel Huryn scheme). Two destinations: global and project.
+Two destinations: global (Drew's hand-curated scheme) and project (Claude Code auto-memory).
 
 **Global memory** — `~/.claude/memory/`
+
+Drew's memory follows the structure documented in his `~/.claude/CLAUDE.md` (YoungLeaders / Pawel Huryn scheme):
 
 | Content | Destination |
 |---|---|
@@ -64,17 +36,13 @@ Drew's memory follows the structure documented in his `~/.claude/CLAUDE.md` (You
 | Tool configs, CLI patterns, workarounds for a specific tool | `tools/{tool}.md` (one file per tool) |
 | Domain knowledge for a product, area, or codebase | `domain/{topic}.md` |
 
-When you create a new file under `tools/` or `domain/`, add a one-line entry to `~/.claude/memory/memory.md` (the global index). Format: a row in the index table with file path, description, last-updated date.
+When you create a new file under `tools/` or `domain/`, add a one-line entry to `~/.claude/memory/memory.md` (the global index). Format: a row in the index table with file path, description, last-updated date. Entry shape (per the global rules): `date — what — why`. Nothing more.
 
-**Project memory** — `~/.claude/projects/{mapped-cwd}/memory/`
+**Project memory** — `~/.claude/projects/<repo>/memory/`
 
-A `MEMORY.md` **index** plus topic/fact **sibling files** (canonical auto-memory model — see the `verify-claude-code-internals` rule). Write project-specific learnings — active tickets, repo-specific patterns, decisions tied to this codebase — as sibling files, then add a one-line pointer to `MEMORY.md`. Keep the index lean: move detail out to siblings, never collapse siblings into the index.
+Claude Code's auto-memory (official; on by default). Scoped by **git repository** — every worktree and subdirectory of this repo shares one directory (not per-cwd), and it is **machine-local** (not pushed to the vault). A `MEMORY.md` **index** (loaded every session — first 200 lines / 25KB) plus on-demand **topic files**.
 
-Mapped path: cwd with `/` → `-`, prefixed with `-`. Example: `/Users/drew/.local/share/chezmoi` → `-Users-drew--local-share-chezmoi`.
-
-**Do not** write new `feedback_*.md`, `user_*.md`, `project_*.md`, or `reference_*.md` files. Those are an older auto-memory pattern that predates Drew's structured system; existing ones in the dir are legacy and should be migrated by `reorganize-memory`, not extended by `/close`.
-
-Entry shape (per the global rules): `date — what — why`. Nothing more.
+Write project-specific learnings — active tickets, repo-specific patterns, decisions tied to this codebase — as topic files (one topic per file, plain descriptive name), then add a one-line pointer to `MEMORY.md`. Keep the index lean: move detail out to topic files, never collapse topic files back into the index. Don't hand-write frontmatter — Claude Code manages the `modified` timestamp itself; adding `type`/`name`/`description` fields is a local convention, not a requirement.
 
 **Project live state** — do not maintain a live-state digest in memory. Work state belongs in the project's own tracker (for this repo: GitHub issues). Never start or update a memory `CURRENT-STATE.md` or committed `STATUS.md`/`STATE-MAP.md` — those are retired patterns. `MEMORY.md` holds durable shapes and gotchas only, not live status.
 
@@ -88,7 +56,7 @@ Entry shape (per the global rules): `date — what — why`. Nothing more.
 git rev-parse --show-toplevel 2>/dev/null
 ```
 
-If not inside a git repo, skip to step 5 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
+If not inside a git repo, skip to step 6 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
 
 ### 2. Inspect changes
 
@@ -123,7 +91,15 @@ Do **not** push. Do **not** use `git add -A`.
 
 If the diff is genuinely one logical change, propose a single commit — don't manufacture splits.
 
-### 5. SESSION_LOG.md (cross-device)
+### 5. Post-merge cleanup (only if this branch's PR has already merged)
+
+The normal closeout case is a WIP/unmerged branch — **skip this whole step** for that. Only when the branch you're closing out has already merged (its Azure PR is `Completed`, or the `GH-N` issue's PR shows merged):
+
+1. **Confirm the merge — don't infer it.** Check the PR state (`az repos pr list`) or ask Drew. worktrunk has no post-merge hook, and an Azure-UI merge never fires one, so nothing has cleaned up locally.
+2. Ensure the `GH-N` issue is closed (Phase 1 reconcile already does this).
+3. Verify `git status` is clean — **never** remove a worktree with uncommitted changes. Confirm with Drew, then from inside the worktree run `wt remove` — it removes the worktree and deletes the branch since it's merged.
+
+### 6. SESSION_LOG.md (cross-device)
 
 Prepend to `~/.claude/memory/SESSION_LOG.md`. This file lives in the vault; after writing it, `cvault apply` pushes it so entries reach all of Drew's machines.
 
@@ -174,15 +150,15 @@ Rename: [YYYY-MM-DD] <project-or-topic> — <what-was-done>
 ### 2. Print closing counter
 
 ```
-<N> thoughts → open-brain · <N> memory updates · <N> commits · SESSION_LOG updated
+<N> memory updates · <N> commits · <N> issues closed · worktree removed · SESSION_LOG updated
 ```
 
-If a step was skipped (e.g. no git repo), drop that segment from the line rather than printing `0`.
+If a step was skipped (e.g. no git repo, no merge to clean up), drop that segment from the line rather than printing `0`.
 
 ## Self-check before reporting done
 
-- Every `capture_thought` used a mapped Open Brain type (not Drew's raw term).
-- Every new memory file has an entry in `MEMORY.md`.
+- Every new memory file has a one-line pointer in its index (`memory.md` for global, `MEMORY.md` for project).
 - No `git push`. No staging with `-A`.
+- A worktree was only removed after confirming its PR merged and `git status` was clean.
 - SESSION_LOG entry is at the **top** of the file (newest first).
 - Counter line reflects actual counts, not aspirational ones.
