@@ -76,15 +76,18 @@
 # both listed so machines that installed the old one get swept too.
 #
 # Aug 2026: wizard graduated in-progress/ → engineering/ and to-questionnaire
-# graduated into productivity/, so the plugin now covers both. Note upstream
-# grew plugin.json without bumping past 1.2.0 — `claude plugin update` compares
-# only the version string, so picking those up needed an uninstall+reinstall.
+# graduated into productivity/, so the plugin now covers both. Those two had to
+# be picked up with an uninstall+reinstall: upstream grew plugin.json while
+# still calling it 1.2.0, and `claude plugin update` compares only the version
+# string. Upstream has since added scripts/sync-plugin-version.mjs to stamp the
+# release version into plugin.json, so 1.2.2 (which added wait-what) updated
+# normally. If a future skill fails to appear, suspect that sync first.
 {{- $pluginSkills := list
   "ask-matt" "code-review" "codebase-design" "diagnosing-bugs" "domain-modeling"
   "grill-with-docs" "implement" "improve-codebase-architecture" "prototype"
   "research" "resolving-merge-conflicts" "setup-matt-pocock-skills" "tdd"
   "to-spec" "to-tickets" "triage" "wayfinder" "wizard"
-  "grill-me" "grilling" "handoff" "teach" "to-questionnaire"
+  "grill-me" "grilling" "handoff" "teach" "to-questionnaire" "wait-what"
   "writing-for-agents" "writing-great-skills" }}
 {{- range $pluginSkills }}
 .claude/skills/{{ . }}
