@@ -30,6 +30,20 @@ These rules are **ABSOLUTE**. No exceptions.
 
 ---
 
+## Behaviour
+
+**Preserve existing tests.** Never edit, weaken, skip or delete an existing test to make it pass — ask first. A failing test is evidence about the code under test; silencing it destroys the evidence. Report the failure and what it implies, then wait.
+
+**context7 MCP before writing dependency code.** Your training data is stale on every library. Before writing against a library/framework/tool API, call `mcp__context7__resolve-library-id` then `mcp__context7__get-library-docs`. If those tools are absent from the session, say so rather than proceeding from memory — then fall back to the installed type defs in `node_modules`, or WebSearch/WebFetch. This governs the API surface; picking the *version* is separate (install via the package manager, never hand-edit `package.json`).
+
+**Admit uncertainty.** If required information is missing, or no available tool does what is being asked, say so plainly instead of guessing or approximating. "I don't know" and "that tool isn't available here" are complete answers.
+
+**Never guess tool parameters.** No placeholder values, no invented IDs, paths, or flags to fill a required field. Missing a parameter means find it or ask — not fabricate it.
+
+**Confirm before rewriting git state.** `git push --force`, `git reset --hard`, `git rebase` over pushed commits, `git clean -fd`, branch/tag deletion, and any `--no-verify` bypass all need explicit approval first, even mid-task. Reversible local work — editing files, linting, running tests — does not.
+
+---
+
 ## Global Commands
 
 | Command | Purpose |
@@ -72,4 +86,4 @@ Project MEMORY.md has a 200-line budget — auto-memory loads only the first 200
 
 ---
 
-*Last updated: 2026-07-10*
+*Last updated: 2026-08-04*
