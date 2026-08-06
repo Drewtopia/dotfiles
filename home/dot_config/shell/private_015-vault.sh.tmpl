@@ -1,10 +1,14 @@
 # 015-vault.sh — credentials rendered from 1Password at `chezmoi apply` (mode 0600).
 # Pulled at build time, not runtime — shell startup needs no op session.
+#
+# Every item below is named the same in Private and Employee and keeps its
+# secret in a `token` field, so .opVault selects the machine class and no
+# export needs a .work branch.
 {{ if not .ephemeral -}}
 export GITHUB_TOKEN={{ onepasswordRead (printf "op://%s/GitHub PAT/token" .opVault) | trim }}
-{{ end -}}
-{{ if and (not .ephemeral) (not .work) -}}
-export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | trim }}
-{{ else if .work -}}
-export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
+export GEMINI_API_KEY={{ onepasswordRead (printf "op://%s/Gemini API Key/token" .opVault) | trim }}
+{{- /* Read by the context7 MCP server, which the plugin launches as
+     `npx -y @upstash/context7-mcp` with no key argument — the env var is the
+     only lever, since the plugin's .mcp.json regenerates on every update. */}}
+export CONTEXT7_API_KEY={{ onepasswordRead (printf "op://%s/Context7 API Key/token" .opVault) | trim }}
 {{ end -}}
