@@ -119,6 +119,13 @@ set -g @sessionx-filter-current 'false'
 set -g @continuum-restore 'on'
 set -g @continuum-save-interval '5'
 set -g @resurrect-strategy-nvim 'session'
+# Relaunch Claude Code sessions on restore. The `~` prefix is required: without
+# it resurrect anchors the match to the start of the recorded command, and the
+# command is recorded as an absolute path (~/.local/bin/claude, or the versioned
+# ~/.local/share/claude/versions/<v>), so a bare `claude` matches nothing.
+# Deliberately not `claude --continue` — sessions in the same repo share a cwd,
+# so --continue would resume the same conversation into every restored pane.
+set -g @resurrect-processes '~claude'
 set -g @catppuccin_window_left_separator ""
 set -g @catppuccin_window_right_separator " "
 set -g @catppuccin_window_middle_separator " █"
