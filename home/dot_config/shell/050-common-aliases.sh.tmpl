@@ -16,10 +16,31 @@ alias listpaths='echo $PATH | tr ":" "\n" | uniq -c | sort -nr'
 
 ####################### WORKTRUNK #######################
 {{- if lookPath "wt" }}
-# Switch to a worktree (cd into it), e.g. wts feat
+# Every worktree gets a tmux session with claude already running in it — created
+# by the pre-start hook in ~/.config/worktrunk/config.toml. These four differ only
+# in whether they hand your terminal over to that session.
+#
+# wts/wtc leave you where you are; the session runs detached, attach later with
+# `ta <branch>`. wtts/wttc drop you straight into it.
+#
+# wtc no longer passes --execute=claude: the hook starts claude in the session, so
+# doing both would give you two.
+
+# Switch to an existing worktree (cd only), e.g. wts feat
 alias wts='wt switch'
-# New worktree + launch Claude in it (runs hooks first)
-alias wtc='wt switch --create --execute=claude'
+# New worktree; its session + claude start detached
+alias wtc='wt switch --create'
+
+# The wtt* pair must be functions, not aliases: `wt switch` takes
+# [OPTIONS] [BRANCH] [-- EXECUTE_ARGS], and an alias appends the branch at the
+# end — after `--`, where it would be passed to tmux instead of wt. A function
+# puts "$@" in the right slot. -x execs, handing over the terminal.
+# `wtts` needs its own attach because pre-start only fires on create.
+
+# Switch to a worktree and attach to its session, e.g. wtts feat
+wtts() { wt switch          -x tmux "$@" -- attach -t '{{ "{{ branch | sanitize }}" }}'; }
+# New worktree and attach straight into its session
+wttc() { wt switch --create -x tmux "$@" -- attach -t '{{ "{{ branch | sanitize }}" }}'; }
 # Remove the current worktree + delete its branch
 alias wtr='wt remove'
 # List worktrees with status

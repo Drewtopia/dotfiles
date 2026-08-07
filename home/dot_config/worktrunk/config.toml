@@ -45,9 +45,10 @@ command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haik
 # creates agent-<id> paths — so a $PWD-derived name (e.g. the `th` alias) labels
 # sessions with something that looks meaningful and isn't.
 #
-# Deliberately does NOT launch claude in the session. Auto-starting an agent per
-# worktree is how a dozen worktrees become a dozen resident processes; start it by
-# hand in the pane when the task actually needs one.
+# Starts claude in the pane, preserving what the `wtc` shortcut did before this
+# hook existed (`wt switch --create --execute=claude`). The difference is that it
+# now survives detaching, so worktrees left open keep a resident agent — `wtr`
+# firing pre-remove is what stops that accumulating.
 [pre-start]
 tmux = """
 command -v tmux >/dev/null 2>&1 || exit 0
@@ -57,7 +58,10 @@ W={{ worktree_path }}
 # `if` rather than `has-session && exit 0`: under `set -e` a bare failing
 # has-session leaves the statement non-zero, which would abort the create.
 if tmux has-session -t "=$S" 2>/dev/null; then exit 0; fi
-tmux new-session -d -s "$S" -c "$W" -n "$S"
+# Capture the pane id: send-keys takes a target-pane, where the `=` exact-match
+# prefix valid for session targets is a syntax error ("can't find pane").
+P=$(tmux new-session -d -P -F '#{pane_id}' -s "$S" -c "$W" -n "$S")
+tmux send-keys -t "$P" 'claude' Enter
 echo "tmux session '$S' — attach with: ta $S"
 """
 
