@@ -33,3 +33,39 @@ since-main = "git log --oneline {{ default_branch }}..HEAD"
 # --setting-sources='user' keeps auth out of a project .claude/settings.json.
 [commit.generation]
 command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
+
+# tmux session per worktree — https://worktrunk.dev/tips-patterns/#tmux-session-per-worktree
+#
+# Lives in USER config, not a repo's .config/wt.toml: a multiplexer is a personal
+# preference, and a project hook would spawn tmux sessions for every developer
+# who creates a worktree in that repo.
+#
+# The name comes from the BRANCH, never the directory. Worktree dirs drift from
+# their branch — renames leave the old path behind, and Agent isolation="worktree"
+# creates agent-<id> paths — so a $PWD-derived name (e.g. the `th` alias) labels
+# sessions with something that looks meaningful and isn't.
+#
+# Starts claude in the pane, preserving what the `wtc` shortcut did before this
+# hook existed (`wt switch --create --execute=claude`). The difference is that it
+# now survives detaching, so worktrees left open keep a resident agent — `wtr`
+# firing pre-remove is what stops that accumulating.
+[pre-start]
+tmux = """
+command -v tmux >/dev/null 2>&1 || exit 0
+S={{ branch | sanitize }}
+W={{ worktree_path }}
+# `=` anchors an exact match; without it tmux resolves the name as a prefix.
+# `if` rather than `has-session && exit 0`: under `set -e` a bare failing
+# has-session leaves the statement non-zero, which would abort the create.
+if tmux has-session -t "=$S" 2>/dev/null; then exit 0; fi
+# Capture the pane id: send-keys takes a target-pane, where the `=` exact-match
+# prefix valid for session targets is a syntax error ("can't find pane").
+P=$(tmux new-session -d -P -F '#{pane_id}' -s "$S" -c "$W" -n "$S")
+tmux send-keys -t "$P" 'claude' Enter
+echo "tmux session '$S' — attach with: ta $S"
+"""
+
+# Tear the session down with its worktree. Without this, sessions outlive the
+# worktrees they were named for and accumulate like any other unreaped process.
+[pre-remove]
+tmux = "tmux kill-session -t '={{ branch | sanitize }}' 2>/dev/null || true"

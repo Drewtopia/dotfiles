@@ -16,10 +16,30 @@ alias listpaths='echo $PATH | tr ":" "\n" | uniq -c | sort -nr'
 
 ####################### WORKTRUNK #######################
 {{- if lookPath "wt" }}
-# Switch to a worktree (cd into it), e.g. wts feat
-alias wts='wt switch'
-# New worktree + launch Claude in it (runs hooks first)
-alias wtc='wt switch --create --execute=claude'
+# Every worktree gets a tmux session named after its branch, with claude already
+# running in it — created by the pre-start hook in ~/.config/worktrunk/config.toml.
+# Attaching is the normal case, so it gets the short name; the `d` suffix means
+# detached, i.e. leave me where I am.
+#
+# wtc keeps the semantics the old `wt switch --create --execute=claude` alias had
+# (create, then land in claude) — it just lands inside tmux now, so the session
+# survives detaching. It no longer passes --execute: the hook starts claude, and
+# doing both would give two.
+#
+# These must be functions, not aliases: `wt switch` takes
+# [OPTIONS] [BRANCH] [-- EXECUTE_ARGS], and an alias appends the branch at the end
+# — after `--`, where it would be passed to tmux instead of wt. A function puts
+# "$@" in the right slot. -x execs, handing the terminal over.
+
+# Switch to a worktree and attach to its session, e.g. wts feat
+wts() { wt switch          -x tmux "$@" -- attach -t '{{ "{{ branch | sanitize }}" }}'; }
+# New worktree, attach straight into its session with claude running
+wtc() { wt switch --create -x tmux "$@" -- attach -t '{{ "{{ branch | sanitize }}" }}'; }
+
+# Detached variants: cd into the worktree (or just create it) and stay put. The
+# session still exists in the background — attach later with `ta <branch>`.
+alias wtsd='wt switch'
+alias wtcd='wt switch --create'
 # Remove the current worktree + delete its branch
 alias wtr='wt remove'
 # List worktrees with status
