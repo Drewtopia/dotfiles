@@ -1,7 +1,11 @@
 {{- if .dev_computer -}}
+# Personal identity, hardcoded — same reasoning as git config.tmpl's [user]:
+# on the work box .name/.email resolve to the work identity, and jj has no
+# per-remote includeIf to scope it, so a vault-sourced default would leak the
+# work email into any repo. jj is used on personal repos; Azure work is git.
 [user]
-name = {{ .name | quote }}
-email = {{ .email | quote }}
+name = "Drew"
+email = "drew@drewtopia.com.au"
 
 [ui]
 # Use delta for diffs and paging (same as git config)

@@ -2,8 +2,11 @@
 {{- $localappdata := output "/mnt/c/Windows/System32/cmd.exe" "/c" "echo %LOCALAPPDATA%" | trim -}}
 {{- $localappdata = output "wslpath" "-u" $localappdata | trim -}}
 # Included ONLY by Azure DevOps repos, via the includeIf rules in
-# ~/.config/git/config. Signs commits with the 1Password-held SSH key using the
-# Windows-side signer over WSL interop — no native Linux op required.
+# ~/.config/git/config. Sets the WORK identity (name/email from the Employee
+# 1Password vault) AND signs commits with the 1Password-held SSH key using the
+# Windows-side signer over WSL interop — no native Linux op required. The global
+# [user] in config.tmpl is the PERSONAL identity; this scopes work identity back
+# on for Azure repos only, so personal/public repos never carry the work email.
 # Signer path is 1Password's WSL build (app 8.11.18+). Resolved from the Windows
 # %LOCALAPPDATA% (via cmd.exe interop, translated with wslpath) so it follows a
 # relocated profile or non-C: drive instead of assuming C:\Users\<name>.
@@ -12,6 +15,8 @@
 [gpg "ssh"]
 	program = "{{ joinPath $localappdata "Microsoft" "WindowsApps" "op-ssh-sign-wsl.exe" }}"
 [user]
+	name = {{ .name | quote }}
+	email = {{ .email | quote }}
 	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMhN9/EmrCcRRlwlG+vR5dBRHNPDGSmqy1+TZMoBp6am
 [commit]
 	gpgsign = true

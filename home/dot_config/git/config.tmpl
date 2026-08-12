@@ -1,6 +1,13 @@
+# Personal identity is the GLOBAL default on EVERY machine — including the work
+# box, which otherwise resolves .name/.email from the Employee 1Password vault
+# and would stamp the work identity onto commits pushed to public personal repos
+# (this repo is public). Work identity is applied ONLY to Azure DevOps repos, via
+# the azure-signing.inc include (see the includeIf rules below). Constant, not
+# vault-sourced, because the work box cannot open the personal vault — and this
+# email is already the public author of this repo's history, so it is no secret.
 [user]
-	name = {{ .name }}
-	email = {{ .email }}
+	name = Drew
+	email = drew@drewtopia.com.au
 [advice]
 	addEmptyPathspec = false
 	pushNonFastForward = false
