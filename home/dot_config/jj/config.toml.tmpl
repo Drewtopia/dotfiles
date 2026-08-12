@@ -1,7 +1,12 @@
 {{- if .dev_computer -}}
+# Personal identity from static chezmoi data (.identity) — same reasoning as git
+# config.tmpl's [user]: on the work box .name/.email resolve to the work identity,
+# and jj has no per-remote includeIf to scope it, so using them as the default
+# would leak the work email into any repo. jj is used on personal repos; Azure
+# work is git.
 [user]
-name = {{ .name | quote }}
-email = {{ .email | quote }}
+name = {{ .identity.name | quote }}
+email = {{ .identity.email | quote }}
 
 [ui]
 # Use delta for diffs and paging (same as git config)

@@ -1,6 +1,13 @@
+# Personal identity is the GLOBAL default on EVERY machine — including the work
+# box, whose .name/.email resolve to the Employee 1Password vault (the work
+# identity) and would otherwise be stamped onto commits pushed to public personal
+# repos (this repo is public). Sourced from static chezmoi data (.identity, in
+# .chezmoidata/constants.toml), not the vault, so it holds even where the personal
+# vault is unreachable. Work identity is applied ONLY to Azure DevOps repos, via
+# the azure-signing.inc include (see the includeIf rules below).
 [user]
-	name = {{ .name }}
-	email = {{ .email }}
+	name = {{ .identity.name }}
+	email = {{ .identity.email }}
 [advice]
 	addEmptyPathspec = false
 	pushNonFastForward = false
