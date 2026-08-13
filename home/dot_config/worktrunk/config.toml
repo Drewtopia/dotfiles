@@ -69,6 +69,24 @@ tmux send-keys -t "$P" 'claude' Enter
 echo "tmux session '$S' — attach with: ta $S"
 """
 
+# Convergence guard — WARN (never block) when creating a worktree whose branch
+# shares a ticket number with an existing branch/PR, so a second parallel effort
+# on the same ticket surfaces at creation instead of colliding later (58436: two
+# PRs rewrote the same specs, one dropped the other's fix). Exits 0 in every path
+# so creation always proceeds; the `|| true` guards keep it from aborting the
+# create under set -e / pipefail when a grep finds nothing.
+collision-check = """
+B={{ branch }}
+T=$(printf '%s' "$B" | grep -oE '[0-9]{4,6}' | head -1 || true)
+[ -z "$T" ] && exit 0
+E=$(git branch -a --format='%(refname:short)' 2>/dev/null | grep -F "$T" | grep -vFx "$B" | grep -v HEAD | sort -u || true)
+[ -z "$E" ] && exit 0
+echo "⚠️ CONVERGE: work on ticket $T already exists —"
+echo "$E" | sed 's/^/   • /'
+echo "   Build on one of those, or Ctrl-C to abort this new '$B' worktree. (Warning only.)"
+exit 0
+"""
+
 # Tear the session down with its worktree. Without this, sessions outlive the
 # worktrees they were named for and accumulate like any other unreaped process.
 [pre-remove]
