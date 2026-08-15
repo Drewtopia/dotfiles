@@ -16,7 +16,7 @@ Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governa
    - Vault (`~/.claude-vault/rules|memory`, symlinked from `~/.claude/rules` and `~/.claude/memory`): edit vault paths.
    - Repo-local (`.claude/rules`, `.claude/skills`, `docs/adr/`, CI files): edit in the repo working tree.
 3. Both the vault and the chezmoi repo protect `main` — create a work branch first (`git -C <repo> switch -c <type>/<slug>`), commit there, then `merge --ff-only` back and push. Never bypass those hooks.
-4. Grant the unlock: `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` (2h, marker + convergence session-registry stamp). Gotcha: the unlock is machine-global, not per-session — do not leave governance edits half-done for another session to trip over.
+4. Grant the unlock: `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` (2h; writes its own timestamped marker + stamps the convergence session registry). When the batch is fully done, end the window with `--lock` — but `--lock` removes EVERY marker on the machine, so skip it if another session's governance flow is live (check for a fresh sibling marker in `~/.claude/governance-unlock/` or a LIVE COLLISION warning). An un-locked window simply expires at 2h. The unlock is machine-global either way — do not leave governance edits half-done for another session to trip over.
 
 ## Phase 2 — Edit
 

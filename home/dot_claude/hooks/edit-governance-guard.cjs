@@ -6,7 +6,9 @@
 // field — owned by session-registry.cjs, parsed tolerantly here), with a
 // filesystem marker fallback (~/.claude/governance-unlock/) for non-repo paths
 // and sessions whose id is unknown in Bash. Fails open on internal errors.
-// CLI: `node edit-governance-guard.cjs --unlock` grants a 2h unlock.
+// CLI: `--unlock` grants a 2h unlock (own timestamped marker); `--lock` ends
+// every unlock window on this machine — only use when no other governance
+// flow is live.
 'use strict';
 const fs = require('fs');
 const os = require('os');
@@ -42,17 +44,14 @@ function markerFresh() {
     return false;
 }
 
-function registryUnlocked(sessionId, filePath) {
+function registryEntryUnlocked(baseDir, sessionId) {
     try {
-        const dir = fs.existsSync(filePath)
-            ? path.dirname(filePath)
-            : path.dirname(path.resolve(filePath));
-        const common = execFileSync('git', ['-C', dir, 'rev-parse', '--git-common-dir'], {
+        const common = execFileSync('git', ['-C', baseDir, 'rev-parse', '--git-common-dir'], {
             encoding: 'utf8',
             stdio: ['ignore', 'pipe', 'ignore'],
         }).trim();
         const reg = path.join(
-            path.isAbsolute(common) ? common : path.join(dir, common),
+            path.isAbsolute(common) ? common : path.join(baseDir, common),
             'sessions',
             `${sessionId}.json`,
         );
@@ -66,9 +65,46 @@ function registryUnlocked(sessionId, filePath) {
     }
 }
 
+// Checks the edited file's repo AND the cwd repo — governed files under
+// ~/.claude/* live outside any repo (or a different one than cwd), where only
+// the cwd-repo session record can vouch for the unlock.
+function registryUnlocked(sessionId, filePath) {
+    const fileDir = fs.existsSync(filePath)
+        ? path.dirname(filePath)
+        : path.dirname(path.resolve(filePath));
+    return (
+        registryEntryUnlocked(fileDir, sessionId) || registryEntryUnlocked(process.cwd(), sessionId)
+    );
+}
+
+function lock() {
+    let n = 0;
+    try {
+        for (const f of fs.readdirSync(MARKER_DIR)) {
+            fs.unlinkSync(path.join(MARKER_DIR, f));
+            n++;
+        }
+    } catch {
+        /* no marker dir */
+    }
+    console.log(
+        `governance lock: removed ${n} marker(s) — this ends EVERY session's unlock window on this machine`,
+    );
+}
+
 function unlock() {
     fs.mkdirSync(MARKER_DIR, { recursive: true });
-    const f = path.join(MARKER_DIR, 'active');
+    // Timestamped per-invocation marker: concurrent flows each hold their own,
+    // and expiry is by TTL — prune only stale markers here, never live ones.
+    try {
+        for (const old of fs.readdirSync(MARKER_DIR)) {
+            const p = path.join(MARKER_DIR, old);
+            if (Date.now() - fs.statSync(p).mtimeMs >= UNLOCK_MS) fs.unlinkSync(p);
+        }
+    } catch {
+        /* best effort */
+    }
+    const f = path.join(MARKER_DIR, `active-${Date.now()}`);
     fs.writeFileSync(f, String(Date.now()));
     // Best effort: also stamp the convergence registry entry for every live
     // session in the cwd repo, so registry-aware tooling sees the unlock.
@@ -98,6 +134,7 @@ function unlock() {
 
 function main() {
     if (process.argv.includes('--unlock')) return unlock();
+    if (process.argv.includes('--lock')) return lock();
     let input = '';
     try {
         input = fs.readFileSync(0, 'utf8');
