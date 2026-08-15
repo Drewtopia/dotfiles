@@ -1,13 +1,12 @@
 ---
 name: clean-workspace
-description: Fast local declutter — prune merged worktrees, clear finished Agent View cards, report the stale-session tail.
+description: Fast local declutter — prune merged worktrees, clear finished Agent View cards, rename unnamed sessions, report the stale-session tail.
 disable-model-invocation: true
 ---
 
 # Clean workspace
 
-Deterministic local cleanup — no agents, runs in seconds. Prune merged git worktrees, clear finished
-Agent View cards, report the stale Claude-session tail. Run whenever the machine feels cluttered.
+Deterministic, no agents, runs in seconds. Run whenever the machine feels cluttered.
 
 ## Done set
 
@@ -33,7 +32,7 @@ auto-detected (`origin/HEAD`, else develop/main/master); override with `TRUNK=<b
    `{id,title,branch,removedAt}` to `~/.claude/housekeeping/removed-log.jsonl` so
    `/find-session --removed` can recover it.
 3. **Rename unnamed sessions** — auto-titles (`automatedtesting-f3`) are unscannable in the resume
-   picker. `python3 ~/.claude/skills/clean-workspace/rename-sessions.py` (dry-run) shows proposed
+   picker. `uv run ~/.claude/skills/clean-workspace/rename-sessions.py` (dry-run) shows proposed
    branch-derived names for every dead, never-renamed session on a real feature branch; re-run with
    `--apply` to write (backs up `~/.claude/sessions/` first). Live sessions and already-named ones are
    left alone. The custom name lives in `~/.claude/sessions/<pid>.json` (`name`, no `nameSource`) — a

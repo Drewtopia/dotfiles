@@ -1,8 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.9"
+# ///
 """Search past Claude sessions by content.
 Ranks by how many DISTINCT query terms a transcript matches (a session hitting all your
 terms beats one that just repeats a common word), then by total hits, then recency."""
-import sys, subprocess, glob, os, re, datetime, json
+import argparse, sys, subprocess, glob, os, re, datetime, json
 from pathlib import Path
 
 def current_project_token():
@@ -49,13 +52,26 @@ def show_removed():
         if alive: print(f"            resume: claude --resume {sid}\n")
 
 def main():
-    args = sys.argv[1:]
-    if '--removed' in args:
+    ap = argparse.ArgumentParser(
+        description="Search past Claude session transcripts by content. Ranks by distinct "
+                    "terms matched, then total hits, then recency.",
+        epilog="examples:\n"
+               "  find-session.py seed donation        # this project only\n"
+               "  find-session.py --all bridge dbup    # every project\n"
+               "  find-session.py --removed            # removed Agent View cards, still resumable",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('terms', nargs='*', help='search terms (rarer terms sharpen ranking)')
+    ap.add_argument('--all', action='store_true', dest='all_projects',
+                    help='search every project instead of only the current one')
+    ap.add_argument('--removed', action='store_true',
+                    help='list Agent View cards removed by housekeeping (transcripts kept)')
+    args = ap.parse_args()
+    if args.removed:
         show_removed(); return
-    all_projects = '--all' in args
-    terms = [a for a in args if a != '--all']
+    all_projects = args.all_projects
+    terms = args.terms
     if not terms:
-        sys.exit("usage: find-session.py [--all] <terms...>   |   find-session.py --removed")
+        ap.error("at least one search term is required (or use --removed)")
     # per-file: {term: count}
     hits = {}
     for d in slug_dirs(all_projects):

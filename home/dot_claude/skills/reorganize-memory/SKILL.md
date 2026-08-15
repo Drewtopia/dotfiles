@@ -1,11 +1,11 @@
 ---
 name: reorganize-memory
-description: Reorganize ~/.claude/memory/, ~/.claude/rules/, and project auto-memory (a MEMORY.md index + sibling topic files) — migrate legacy global prefix-files into the structured folders, dedupe/merge/split, trim an over-budget index by moving detail to sibling files, update indexes. Use when user says "reorganize memory", "tidy memory", "clean up memory", or wants to consolidate accumulated memory content.
+description: Reorganize ~/.claude/memory/, ~/.claude/rules/, and project auto-memory — migrate legacy prefix-files, dedupe/merge/split, trim over-budget indexes. Use when user says "reorganize memory", "tidy memory", "clean up memory".
 ---
 
 # Reorganize Memory
 
-Run this skill when memory needs maintenance. Always use plan mode — show the user what you intend to change before changing anything.
+Always use plan mode — show the user what you intend to change before changing anything.
 
 ## Target structure
 

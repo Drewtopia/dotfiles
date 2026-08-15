@@ -1,19 +1,19 @@
 ---
 name: find-session
-description: Search past Claude sessions by a fuzzy memory of what they were about; ranked results with resume commands.
+description: Search past Claude sessions by a fuzzy memory of what they were about; ranked results with resume commands. --removed recovers cleared Agent View cards.
 disable-model-invocation: true
 ---
 
 # Find session
 
-Recall a past session from a rough memory of what it covered. No native content-search exists —
-`claude --resume` is a picker with no query — so this greps the transcripts directly.
+No native content-search exists — `claude --resume` is a picker with no query — so this greps the
+transcripts directly.
 
 ## Run
 
 1. Turn the user's fuzzy memory into search terms — synonyms, likely file/API/function names, error
    strings. More specific terms rank better; start narrow, broaden if empty.
-2. `python3 ~/.claude/skills/find-session/find-session.py <terms...>`
+2. `uv run ~/.claude/skills/find-session/find-session.py <terms...>`
    Add `--all` to search every project; default scope is the **current project's** slugs (derived
    from cwd), **including its worktree slugs** (`*--claude-worktrees-*`).
    - **`--removed`** (no terms): list Agent View cards housekeeping removed, newest first, with

@@ -1,6 +1,6 @@
 ---
 name: close
-description: Close out a Claude Code session — update memory files, reconcile the tracker, propose git commits split by purpose, tidy merged worktrees, write SESSION_LOG.md, and print a rename suggestion. Use when user invokes /close, says "close the session", "wrap up", "end session", or asks for a session closeout.
+description: Close out a session — memory updates, tracker reconcile, commits split by purpose, merged-worktree tidy, SESSION_LOG.md, rename suggestion. Use for /close, "close the session", "wrap up", "end session".
 ---
 
 # /close — session closeout

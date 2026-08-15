@@ -1,14 +1,12 @@
 ---
 name: open-brain
-description: Capture durable session thoughts — decisions, insights, tasks, references — to the Open Brain MCP server. Use when Drew says "capture this to open brain", "save to brain", wants a session's learnings persisted to Open Brain, or as an optional retrospective step at closeout. Split out of /close so it runs on demand, not every closeout.
+description: Capture durable session thoughts — decisions, insights, tasks, references — to the Open Brain MCP server. Use when Drew says "capture this to open brain", "save to brain", or as an optional retrospective step at closeout.
 ---
 
 # open-brain — capture thoughts to Open Brain
 
-Persist session learnings to the Open Brain MCP server. This was Phase 1 of
-`/close`; it was split out because Open Brain often isn't authenticated in a
-session, so running it inline made every closeout hit a dead OAuth wall. Invoke
-it on demand instead.
+Runs on demand, not every closeout — Open Brain often isn't authenticated in a
+session, so step 0 comes first.
 
 ## 0. Ensure the server is authenticated
 
