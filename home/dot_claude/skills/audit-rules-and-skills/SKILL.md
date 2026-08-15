@@ -46,6 +46,7 @@ Ordering within the report: resident findings first, lazy ones after. Say which 
 
 ### 5. Apply approved changes
 
+- These are governance surfaces — run `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` first (the AskUserQuestion approval above is the review gate). Both the vault and chezmoi protect `main`: branch, commit, `merge --ff-only` back.
 - Rules in `~/.claude/rules/` are cvault-managed. Edit in place at the symlinked location.
 - Skills in `~/.claude/skills/` are chezmoi-managed. Edit chezmoi source under `home/dot_claude/skills/`, then `chezmoi apply` targeted to the changed file.
 - Don't auto-commit either repo. Present commit messages and let user approve.

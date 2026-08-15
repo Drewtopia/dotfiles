@@ -19,6 +19,7 @@ Read back through the session and pull out only what's worth persisting:
 - **Insights / inefficiencies** — patterns spotted, surprises, things slower than expected.
 - **Open tasks** — work named but not finished.
 - **References** — external URLs, doc paths, dashboards, channels worth remembering.
+- **Mistakes** — breakages or corrections this session not yet in the repo's `MISTAKES.md` → append them now (what happened / root cause / consequence / prevention, newest first).
 
 Skip ephemeral debugging steps, retracted ideas, and anything already obvious from the diff.
 
@@ -56,7 +57,7 @@ Write project-specific learnings — active tickets, repo-specific patterns, dec
 git rev-parse --show-toplevel 2>/dev/null
 ```
 
-If not inside a git repo, skip to step 6 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
+If not inside a git repo, skip to step 7 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
 
 ### 2. Inspect changes
 
@@ -99,7 +100,11 @@ The normal closeout case is a WIP/unmerged branch — **skip this whole step** f
 2. Ensure the `GH-N` issue is closed (Phase 1 reconcile already does this).
 3. Verify `git status` is clean — **never** remove a worktree with uncommitted changes. Confirm with Drew, then from inside the worktree run `wt remove` — it removes the worktree and deletes the branch since it's merged.
 
-### 6. SESSION_LOG.md (cross-device)
+### 6. Plan/design sweep (documentation-policy lifecycle)
+
+Implementation plans and completed design docs do not survive task closure. List `.claude/tasks/*.md` and any design docs belonging to work closed this session. For each: fold durable outcomes into CHANGELOG/ADR/execution summary first, then propose deletion and confirm per file. Plans for still-open work stay untouched.
+
+### 7. SESSION_LOG.md (cross-device)
 
 Prepend to `~/.claude/memory/SESSION_LOG.md`. This file lives in the vault; after writing it, `cvault apply` pushes it so entries reach all of Drew's machines.
 
@@ -162,3 +167,5 @@ If a step was skipped (e.g. no git repo, no merge to clean up), drop that segmen
 - A worktree was only removed after confirming its PR merged and `git status` was clean.
 - SESSION_LOG entry is at the **top** of the file (newest first).
 - Counter line reflects actual counts, not aspirational ones.
+- Governance unlock cleared: `~/.claude/governance-unlock/` is empty or stale.
+- If the session touched vault or chezmoi source: both repos clean and pushed.

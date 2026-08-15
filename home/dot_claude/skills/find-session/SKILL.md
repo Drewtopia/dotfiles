@@ -32,3 +32,6 @@ transcripts directly.
 - Search covers both the user's prompts and the assistant's replies.
 - Keyword/regex only — no embeddings. If recall keeps missing, broaden terms rather than reach for
   semantic search.
+- The transcript JSONL format is internal and changes between Claude Code releases (docs say scripts
+  parsing it "can break on any release") — if results go empty or fields vanish after an upgrade,
+  suspect the format before the search terms.
