@@ -1,12 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.9"
+# ///
 """Rename never-named, dead Claude sessions to their branch, so the resume picker is scannable.
 Custom name lives in ~/.claude/sessions/<pid>.json as `name` with NO `nameSource` key (derived
 sessions keep `"nameSource":"derived"`). Only touches DEAD pids on a real feature branch.
-Usage: rename-sessions.py            # dry-run, prints proposed renames
-       rename-sessions.py --apply    # backs up the dir, then writes
 Field mechanics are undocumented (reverse-engineered) — re-verify against a hand-rename if a CC
 upgrade changes them. See memory: claude_session_rename_and_find."""
-import json, glob, os, re, subprocess, sys, shutil, time
+import argparse, json, glob, os, re, subprocess, sys, shutil, time
 SESS = os.path.expanduser('~/.claude/sessions')
 PROJ = os.path.expanduser('~/.claude/projects')
 SKIP = {'', 'HEAD', 'develop', 'main', 'master'}
@@ -38,7 +39,16 @@ def candidates():
         yield f, d, d.get('name', '?'), f'{slug}-{sid[:4]}'
 
 def main():
-    apply = '--apply' in sys.argv[1:]
+    ap = argparse.ArgumentParser(
+        description="Rename never-named, DEAD Claude sessions to <branch-slug>-<sid4> so the "
+                    "resume picker is scannable. Dry-run by default.",
+        epilog="examples:\n"
+               "  rename-sessions.py           # dry-run, prints proposed renames\n"
+               "  rename-sessions.py --apply   # backs up ~/.claude/sessions, then writes",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--apply', action='store_true',
+                    help='write the renames (a timestamped backup of the dir is taken first)')
+    apply = ap.parse_args().apply
     cands = list(candidates())
     if not cands:
         print('nothing to rename (no dead, unnamed, real-branch sessions)'); return
