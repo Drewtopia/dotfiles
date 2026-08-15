@@ -85,6 +85,7 @@ whatever auto-memory has written.
 4. **Present the proposal** as a single ordered list with current → proposed for each change. Use AskUserQuestion (multiSelect) to let the user approve a subset.
 
 5. **Apply approved changes**:
+   - Rule writes (`~/.claude/rules/{topic}.md`) are governance surfaces: run `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` first (the approval in step 4 is the review gate) and use the vault branch → ff-merge flow. Memory writes need no unlock.
    - Use Write/Edit for content modifications.
    - Use Bash for `mv` / `rm`.
    - For deletes/renames of entries with content: confirm before each via AskUserQuestion if not already approved.
