@@ -192,7 +192,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$TMUX\" ] && tmux rename-window \"cc:$(basename \"$PWD\")\" || true"
+            "command": "[ -n \"$TMUX\" ] && tmux rename-window \"cc:#{session_name}\" || true"
           }
         ]
       }
