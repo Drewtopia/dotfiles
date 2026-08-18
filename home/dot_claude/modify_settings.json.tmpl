@@ -192,7 +192,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$TMUX\" ] && tmux rename-window \"cc:$(basename \"$PWD\")\" || true"
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-window-name.js\"'"
           }
         ]
       }
@@ -311,6 +311,12 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # entry in this file cannot remove it from the live settings. List retired
   # entries here to prune them on the next apply.
   | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)"]
+  # Retire the former inline SessionStart rename (shipped via #81): the add-only
+  # merge keeps it in live settings, so strip that exact command and drop any
+  # hook entry it empties. session-start-window-name.js supersedes it.
+  | .hooks.SessionStart = ((.hooks.SessionStart // [])
+      | map(.hooks |= map(select(.command != "[ -n \"$TMUX\" ] && tmux rename-window \"cc:$(basename \"$PWD\")\" || true")))
+      | map(select((.hooks | length) > 0)))
   # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
   # changed managed default cannot move an already-set live value. Force the few
   # keys chezmoi must own regardless of runtime drift.
