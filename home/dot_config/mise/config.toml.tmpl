@@ -82,6 +82,9 @@ eza = "latest"
 # qmd — local search engine for markdown (BM25 + vector + LLM rerank).
 # Native deps (node-llama-cpp) build cleanly on macOS/Linux; deferring Windows.
 "npm:@tobilu/qmd" = "latest"
+# herdr — agent-aware terminal multiplexer (tmux-like; persists panes + resumes
+# Claude Code sessions across a reboot). Unix-only; Windows uses psmux (see tmux.conf).
+herdr = "latest"
 {{ end -}}
 
 {{ if .personal -}}

@@ -96,6 +96,10 @@ AppData
 .config/tmux/**
 !.config/tmux/tmux.conf
 !.config/tmux/tmux.reset.conf
+# herdr: drop runtime state (sockets, logs, session.json, .plugins.lock,
+# release-notes.json) but keep the one config file.
+.config/herdr/**
+!.config/herdr/config.toml
 .config/zsh
 .config/zsh/**
 .inputrc
