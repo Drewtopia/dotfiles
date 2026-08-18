@@ -13,6 +13,12 @@
 # Environment
 .envrc
 
+# mise per-machine overrides. `mise.local.toml` is mise's own convention; the
+# env-qualified variants (mise.<env>.local.toml) carry per-machine local ports
+# and endpoints and must never be committed.
+mise.local.toml
+mise.*.local.toml
+
 # VCS
 .jj
 .pc
@@ -43,6 +49,10 @@ skills-lock.json
 .bmad-custom/
 .bmad-user-memory/
 bmad-custom-src/
+.bmad-loop/
+_bmad/
+_bmad-output/
+.codex/
 .opencode/
 .spec-workflow/
 .agentvibes/
