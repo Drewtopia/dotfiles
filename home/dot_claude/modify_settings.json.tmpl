@@ -197,6 +197,50 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       }
 {{- end }}
+    ],
+    "CwdChanged": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/cwd-changed-worktree-check.js\"'"
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/permission-denied-audit.js\"'"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-failure-log.js\"'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-compact-snapshot.js\"'"
+          }
+        ]
+      }
     ]{{- if ne .chezmoi.os "windows" }},
     "SessionEnd": [
       {
@@ -230,7 +274,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "extraKnownMarketplaces": {{ $marketplaces | mustToPrettyJson | indent 2 | trim }},
   "autoUpdatesChannel": "latest",
   "verbose": true,
-  "preferredNotifChannel": "terminal_bell",
+  "preferredNotifChannel": "auto",
   "agentPushNotifEnabled": false
 }
 CHEZMOI_SETTINGS_EOF
@@ -267,4 +311,8 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # entry in this file cannot remove it from the live settings. List retired
   # entries here to prune them on the next apply.
   | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)"]
+  # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
+  # changed managed default cannot move an already-set live value. Force the few
+  # keys chezmoi must own regardless of runtime drift.
+  | .preferredNotifChannel = "auto"
 ' | tr -d '\r'
