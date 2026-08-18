@@ -186,6 +186,17 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           }
         ]
       }
+{{- if ne .chezmoi.os "windows" }},
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX\" ] && tmux rename-window \"cc:$(basename \"$PWD\")\" || true"
+          }
+        ]
+      }
+{{- end }}
     ],
     "CwdChanged": [
       {
@@ -230,7 +241,19 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           }
         ]
       }
+    ]{{- if ne .chezmoi.os "windows" }},
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX\" ] && tmux set-option -w automatic-rename on || true"
+          }
+        ]
+      }
     ]
+{{- end }}
   },
   "statusLine": {
     "type": "command",
