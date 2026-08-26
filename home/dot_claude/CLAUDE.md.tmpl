@@ -1,75 +1,32 @@
 # Global CLAUDE.md
 
-This file applies to ALL your projects. Define your identity, security rules, and scaffolding standards once.
+## Environment
 
-## Identity & Accounts
+- **GitHub**: {{ .github.username }} (SSH: `git@github.com:{{ .github.username }}/<repo>.git`). Runtimes via mise; dotfiles via chezmoi.
+{{- if .is_wsl }}
+- This machine: WSL2 Ubuntu on Windows{{ if .work }} (corporate){{ end }}; interactive shell is zsh.
+{{- else if eq .chezmoi.os "darwin" }}
+- This machine: macOS; interactive shell is zsh.
+{{- else if eq .chezmoi.os "windows" }}
+- This machine: native Windows; shells are pwsh and Git Bash.
+{{- else }}
+- This machine: Linux; interactive shell is zsh.
+{{- end }}
+- Agent memory and rules live in the `~/.claude-vault/` repo, linked into `~/.claude/`.
 
-- **GitHub**: {{ .github.username }} (SSH: `git@github.com:{{ .github.username }}/<repo>.git`)
-- **Tooling**: mise for runtime management
+## Guardrails — flag, don't force
 
----
+Stop, say what and why, and let Drew decide before:
 
-## NEVER EVER DO (Security Gatekeeper)
+- committing or publishing anything that may contain a secret, credential, or `.env` file — check staged content; keep `.env` gitignored with a committed `.env.example`
+- deleting beyond what was explicitly named
+- weakening, skipping, or deleting an existing test to make it pass
+- editing a governance surface (CI/workflows, ADRs, agent config) — go through `/edit-governance`
 
-These rules are **ABSOLUTE**. No exceptions.
+If Drew is away, leave the action undone and a note or tracker issue instead.
 
-### NEVER Publish Sensitive Data
-- NEVER commit passwords, API keys, tokens to git/npm/docker
-- NEVER hardcode credentials in source files
-- NEVER include secrets in error messages or logs
+## Memory
 
-### NEVER Commit .env Files
-- NEVER commit `.env` to git
-- ALWAYS verify `.env` is in `.gitignore`
-- ALWAYS use `.env.example` with placeholder values
+@~/.claude/memory/memory.md
 
-### NEVER Skip Verification
-- Before ANY commit: verify no secrets included
-- Before ANY push: check staged files for sensitive data
-- Before ANY publish: audit package contents
-
----
-
-## Global Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/commit` | Generate conventional commit message |
-
----
-
-## Memory & Rules
-
-Two systems load at session start:
-
-- `@~/.claude/memory/memory.md` — index of accumulated knowledge (tools/, domain/, projects.md, personal.md, working-patterns.md, SESSION_LOG.md, general.md). Load specific topic files only when relevant.
-- `~/.claude/rules/` — behavioral rules. Loaded automatically by Claude Code; no reference needed here.
-
-Maintaining memory:
-
-- When you learn something worth remembering, write to the right file immediately. Keep `memory.md` current as an index.
-- Entries: date, what, why — nothing more.
-- Before removing or modifying any existing memory entry, use AskUserQuestion to confirm.
-- For maintenance, see the `reorganize-memory` skill.
-
----
-
-## Project MEMORY.md
-
-When working in a project, ensure its MEMORY.md begins with this short pointer block. Do NOT duplicate the topic file list — it lives in CLAUDE.md only.
-
-Canonical template:
-
-## Global Memory
-
-Read ~/.claude/CLAUDE.md for memory rules and topic files.
-
-When a new file is added to ~/.claude/memory/:
-- Add it to ~/.claude/memory/memory.md only
-- Do NOT update individual project MEMORY.md files
-
-Project MEMORY.md has a 200-line budget — auto-memory loads only the first 200 lines / 25KB at session start.
-
----
-
-*Last updated: 2026-07-10*
+New durable knowledge goes in the matching `~/.claude/memory/` topic file, with `memory.md` kept current as the index. Confirm before rewriting or removing existing entries; `reorganize-memory` skill for maintenance.
