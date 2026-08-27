@@ -60,8 +60,10 @@ worktrunk                 = "max-sixty/worktrunk"
 # hooks/hooks.json is auto-loaded. Until that is fixed upstream, a fresh install
 # needs the key removed from the cached manifest to load.
 "i-have-adhd@i-have-adhd"                          = true
-"explanatory-output-style@claude-plugins-official" = true
-"learning-output-style@claude-plugins-official"    = true
+# Retired Aug 2026 — output styles are a native setting now (settings.json
+# `outputStyle`); the plugins are superseded.
+"explanatory-output-style@claude-plugins-official" = false
+"learning-output-style@claude-plugins-official"    = false
 "ralph-loop@claude-plugins-official"               = false
 
 [plugins.personal]
