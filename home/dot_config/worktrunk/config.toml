@@ -27,6 +27,15 @@ summary = true
 # keeps any `wt list --format=json` consumer stable across that change.
 json-schema = 2
 
+# Diff preview in the `wt switch` picker via delta (installed on all machines).
+[switch.picker]
+pager = "delta --paging=never"
+
+# Cold-start skip: never bulk-copy heavy gitignored dirs between worktrees.
+# Universal set — per-repo configs add their own; the two exclude lists combine.
+[step.copy-ignored]
+exclude = ["node_modules/", "dist/", ".turbo/"]
+
 [aliases]
 # Universally safe — works in any git repo, no language assumptions.
 since-main = "git log --oneline {{ default_branch }}..HEAD"
