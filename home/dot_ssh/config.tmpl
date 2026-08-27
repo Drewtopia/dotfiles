@@ -1,7 +1,10 @@
 HashKnownHosts no
 
-# Include local machine-specific configs (not in git)
+# Machine-specific hosts, rendered from 1Password (see dot_ssh/config.local.tmpl).
 Include config.local
+
+# Untracked escape hatch for one-off, machine-only overrides (never managed by chezmoi).
+Include config.override
 
 {{- if eq .chezmoi.os "darwin" }}
 

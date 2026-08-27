@@ -1,0 +1,9 @@
+{{- /* Machine-specific ssh hosts, stored in 1Password so they are reproducible
+       and never committed. Personal machines read op://Private/ssh-hosts;
+       work machines read op://Employee/ssh-hosts (opVault set in .chezmoi.toml.tmpl).
+       The matching op item must exist before `chezmoi apply`, or apply aborts on
+       this file (fail-safe — it never overwrites the existing config.local with
+       empty). One-off machine-only overrides go in the untracked config.override. */ -}}
+{{ if .opVault -}}
+{{ onepasswordRead (printf "op://%s/ssh-hosts/notesPlain" .opVault) }}
+{{- end -}}
