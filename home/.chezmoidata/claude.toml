@@ -46,12 +46,10 @@ worktrunk                 = "max-sixty/worktrunk"
 # so the audit/improve skills had nothing to act on.
 "claude-md-management@claude-plugins-official"     = false
 "superpowers@claude-plugins-official"              = false
-# Retired Jul 2026 in favour of mattpocock-skills, which covers the same
-# ground with one skill per job: test-driven-development→tdd,
-# requesting-code-review→code-review, systematic-debugging→diagnosing-bugs,
-# writing-plans→to-spec, brainstorming→grilling. Its using-superpowers skill
-# also injected itself into every session's system prompt.
-"superpowers-extended-cc@superpowers-extended-cc-marketplace" = false
+# Retired Jul 2026 in favour of mattpocock-skills; reinstated Aug 2026 — in
+# active use (plan execution, model routing, worktree/dev-branch flows)
+# alongside mattpocock-skills rather than replaced by it.
+"superpowers-extended-cc@superpowers-extended-cc-marketplace" = true
 # Retired Jul 2026 — one-shot "recommend automations for this repo" skill,
 # never invoked after the initial setup pass it was installed for.
 "claude-code-setup@claude-plugins-official"        = false
@@ -62,8 +60,10 @@ worktrunk                 = "max-sixty/worktrunk"
 # hooks/hooks.json is auto-loaded. Until that is fixed upstream, a fresh install
 # needs the key removed from the cached manifest to load.
 "i-have-adhd@i-have-adhd"                          = true
-"explanatory-output-style@claude-plugins-official" = true
-"learning-output-style@claude-plugins-official"    = true
+# Retired Aug 2026 — output styles are a native setting now (settings.json
+# `outputStyle`); the plugins are superseded.
+"explanatory-output-style@claude-plugins-official" = false
+"learning-output-style@claude-plugins-official"    = false
 "ralph-loop@claude-plugins-official"               = false
 
 [plugins.personal]
@@ -85,13 +85,13 @@ worktrunk                 = "max-sixty/worktrunk"
 # Retired Jul 2026 — zero MCP browser calls. Playwright *authoring* help still
 # comes from the playwright-* skills in ~/.claude/skills, which are unaffected.
 "playwright@claude-plugins-official"      = false
-# Retired Jul 2026 — its agent was never dispatched; the simplify skill covers
-# the same cleanup pass.
-"code-simplifier@claude-plugins-official" = false
+# Retired Jul 2026, reinstated Aug 2026 — back in active use.
+"code-simplifier@claude-plugins-official" = true
 # Retired Jul 2026 — plugin authoring happens rarely and by hand; its skill
 # listing was the single largest unused block in the session prompt.
 "plugin-dev@claude-plugins-official"      = false
 "caveman@caveman"                         = true
+"pr-review-toolkit@claude-plugins-official" = true
 # Ships the 22 stable engineering/ + productivity/ skills, pinned to
 # plugin.json's version. The 9 misc/ + in-progress/ skills it excludes
 # stay on the `npx skills` path in .chezmoidata/skills.yaml.
