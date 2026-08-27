@@ -49,7 +49,7 @@ Add the **currently-running session's own id** to that set too.
 A table: `sessionId | ai-title | branch | state | GH-N | proposed action`. Sort done-first.
 
 **This job reports; it does not delete transcript files.** The stale tail is cleared natively by
-`cleanupPeriodDays` (settings.json, 30) — its startup sweep expires aged transcripts and orphaned
+`cleanupPeriodDays` (CC default unless set in settings.json) — its startup sweep expires aged transcripts and orphaned
 worktrees. Report the stale count so the pile is visible, but leave the deletion to the native
 sweep; moving/deleting a running session's `.jsonl` strands it. Agent View cards are a separate
 surface, cleared with `claude rm <id>` (see the skill's inline Agent View job) — not this job.
