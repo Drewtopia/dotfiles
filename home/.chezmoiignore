@@ -1,0 +1,7 @@
+{{- /* config.local is rendered from op://<vault>/ssh-hosts. Only personal
+       machines have that item today, so don't manage config.local on work/
+       other machines — otherwise apply would abort pulling a missing op item.
+       To enable a work machine: create op://Employee/ssh-hosts, then drop this. */ -}}
+{{- if not .personal }}
+.ssh/config.local
+{{- end }}
