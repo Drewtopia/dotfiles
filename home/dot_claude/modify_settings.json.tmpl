@@ -310,4 +310,8 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # changed managed default cannot move an already-set live value. Force the few
   # keys chezmoi must own regardless of runtime drift.
   | .preferredNotifChannel = "auto"
+  # Auto-memory stays off on every machine: declaring it in the managed floor
+  # cannot force-disable a machine where Claude already enabled it (runtime wins),
+  # so pin it here to re-assert false on every apply.
+  | .autoMemoryEnabled = false
 ' | tr -d '\r'
