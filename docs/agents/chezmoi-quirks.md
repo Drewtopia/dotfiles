@@ -28,10 +28,6 @@ Apply:
 - `dot_` prefix on directory names replaces the leading dot in the live path.
 - `.tmpl` extension is the convention even without substitutions (consistency + future per-machine variation).
 
-## Skill mode restriction
-
-The `chezmoi-config` skill is read-only and forbids `chezmoi apply` / `chezmoi update`. Show a `chezmoi diff`; the user runs `chezmoi apply`.
-
 ## Agent-memory vault-junction architecture (2026-04-27)
 
 The agent memory system lives in a private vault repo (`git@github.com:Drewtopia/claude-vault.git`) cloned to `~/.claude-vault/` on every OS. `~/.claude/memory` links to `~/.claude-vault/memory`.
@@ -40,12 +36,13 @@ The agent memory system lives in a private vault repo (`git@github.com:Drewtopia
 
 **Cross-platform link mechanism:**
 - **Mac/Linux:** symlink via `dot_claude/symlink_memory.tmpl` (`{{ .chezmoi.homeDir }}/.claude-vault/memory`).
-- **Windows:** `.chezmoiscripts/common/run_after_99-claude-memory-junction.ps1.tmpl` creates an NTFS junction (`cmd /c mklink /J`) — no Developer Mode needed on locked-down machines.
+- **Windows:** `.chezmoiscripts/common/run_after_99-claude-memory-junction.ps1.tmpl` creates an NTFS junction (`cmd /c mklink /J`) — no Developer Mode needed on locked-down machines. Idempotent: detects the correct junction, replaces wrong targets, refuses to clobber a real directory.
 
 **Canonical surface (four files under `home/`):**
 - `.chezmoiexternal.toml.tmpl` — unconditional `[".claude-vault"]` git-repo external.
 - `.chezmoiignore.tmpl` — `!.claude/memory` un-ignore on Mac/Linux only; Windows leaves the junction alone.
-- `.chezmoiscripts/common/run_after_99-claude-memory-junction.ps1.tmpl` — idempotent; detects correct junction, replaces wrong targets, refuses to clobber a real directory.
+- `dot_claude/symlink_memory.tmpl` — the Mac/Linux symlink source.
+- `.chezmoiscripts/common/run_after_99-claude-memory-junction.ps1.tmpl` — the Windows junction script (above).
 
 Don't reintroduce per-OS or `.work`-based branching for the vault clone. PS1 idiom for junction/symlink detection: `$item.Attributes -match "ReparsePoint"`. Fresh Windows machine: `chezmoi apply` clones the vault, then the `99-` script creates the junction.
 
@@ -57,9 +54,9 @@ Don't reintroduce per-OS or `.work`-based branching for the vault clone. PS1 idi
 
 1. **chezmoi** — config files, bootstraps mise + OS pkg manager, 1Password secrets
 2. **mise** — all CLI tools and runtimes
-3. **OS package manager** — system deps + GUI only (brew ~15 formulae macOS, scoop few Windows, apt Ubuntu)
+3. **OS package manager** — system deps + GUI only (brew on macOS, scoop on Windows, apt on Ubuntu)
 4. **chezmoi externals** — plugins only (zsh, tmux, skills, fonts, tool themes)
-5. **Shell config** — `.zshenv` (env) → `000-paths.sh` → `010-mise.sh` → `020-shell-tools.sh`
+5. **Shell config** — see Shell config patterns below
 
 ## Feature flags
 
@@ -72,14 +69,14 @@ Don't reintroduce per-OS or `.work`-based branching for the vault clone. PS1 idi
 ## Patterns
 
 - `.chezmoiignore` filters `.ps1` on Unix, `.sh` on Windows
-- `run_after` for mise (not `run_onchange`) — ensures mise exists every apply
+- `run_onchange_after` for mise install scripts — re-fires when the declared tool set changes (config hash in the script header); topgrade owns ongoing upgrades
 - `run_before` for TV channels — community cables download before chezmoi overwrites
 - Windows PS1 scripts re-launch with pwsh 7 if under 5.1
 - `bun x` not `bunx` on Windows
 
 ## VCS: plain git, not jj (2026-03-26)
 
-jj's colocated mode leaves git on detached HEAD; `chezmoi update` uses `git pull` and fails there. jj hooks in `settings.json` remain for code repos, gated behind `lookPath "jj"`.
+jj's colocated mode leaves git on detached HEAD; `chezmoi update` uses `git pull` and fails there.
 
 ## Windows bootstrap (chicken-and-egg)
 
