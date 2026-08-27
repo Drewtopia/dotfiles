@@ -34,3 +34,20 @@ test('id is sanitised to alphanumerics before slicing', () => {
     // leading dashes/braces are stripped, then the first 4 alnum taken
     assert.equal(windowName('/r', '--{}zzzz9999'), 'cc:r·zzzz');
 });
+
+test('branch names the window, dir is ignored', () => {
+    assert.equal(windowName('/a/b/chezmoi', 'a1b2c3d4', 'fix-auth'), 'fix-auth·a1b2');
+});
+
+test('branch slashes/backslashes sanitise to dashes', () => {
+    assert.equal(windowName('/r', 'aaaa1111', 'feature/auth'), 'feature-auth·aaaa');
+    assert.equal(windowName('/r', 'aaaa1111', 'wip\\x'), 'wip-x·aaaa');
+});
+
+test('branch without a session id gets no suffix', () => {
+    assert.equal(windowName('/r', '', 'main'), 'main');
+});
+
+test('empty branch falls back to cc:<dir>', () => {
+    assert.equal(windowName('/a/b/chezmoi', 'a1b2c3d4', ''), 'cc:chezmoi·a1b2');
+});
