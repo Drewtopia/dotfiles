@@ -91,6 +91,7 @@ worktrunk                 = "max-sixty/worktrunk"
 # listing was the single largest unused block in the session prompt.
 "plugin-dev@claude-plugins-official"      = false
 "caveman@caveman"                         = true
+"pr-review-toolkit@claude-plugins-official" = true
 # Ships the 22 stable engineering/ + productivity/ skills, pinned to
 # plugin.json's version. The 9 misc/ + in-progress/ skills it excludes
 # stay on the `npx skills` path in .chezmoidata/skills.yaml.
