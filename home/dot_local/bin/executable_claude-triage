@@ -64,7 +64,8 @@ def main():
     def short(path):
         if not path or path == "<none>":
             return path
-        return "/".join(path.rstrip("/").split("/")[-2:])
+        parts = path.replace("\\", "/").rstrip("/").split("/")
+        return "/".join(parts[-2:])
 
     shown = 0
     for cwd, branch, dirty, unpushed, exists, sessions in groups:
