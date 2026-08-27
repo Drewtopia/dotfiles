@@ -29,3 +29,8 @@ test('content at exactly 100 chars is not truncated', () => {
     const exact = 'y'.repeat(100);
     assert.equal(notify.parseContent({ content: exact }), exact);
 });
+
+test('isGhostty detects the Ghostty env marker', () => {
+    assert.equal(notify.isGhostty({ GHOSTTY_RESOURCES_DIR: '/x' }), true);
+    assert.equal(notify.isGhostty({}), false);
+});
