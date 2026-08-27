@@ -1,0 +1,4 @@
+{{ if ne .chezmoi.os "windows" }}
+.local/bin/claude-ls.cmd
+.local/bin/claude-triage.cmd
+{{ end }}
