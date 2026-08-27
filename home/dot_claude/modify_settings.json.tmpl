@@ -131,17 +131,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       }
     ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-end-of-turn.js\"'"
-          }
-        ]
-      }
-    ],
     "Notification": [
       {
         "matcher": "*",
@@ -305,6 +294,12 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # hook entry it empties. session-start-window-name.js supersedes it.
   | .hooks.SessionStart = ((.hooks.SessionStart // [])
       | map(.hooks |= map(select(.command != "[ -n \"$TMUX\" ] && tmux rename-window \"cc:$(basename \"$PWD\")\" || true")))
+      | map(select((.hooks | length) > 0)))
+  # Retire the stop-end-of-turn hook: its lint half was discarded work and its
+  # secret scan is covered by the block-secrets PreToolUse guard plus pre-commit.
+  # Strip it from live settings (add-only merge keeps it) and drop emptied entries.
+  | .hooks.Stop = ((.hooks.Stop // [])
+      | map(.hooks |= map(select((.command | contains("stop-end-of-turn.js")) | not)))
       | map(select((.hooks | length) > 0)))
   # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
   # changed managed default cannot move an already-set live value. Force the few
