@@ -12,7 +12,7 @@ Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governa
 
 1. Name every file to be changed and the reason, in one line each. No file may be added later without restating scope.
 2. Classify each target's **correct edit location**:
-   - Chezmoi-managed (`~/.claude/skills/{audit-rules-and-skills,audit-skill-repos,clean-workspace,close,find-session,housekeeping,open-brain,reconcile-tracker,reorganize-memory,edit-governance}`, hooks, CLAUDE.md): edit **chezmoi source** (`~/.local/share/chezmoi/home/dot_claude/...`), then `chezmoi apply <live-path>`.
+   - Chezmoi-managed (any skill with a source under `home/dot_claude/skills/`, hooks, CLAUDE.md — check with `chezmoi source-path <live-path>`): edit **chezmoi source** (`~/.local/share/chezmoi/home/dot_claude/...`), then `chezmoi apply <live-path>`.
    - Vault (`~/.claude-vault/rules|memory`, symlinked from `~/.claude/rules` and `~/.claude/memory`): edit vault paths.
    - Repo-local (`.claude/rules`, `.claude/skills`, `docs/adr/`, CI files): edit in the repo working tree.
 3. Both the vault and the chezmoi repo protect `main` — create a work branch first (`git -C <repo> switch -c <type>/<slug>`), commit there, then `merge --ff-only` back and push. Never bypass those hooks.

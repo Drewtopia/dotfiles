@@ -38,7 +38,7 @@ auto-detected (`origin/HEAD`, else develop/main/master); override with `TRUNK=<b
    left alone. The custom name lives in `~/.claude/sessions/<pid>.json` (`name`, no `nameSource`) — a
    dead-pid file is safe to edit; a live one is not. Going forward, `/rename <name>` or `Ctrl+R` in
    the picker names a session by hand.
-4. **Stale session tail** — report the count of transcripts older than `cleanupPeriodDays`
-   (settings.json). **Do not delete transcript files** — the native startup sweep expires them (and
+4. **Stale session tail** — report the count of transcripts older than the retention window
+   (`cleanupPeriodDays` — CC default unless set in settings.json). **Do not delete transcript files** — the native startup sweep expires them (and
    orphaned worktrees) safely; moving a running session's `.jsonl` strands it. Report only. See
    [SESSIONS.md](SESSIONS.md) for enumerating and classifying sessions.

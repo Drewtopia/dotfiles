@@ -57,7 +57,6 @@ Ordering within the report: resident findings first, lazy ones after. Say which 
 - Re-count lines; confirm targets are within budget for their class.
 - Confirm rewritten frontmatter still parses — a broken `---` block makes a rule or skill load as nothing.
 - Tell the user to run `/context` in their next session and check **Memory files**: that lists what actually loaded, which is the only real confirmation that a newly-added `paths:` moved a rule off the resident set. `/memory` lists file locations, not what loaded — don't use it for this.
-- For a rule that should now be path-scoped, the `InstructionsLoaded` hook logs which instruction files load and why.
 
 ## Constraints
 
