@@ -7,7 +7,7 @@ description: Close out a session — memory updates, tracker reconcile, commits 
 
 Three phases. Run them in order. Print a counter line at the end.
 
-Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. Project auto-memory (`~/.claude/projects/<repo>/memory/`) is machine-local — nothing to push. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
+Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
 ## Phase 1 — Retrospective
 
@@ -25,29 +25,20 @@ Skip ephemeral debugging steps, retracted ideas, and anything already obvious fr
 
 ### 2. Update memory files
 
-Two destinations: global (Drew's hand-curated scheme) and project (Claude Code auto-memory).
-
-**Global memory** — `~/.claude/memory/`
-
-Drew's memory follows the structure documented in his `~/.claude/CLAUDE.md` (YoungLeaders / Pawel Huryn scheme):
+**Global memory** — `~/.claude/memory/` (the only memory destination; auto-memory is disabled)
 
 | Content | Destination |
 |---|---|
 | Cross-project conventions, preferences, naming, workflow style | `general.md` (append) |
 | Tool configs, CLI patterns, workarounds for a specific tool | `tools/{tool}.md` (one file per tool) |
 | Domain knowledge for a product, area, or codebase | `domain/{topic}.md` |
+| Project-specific learnings | the project's own repo docs (see `projects.md`) |
 
-When you create a new file under `tools/` or `domain/`, add a one-line entry to `~/.claude/memory/memory.md` (the global index). Format: a row in the index table with file path, description, last-updated date. Entry shape (per the global rules): `date — what — why`. Nothing more.
+When you create a new file under `tools/` or `domain/`, add a one-line entry to `~/.claude/memory/memory.md` (the global index): a row with file path + description.
 
-**Project memory** — `~/.claude/projects/<repo>/memory/`
+**Live state** — do not maintain a live-state digest in memory. Work state belongs in the project's own tracker (for this repo: GitHub issues). Never start or update a memory `CURRENT-STATE.md` or committed `STATUS.md`/`STATE-MAP.md` — those are retired patterns. Memory holds durable shapes and gotchas only, not live status.
 
-Claude Code's auto-memory (official; on by default). Scoped by **git repository** — every worktree and subdirectory of this repo shares one directory (not per-cwd), and it is **machine-local** (not pushed to the vault). A `MEMORY.md` **index** (loaded every session — first 200 lines / 25KB) plus on-demand **topic files**.
-
-Write project-specific learnings — active tickets, repo-specific patterns, decisions tied to this codebase — as topic files (one topic per file, plain descriptive name), then add a one-line pointer to `MEMORY.md`. Keep the index lean: move detail out to topic files, never collapse topic files back into the index. Don't hand-write frontmatter — Claude Code manages the `modified` timestamp itself; adding `type`/`name`/`description` fields is a local convention, not a requirement.
-
-**Project live state** — do not maintain a live-state digest in memory. Work state belongs in the project's own tracker (for this repo: GitHub issues). Never start or update a memory `CURRENT-STATE.md` or committed `STATUS.md`/`STATE-MAP.md` — those are retired patterns. `MEMORY.md` holds durable shapes and gotchas only, not live status.
-
-**Reconcile the tracker** — where the code host and the issue tracker differ (this repo: code on Azure, issues on GitHub), a merged PR does **not** auto-close its issue. As part of closeout, for each branch worked this session whose PR has merged, close the `GH-N` issue its PR body/commits reference: `gh issue close <N> --repo "$GH_ISSUE_TRACKER_REPO"`. This mirrors the sandcastle `reconcile()` pass, which only covers `agent/*` branches — manual branches need this closer. Skip silently if the project is single-host (PR merge already closes the issue).
+**Reconcile the tracker** — on split-host projects (code on Azure, issues on GitHub) a merged PR does **not** auto-close its issue: run the `reconcile-tracker` skill's closer pass for each branch worked this session. Skip silently if the project is single-host.
 
 ## Phase 2 — Housekeeping
 
@@ -162,10 +153,7 @@ If a step was skipped (e.g. no git repo, no merge to clean up), drop that segmen
 
 ## Self-check before reporting done
 
-- Every new memory file has a one-line pointer in its index (`memory.md` for global, `MEMORY.md` for project).
-- No `git push`. No staging with `-A`.
-- A worktree was only removed after confirming its PR merged and `git status` was clean.
-- SESSION_LOG entry is at the **top** of the file (newest first).
+- Every new memory file has a one-line pointer in `memory.md`.
 - Counter line reflects actual counts, not aspirational ones.
 - Governance unlock cleared: `~/.claude/governance-unlock/` is empty or stale.
 - If the session touched vault or chezmoi source: both repos clean and pushed.
