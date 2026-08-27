@@ -34,6 +34,11 @@ function isWSL() {
     }
 }
 
+// Ghostty renders Claude Code's built-in notification, so this hook would double-fire there.
+function isGhostty(env = process.env) {
+    return Boolean(env.GHOSTTY_RESOURCES_DIR);
+}
+
 function notify(message) {
     if (process.platform === 'darwin') {
         try {
@@ -86,6 +91,7 @@ function notify(message) {
 async function main() {
     const raw = await readStdin();
     const input = parseInput(raw);
+    if (isGhostty()) process.exit(0);
     if (isHookEnabled(HOOK_ID)) {
         try {
             notify(parseContent(input));
@@ -98,4 +104,4 @@ async function main() {
 
 if (require.main === module) main();
 
-module.exports = { parseContent, notify, isWSL, MAX_LEN };
+module.exports = { parseContent, notify, isWSL, isGhostty, MAX_LEN };
