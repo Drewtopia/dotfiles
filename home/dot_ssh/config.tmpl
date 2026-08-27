@@ -33,23 +33,21 @@ Host drew-mbp
   User drew
 
 Host homeassistant
-  HostName homeassistant.home
+  HostName homeassistant.local
   User root
 
 {{- if eq .chezmoi.os "darwin" }}
 
-# Work laptop, reachable from the mac on the home LAN. It roams between the dock
-# (work-eth) and wifi (work-wifi); work-wsl tries eth first, falls back to wifi.
-# `User` lives in config.override so the work login stays out of a public repo.
-Host work-eth
-  HostName work-eth.home
+# Work laptop, reachable from the mac on the home LAN. It's one machine with two
+# NICs — dock (work-eth.home) and wifi (work-wifi.home) — so `work` and work-wsl
+# probe eth first and fall back to wifi. HostKeyAlias pins one key so roaming
+# between NICs doesn't trip known_hosts. `User` lives in config.override so the
+# work login stays out of a public repo.
+Host work
+  HostKeyAlias work
   RemoteCommand pwsh
   RequestTTY yes
-
-Host work-wifi
-  HostName work-wifi.home
-  RemoteCommand pwsh
-  RequestTTY yes
+  ProxyCommand sh -c 'for h in work-eth.home work-wifi.home; do nc -z -G1 "$h" %p 2>/dev/null && exec nc "$h" %p; done; echo "work: neither eth nor wifi up on %p" >&2; exit 1'
 
 Host work-wsl
   Port 2222
