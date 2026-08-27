@@ -1,11 +1,13 @@
 HashKnownHosts no
 
-# Include local machine-specific configs (not in git)
-Include config.local
-
-{{- if eq .chezmoi.os "darwin" }}
+# Untracked, machine-local overrides (per-machine usernames, one-off hosts).
+# ssh silently ignores it when absent and merges its Host blocks with those below.
+Include config.override
 
 Host *
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+{{- if eq .chezmoi.os "darwin" }}
   AddKeysToAgent yes
   UseKeychain yes
   IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
@@ -19,21 +21,47 @@ Host github.com
   Hostname ssh.github.com
   Port 443
 
-# Host macbook-air-m3
-#  User twp
+{{- if .personal }}
 
-# Host ubuntu
-#  HostName ubuntu
+# Home lab. Names resolve via AdGuard (.home) — no IPs in git. Per-machine
+# usernames that shouldn't be published live in the untracked config.override.
+Host drew-pd
+  HostName drew-pd.home
 
-# Host windows
-#  HostName windows
-#  User twpay
+Host drew-mbp
+  HostName drew-mbp.home
+  User drew
+
+Host homeassistant
+  HostName homeassistant.home
+  User root
+
+{{- if eq .chezmoi.os "darwin" }}
+
+# Work laptop, reachable from the mac on the home LAN. It roams between the dock
+# (work-eth) and wifi (work-wifi); work-wsl tries eth first, falls back to wifi.
+# `User` lives in config.override so the work login stays out of a public repo.
+Host work-eth
+  HostName work-eth.home
+  RemoteCommand pwsh
+  RequestTTY yes
+
+Host work-wifi
+  HostName work-wifi.home
+  RemoteCommand pwsh
+  RequestTTY yes
+
+Host work-wsl
+  Port 2222
+  HostKeyAlias work-wsl
+  ProxyCommand sh -c 'for h in work-eth.home work-wifi.home; do nc -z -G1 "$h" %p 2>/dev/null && exec nc "$h" %p; done; echo "work-wsl: neither eth nor wifi up on %p" >&2; exit 1'
+{{- end }}
+{{- end }}
 
 {{ if .work -}}
 # Azure DevOps doesn't support ed25519 yet
 Host ssh.dev.azure.com
   IdentityFile ~/.ssh/id_rsa
-  IdentitiesOnly yes
 
 {{- if .is_wsl }}
 # Short alias for work WSL2 machine
