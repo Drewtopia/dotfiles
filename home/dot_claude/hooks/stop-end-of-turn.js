@@ -1,23 +1,25 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * Stop: end-of-turn quality gate.
- * Faithful port of end-of-turn.sh — detect project type(s) by marker files,
- * run the matching lint/typecheck, then scan staged files for hardcoded secrets
- * and a staged .env. Every check is best-effort and non-blocking; always exits 0.
+ * Stop: end-of-turn staged-file scan.
+ * Scans staged files for hardcoded credentials and a staged .env, warning on
+ * stderr. Best-effort and non-blocking; always exits 0.
  *
- * NOTE: kept enabled per decision, so this re-runs lint/tsc/cargo/go on each
- * Stop. Toggle off any time with HOOKS_DISABLED=stop:end-of-turn.
+ * NOTE: this used to also run lint/typecheck (ported from end-of-turn.sh), but
+ * spawned them with stdio:'ignore' and never read the exit status, so the
+ * results were discarded — ~13.5s median per turn, 108s worst case, for output
+ * nothing could see. In a moon monorepo `npm run lint` is a whole-repo build
+ * that misses cache on exactly the turns that edited files. Committed code is
+ * still gated by lefthook pre-commit, which lints staged files by design.
+ * Toggle this hook off any time with HOOKS_DISABLED=stop:end-of-turn.
  */
 
 const fs = require('node:fs');
-const { spawnSync } = require('node:child_process');
 const { readStdin } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
 const { git } = require('./lib/git');
 
 const HOOK_ID = 'stop:end-of-turn';
-const TIMEOUT_MS = 30000;
 
 const exists = p => {
     try {
@@ -57,40 +59,6 @@ function hasHardcodedSecret(text) {
     return SECRET_ASSIGN_RE.test(String(text || ''));
 }
 
-function runCheck(bin, args) {
-    try {
-        spawnSync(bin, args, { stdio: 'ignore', timeout: TIMEOUT_MS });
-    } catch {
-        /* non-blocking */
-    }
-}
-
-function checkNodejs() {
-    if (!exists('node_modules')) return;
-    const pkg = safeRead('package.json');
-    if (/"lint"/.test(pkg)) runCheck('npm', ['run', 'lint', '--silent']);
-    if (exists('tsconfig.json')) {
-        if (/"typecheck"/.test(pkg))
-            runCheck('npm', ['run', 'typecheck', '--silent']);
-        else runCheck('tsc', ['--noEmit']);
-    }
-}
-
-function checkPython() {
-    runCheck('ruff', ['check', '.', '--fix', '--silent']);
-    runCheck('black', ['--check', '--quiet', '.']);
-}
-
-function checkRust() {
-    runCheck('cargo', ['check', '--quiet']);
-    runCheck('cargo', ['clippy', '--quiet', '--', '-D', 'warnings']);
-}
-
-function checkGo() {
-    runCheck('go', ['vet', './...']);
-    runCheck('staticcheck', ['./...']);
-}
-
 /** Warn (stderr) about staged secrets / staged .env. Returns the warnings. */
 function scanStaged() {
     const warnings = [];
@@ -117,12 +85,6 @@ function scanStaged() {
 }
 
 function run() {
-    for (const project of detectProjects()) {
-        if (project === 'nodejs') checkNodejs();
-        else if (project === 'python') checkPython();
-        else if (project === 'rust') checkRust();
-        else if (project === 'go') checkGo();
-    }
     scanStaged();
     return { exitCode: 0 };
 }
