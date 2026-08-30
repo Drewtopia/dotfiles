@@ -1,6 +1,6 @@
 ---
 name: reconcile-tracker
-description: Reconcile a GitHub issue tracker — close issues behind merged PRs, flag superseded tickets for triage, show burn-down.
+description: Reconcile a tracker from the merged-work side — walks merged PRs to close the issues behind them, flags superseded tickets for triage, shows burn-down. Use after merges land. For the other direction (sweep every open issue for drift) use realign-tracker.
 disable-model-invocation: true
 ---
 
@@ -24,17 +24,17 @@ than clean-workspace — supersession does reading work.
 ## Done set
 
 `bash ~/.claude/skills/_lib/merged-set.sh` → merged/gone branches + linked `GH-N`. Shared with
-clean-workspace, so derive it once when both run under `/housekeeping`.
+clean-workspace, so derive it once when both run in the same pass.
 
 ## Steps
 
-1. **Reconcile** — close issues whose PR merged into trunk. Closure only ever from a merged PR;
-   reversible.
-   - **GitHub PRs** (default): `gh pr list --state merged --json number,headRefName,body,closingIssuesReferences`.
-     For each, collect linked issues — GitHub's `closingIssuesReferences`, plus any `GH-N` / `#N` in
-     the branch name or body. If still open → `gh issue close <n> ${GH_ISSUE_TRACKER_REPO:+--repo "$GH_ISSUE_TRACKER_REPO"}`.
-   - **Azure PRs** (`PR_HOST=azure`): `az repos pr list --status completed`; parse each PR's `GH-N`
-     from its source branch (the merged-set helper already does this) → close the open GitHub issue.
+1. **Reconcile** — close issues whose PR merged, per
+   [`_lib/closing-merged-issues.md`](../_lib/closing-merged-issues.md), handing it the done set
+   above. Collect the host's extra link sources first, and union them with the done set:
+   - **GitHub** (default): `gh pr list --state merged --json number,headRefName,body,closingIssuesReferences`
+     — take `closingIssuesReferences`, plus any `GH-N` / `#N` in the branch name **or body**.
+   - **Azure** (`PR_HOST=azure`): the done set is the whole story; `merged-set.sh` already parses
+     `GH-N` from the source branch. Reach past locally-pruned branches with `merged-prs.sh`.
 2. **Supersession** — detect + flag per [SUPERSESSION.md](SUPERSESSION.md): high-confidence
    (seed-map) hits get `needs-triage` + `housekeeping` labels + an AI-flag comment; low-confidence
    stay report-only. Print the copy-paste `/triage <ids>` handoff. Never closes — `/triage` disposes.
@@ -44,3 +44,10 @@ clean-workspace, so derive it once when both run under `/housekeeping`.
 The triage-state labels (`needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` /
 `wontfix`) and the `housekeeping` provenance label are the mattpocock-skills:triage vocabulary —
 the default because `/triage` disposes of the flagged set. Match your repo's labels if they differ.
+
+## Self-check before reporting done
+
+- Every closed issue traces to a confirmed merged PR, and no PRD parent was closed.
+- Supersession flagged only seed-map hits; inference candidates stayed report-only.
+- Each flagged ticket carries exactly one state role, verified by `gh issue view`, not `gh issue list`.
+- The burn-down reports real counts, and the `/triage` handoff line was printed.
