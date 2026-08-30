@@ -16,9 +16,9 @@ transcripts directly.
 2. `uv run ~/.claude/skills/find-session/find-session.py <terms...>`
    Add `--all` to search every project; default scope is the **current project's** slugs (derived
    from cwd), **including its worktree slugs** (`*--claude-worktrees-*`).
-   - **`--removed`** (no terms): list Agent View cards housekeeping removed, newest first, with
-     resume commands. Reads `~/.claude/housekeeping/removed-log.jsonl` (housekeeping appends on each
-     `claude rm`). Use when the user says "I cleared something and want it back" — `claude rm` keeps
+   - **`--removed`** (no terms): list Agent View cards a cleanup pass removed, newest first, with
+     resume commands. Reads `~/.claude/housekeeping/removed-log.jsonl` (clean-workspace appends on
+     each `claude rm`). Use when the user says "I cleared something and want it back" — `claude rm` keeps
      the transcript, so every entry is resumable unless `cleanupPeriodDays` has since expired it
      (flagged inline).
 3. The script rg's transcripts, ranks by hit count + recency, prints date · title · branch · snippet
