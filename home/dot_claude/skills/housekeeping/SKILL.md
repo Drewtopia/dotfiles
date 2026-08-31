@@ -1,37 +1,24 @@
 ---
 name: housekeeping
-description: Router for the cleanup skills — which to run when, plus the full-sweep flow that runs them all and emits one report.
-disable-model-invocation: true
+description: Map over the cleanup and closeout skills — which one to reach for when the machine feels cluttered, the backlog has drifted, a session needs wrapping up, or a past session has gone missing. Use when the right cleanup skill isn't obvious, or the user asks what exists.
 ---
 
 # Housekeeping
 
 The map over the cleanup skills. You don't remember them all — start here.
 
-## Which to run
+Every skill below is user-invoked. Name the right one and hand it over; this file routes, it
+does not run the work.
 
-- **Machine feels cluttered** — worktrees, Agent View cards, stale sessions → **`/clean-workspace`**.
-  Fast, deterministic, run often.
-- **Backlog drifted from reality** — merged work still open, tickets obsoleted by a pivot →
-  **`/reconcile-tracker`**. Slower; run occasionally.
-- **Docs drifted from decisions** — ADRs/CONTEXT contradicting each other, the code, or a closed
-  ticket; dangling references → **`/audit-intent`** *(project-local — install per repo)*. Reports
-  only; run after a pivot or revert.
-- **Lost a past session, or cleared a card by mistake** → **`/find-session <memory>`** (recall) or
-  **`/find-session --removed`** (recover a cleared card).
+| Reach for it when | Skill |
+|---|---|
+| The machine feels cluttered — merged worktrees, finished Agent View cards, unnamed sessions | **`/clean-workspace`** — fast, deterministic, run often |
+| Work has merged but its issues are still open | **`/reconcile-tracker`** — walks merged PRs to close what they closed |
+| The whole backlog has drifted — ghosts, inflated counts, planless tickets | **`/realign-tracker`** — sweeps every open issue; slower, run periodically |
+| A session is ending — memory, commits, session log | **`/close`** |
+| A past session is lost, or a card was cleared by mistake | **`/find-session <memory>`**, or **`/find-session --removed`** to recover a cleared card |
+| Docs have drifted from decisions — ADRs contradicting the code or each other | **`/audit-intent`** — project-local, install per repo; reports only |
 
-## Full sweep
-
-Everything at once, one report:
-
-1. Compute the done set once — `bash ~/.claude/skills/_lib/merged-set.sh` — both cleanups reuse it.
-2. Run the **`/clean-workspace`** flow ([its SKILL.md](../clean-workspace/SKILL.md)) — worktrees +
-   Agent View + stale tail.
-3. Run the **`/reconcile-tracker`** flow ([its SKILL.md](../reconcile-tracker/SKILL.md)) — reconcile
-   + supersession + burn-down.
-4. Write one self-contained HTML report to the scratchpad (inline CSS, no framework/bundler),
-   `xdg-open` it, print the `file://`. Panels: burn-down · actions taken · proposals
-   (worktrees / sessions / supersession / close-or-kill). Restrained styling, one accent, no animation.
-
-These skills are user-invoked, so this router **describes and sequences** them; the sweep follows
-each sub-skill's documented steps in order rather than firing them as tools.
+The two tracker skills differ by **reach**, not by quality: `reconcile-tracker` starts from merged
+work and closes the issues behind it, `realign-tracker` starts from every open issue and checks it
+for drift. `close` reconciles only the branches of the session it is closing.
