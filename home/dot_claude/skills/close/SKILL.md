@@ -1,6 +1,7 @@
 ---
 name: close
 description: Close out a session — memory updates, tracker reconcile, commits split by purpose, merged-worktree tidy, SESSION_LOG.md, rename suggestion. Use for /close, "close the session", "wrap up", "end session".
+disable-model-invocation: true
 ---
 
 # /close — session closeout
@@ -13,7 +14,10 @@ Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — aft
 
 ### 1. Scan context
 
-Read back through the session and pull out only what's worth persisting:
+Read back through the session and account for **every** candidate in the five categories below —
+each one either written to a memory file or named out loud as skipped. Report the tally
+(`<N> found · <N> written · <N> skipped`) with a reason beside each skip. Saying "nothing else"
+silently is how a retrospective ends early; the skip has to be spoken.
 
 - **Decisions** — choices made that shape future work (architectural, taxonomic, naming).
 - **Insights / inefficiencies** — patterns spotted, surprises, things slower than expected.
@@ -36,9 +40,9 @@ Skip ephemeral debugging steps, retracted ideas, and anything already obvious fr
 
 When you create a new file under `tools/` or `domain/`, add a one-line entry to `~/.claude/memory/memory.md` (the global index): a row with file path + description.
 
-**Live state** — do not maintain a live-state digest in memory. Work state belongs in the project's own tracker (for this repo: GitHub issues). Never start or update a memory `CURRENT-STATE.md` or committed `STATUS.md`/`STATE-MAP.md` — those are retired patterns. Memory holds durable shapes and gotchas only, not live status.
+**Live state** — memory holds durable shapes and gotchas. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
-**Reconcile the tracker** — on split-host projects (code on Azure, issues on GitHub) a merged PR does **not** auto-close its issue: run the `reconcile-tracker` skill's closer pass for each branch worked this session. Skip silently if the project is single-host.
+**Reconcile the tracker** — on split-host projects (code on Azure, issues on GitHub) a merged PR does **not** auto-close its issue. Close them per [`_lib/closing-merged-issues.md`](../_lib/closing-merged-issues.md), reaching only as far as this session's branches (`merged-set.sh`). Skip silently if the project is single-host.
 
 ## Phase 2 — Housekeeping
 
@@ -89,7 +93,7 @@ The normal closeout case is a WIP/unmerged branch — **skip this whole step** f
 
 1. **Confirm the merge — don't infer it.** Check the PR state (`az repos pr list`) or ask Drew. worktrunk has no post-merge hook, and an Azure-UI merge never fires one, so nothing has cleaned up locally.
 2. Ensure the `GH-N` issue is closed (Phase 1 reconcile already does this).
-3. Verify `git status` is clean — **never** remove a worktree with uncommitted changes. Confirm with Drew, then from inside the worktree run `wt remove` — it removes the worktree and deletes the branch since it's merged.
+3. Verify `git status` is clean and **confirm with Drew** — a worktree with uncommitted changes is never removed. Then hand the removal to `clean-workspace`'s worktree step, which owns it for every caller: its dirty-tree refusal and no-`wt` fallback apply to this single branch exactly as they do to a bulk prune.
 
 ### 6. Plan/design sweep (documentation-policy lifecycle)
 
@@ -99,34 +103,14 @@ Implementation plans and completed design docs do not survive task closure. List
 
 Prepend to `~/.claude/memory/SESSION_LOG.md`. This file lives in the vault; after writing it, `cvault apply` pushes it so entries reach all of Drew's machines.
 
-Entry format:
-
-```
-## YYYY-MM-DD — <title>
-
-<1–2 sentence summary of what got done and why it mattered>
-
-- Machine: <hostname>
-- Project: <git repo name, or absolute cwd if not in a repo>
-- Main artifact: <path, PR link, or skill name>
-```
-
-Atomic prepend:
+The helper owns the entry format. It derives date, machine and project, and refuses on an empty
+field — hand-typing those three is how the log ended up with two spellings of one machine:
 
 ```bash
-LOG=~/.claude/memory/SESSION_LOG.md
-ENTRY="$(cat <<EOF
-## $(date +%Y-%m-%d) — <title>
-
-<summary>
-
-- Machine: $(hostname -s)
-- Project: <name>
-- Main artifact: <path>
-EOF
-)"
-{ printf "%s\n\n" "$ENTRY"; cat "$LOG" 2>/dev/null || true; } > "$LOG.tmp"
-mv "$LOG.tmp" "$LOG"
+bash ~/.claude/skills/_lib/session-log-prepend.sh \
+  --title "<title>" \
+  --summary "<1–2 sentences on what got done and why it mattered>" \
+  --artifact "<path, PR link, or skill name>"
 ```
 
 If `SESSION_LOG.md` doesn't exist yet, the prepend creates it.

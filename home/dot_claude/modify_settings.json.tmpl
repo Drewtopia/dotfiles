@@ -37,7 +37,11 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
     "CLAUDE_AUTO_BACKGROUND_TASKS": "1",
     "ENABLE_TOOL_SEARCH": "true"{{- end }}
   },
-  "includeCoAuthoredBy": false,
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "permissions": {
     "defaultMode": "auto",
     "allow": [
@@ -309,4 +313,10 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # cannot force-disable a machine where Claude already enabled it (runtime wins),
   # so pin it here to re-assert false on every apply.
   | .autoMemoryEnabled = false
+  # Attribution stays off in every form. sessionUrl defaults to true and the
+  # deprecated includeCoAuthoredBy never covered it, so web and Remote Control
+  # commits still carried a session trailer. Pin the whole object (runtime wins
+  # per scalar otherwise) and drop the superseded key from live settings.
+  | .attribution = { "commit": "", "pr": "", "sessionUrl": false }
+  | del(.includeCoAuthoredBy)
 ' | tr -d '\r'

@@ -23,6 +23,9 @@ auto-detected (`origin/HEAD`, else develop/main/master); override with `TRUNK=<b
    each `<branch>` the helper returns, find its path in `git worktree list`, then
    `git worktree remove <path>` (no `--force` — a dirty tree should refuse) and `git branch -d
    <branch>`. Never touch a branch the helper didn't return.
+   This step owns worktree removal for every caller — `close` hands off its single merged
+   worktree here rather than running its own `wt remove`, so the dirty-tree and no-`wt` guards
+   apply to one branch and to a bulk prune alike.
 2. **Agent View** — `claude agents --json --all` (or read `~/.claude/jobs/<id>/state.json`). Cards
    with `state: done` are candidates. **Confirm before removing** — done means the job finished, not
    that you are finished with it; a card can be "done, awaiting you," which only the user judges. For
@@ -42,3 +45,10 @@ auto-detected (`origin/HEAD`, else develop/main/master); override with `TRUNK=<b
    (`cleanupPeriodDays` — CC default unless set in settings.json). **Do not delete transcript files** — the native startup sweep expires them (and
    orphaned worktrees) safely; moving a running session's `.jsonl` strands it. Report only. See
    [SESSIONS.md](SESSIONS.md) for enumerating and classifying sessions.
+
+## Self-check before reporting done
+
+- Every removed worktree and deleted branch came from the done set, clean, and confirmed.
+- Every removed Agent View card was confirmed, was not running, and is logged to `removed-log.jsonl`.
+- Transcript files were reported, never deleted.
+- The rename pass ran dry-run first, and touched no live session.
