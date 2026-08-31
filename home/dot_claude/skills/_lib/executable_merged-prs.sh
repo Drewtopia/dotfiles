@@ -16,12 +16,14 @@ while :; do
   [ "$n" -eq 0 ] && break
   printf '%s' "$batch" | jq -r '.[] | [.id, (.src // ""), .title] | @tsv' |
     while IFS=$'\t' read -r id src title; do
-      hay="$src $title"
-      num=$(printf '%s' "$hay" | grep -oiE '(issue-|gh-?)[0-9]{2,4}' | grep -oE '[0-9]{2,4}' | head -1 || true)
+      # Parse the link from the source branch only — same field merged-set.sh
+      # reads. A PR title carries arbitrary numbers (dates, counts) that would
+      # mint false GH-/ADO- links; title stays display-only in column 3.
+      num=$(printf '%s' "$src" | grep -oiE '(issue-|gh-?)[0-9]{2,4}' | grep -oE '[0-9]{2,4}' | head -1 || true)
       if [ -n "$num" ]; then
         link="GH-$num"
       else
-        wi=$(printf '%s' "$hay" | grep -oE '[0-9]{5}' | head -1 || true)
+        wi=$(printf '%s' "$src" | grep -oE '[0-9]{5}' | head -1 || true)
         [ -n "$wi" ] && link="ADO-$wi" || link="-"
       fi
       printf 'PR-%s\t%s\t%s\n' "$id" "$link" "$title"
