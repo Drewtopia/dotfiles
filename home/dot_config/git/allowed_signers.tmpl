@@ -1,0 +1,11 @@
+{{- if and .work .is_wsl -}}
+# Principals git trusts when verifying SSH commit signatures, referenced by
+# gpg.ssh.allowedSignersFile in azure-signing.inc. Without it every signed
+# commit reports "N" and `--show-signature` errors, because git has nothing to
+# check a signature against — the signature is present either way.
+#
+# Work identity only, matching the scope of azure-signing.inc. The email comes
+# from chezmoi data (the Employee 1Password vault), so it never lands in the
+# public dotfiles repo; the key is the public half of the 1Password-held signer.
+{{ .email }} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMhN9/EmrCcRRlwlG+vR5dBRHNPDGSmqy1+TZMoBp6am
+{{ end -}}
