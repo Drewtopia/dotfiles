@@ -14,6 +14,9 @@
 	format = ssh
 [gpg "ssh"]
 	program = "{{ joinPath $localappdata "Microsoft" "WindowsApps" "op-ssh-sign-wsl.exe" }}"
+	# Without this, git has nothing to check a signature against: every signed
+	# commit reads as "N" and --show-signature errors. Signing works either way.
+	allowedSignersFile = "{{ joinPath .chezmoi.homeDir ".config" "git" "allowed_signers" }}"
 [user]
 	name = {{ .name | quote }}
 	email = {{ .email | quote }}
