@@ -12,14 +12,15 @@ Triage. Many sessions are open; exactly one gets acted on now.
 
 `bash ~/.claude/skills/whats-next/whats-next.sh`
 
-Reads `~/.claude/jobs/*/state.json` — wakes no session, changes nothing. What the output does
-not confess about itself:
+Reads the session roster and each card's saved state — wakes no session, changes nothing. What
+the output does not confess about itself:
 
 - Under **BLOCKED**, `detail` is the literal question that session asked. Quote it; re-deriving
   it wastes the wait time it already spent.
 - Under **DONE**, `detail` is the result headline, not yet acted on.
-- **TREES** is deduped, because many sessions share one checkout. Unsaved work belongs to a
-  tree; a card holds none.
+- **TREES** is deduped, because many sessions share one checkout. A row reading `terminal:` is
+  an interactive session: no card, no id, reachable only from its own window. Unsaved work
+  belongs to a tree; a card holds none.
 
 That output is your input. Write the answer in your own words — the reader typed `/whats-next`
 because a list is what defeated them.

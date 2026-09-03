@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Survey every background session: what each is waiting on or produced, plus the state of the
-# working trees behind them. Reads state only - wakes nothing, changes nothing.
+# Survey every session: what each is waiting on or produced, plus the trees behind them.
+# Reads state only - wakes nothing, changes nothing.
 set -euo pipefail
 now=$(date +%s)
 
 declare -A tree
-tree_state() {  # cwd -> "clean" | "N uncommitted, M unpushed" | "gone"
+tree_state() {  # dir -> "clean" | "N uncommitted, M unpushed" | "gone"
   local d=$1
   [[ -n ${tree[$d]:-} ]] && { printf '%s' "${tree[$d]}"; return; }
   local out="gone"
@@ -19,36 +19,48 @@ tree_state() {  # cwd -> "clean" | "N uncommitted, M unpushed" | "gone"
   printf '%s' "$out"
 }
 
-rows=$(jq -rs --argjson now "$now" '
-  def epoch: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601;
-  [ .[] | select(.daemonShort and .state) ]
-  | map(. + { quiet: (.lastTerminalAt // .firstTerminalAt // .updatedAt) })
-  | sort_by(.quiet) | reverse | .[]
-  | [ .state,
-      .daemonShort,
-      ((($now - (.quiet | epoch)) / 3600 | floor)
-        | if . > 47 then ((. / 24 | floor | tostring) + "d") else (tostring + "h") end),
-      (.name // "unnamed"),
-      ((.detail // .output.result // .intent // "-") | gsub("\\s+"; " ") | .[0:150]),
-      (.cwd // "-")
-    ] | @tsv
-' ~/.claude/jobs/*/state.json)
+roster=$(claude agents --json --all 2>/dev/null |
+  jq -r '(if type=="array" then . else .agents end)[]
+    | [(.kind // "-"), (.id // "-"), (.state // "-"), (.name // "unnamed"), (.cwd // "-")] | @tsv')
+
+if [[ -z ${roster//[[:space:]]/} ]]; then
+  echo "No sessions returned. The agent daemon is unreachable, so this survey is blind - start it and rerun." >&2
+  exit 1
+fi
 
 declare -A block count ids
 order=()
-while IFS=$'\t' read -r state id age name detail cwd; do
-  [[ -n $state ]] || continue
-  count[$state]=$(( ${count[$state]:-0} + 1 ))
-  block[$state]+=$(printf '  %-9s %-4s %s\n      %s' "$id" "$age" "$name" "$detail")$'\n'
-  [[ -n ${ids[$cwd]:-} ]] || order+=("$cwd")
-  ids[$cwd]+="$id "
-done <<< "$rows"
+while IFS=$'\t' read -r kind id state name cwd; do
+  [[ -n $kind ]] || continue
+  if [[ -n ${cwd:-} && $cwd != - ]]; then
+    [[ -n ${ids[$cwd]:-} ]] || order+=("$cwd")
+    ids[$cwd]+="$([[ $kind == interactive ]] && echo "terminal:$name" || echo "$id") "
+  fi
+  [[ $kind == interactive || $id == - ]] && continue
 
-printf 'BLOCKED - waiting on you (%d)\n%s\n' "${count[blocked]:-0}" "${block[blocked]:-}"
-printf 'DONE - review, then clear or keep (%d)\n%s\n' "${count[done]:-0}" "${block[done]:-}"
-printf 'WORKING - leave alone (%d)\n%s\n' "${count[working]:-0}" "${block[working]:-}"
+  read -r quiet detail < <(jq -r --arg now "$now" '
+    def epoch: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601;
+    [ (((($now | tonumber) - ((.lastTerminalAt // .firstTerminalAt // .updatedAt) | epoch)) / 3600) | floor),
+      ((.detail // .output.result // .intent // "-") | gsub("\\s+"; " ") | .[0:150]) ] | @tsv
+  ' ~/.claude/jobs/"$id"/state.json 2>/dev/null || echo -e "0\t-")
+  age=$([[ ${quiet:-0} -gt 47 ]] && echo "$(( quiet / 24 ))d" || echo "${quiet:-0}h")
+  count[$state]=$(( ${count[$state]:-0} + 1 ))
+  block[$state]+=$(printf '%s\t%s\t%s\t%s\t%s' "${quiet:-0}" "$id" "$age" "$name" "${detail:--}")$'\n'
+done <<< "$roster"
+
+show() {  # state label -> longest-quiet first
+  printf '%s (%d)\n' "$2" "${count[$1]:-0}"
+  [[ -n ${block[$1]:-} ]] || { echo; return; }
+  printf '%s' "${block[$1]}" | sort -t$'\t' -k1,1nr |
+    awk -F'\t' '{ printf "  %-9s %-4s %s\n      %s\n", $2, $3, $4, $5 }'
+  echo
+}
+
+show blocked 'BLOCKED - waiting on you'
+show done    'DONE - review, then clear or keep'
+show working 'WORKING - leave alone'
 
 echo 'TREES - unsaved work lives here, not in the cards'
 for cwd in "${order[@]}"; do
-  printf '  %-24s %s\n      %s\n' "$(tree_state "$cwd")" "${cwd/#$HOME/\~}" "${ids[$cwd]% }"
+  printf '  %-26s %s\n      %s\n' "$(tree_state "$cwd")" "${cwd/#$HOME/\~}" "${ids[$cwd]% }"
 done
