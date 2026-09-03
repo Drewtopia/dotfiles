@@ -1,0 +1,14 @@
+{{- if .is_wsl -}}
+{{- $personalKey := joinPath .chezmoi.homeDir ".ssh" "id_ed25519.pub" -}}
+# Principals git trusts when verifying SSH commit signatures, referenced by
+# gpg.ssh.allowedSignersFile. Without it a signed commit reports "N" and
+# `--show-signature` errors: git has nothing to check the signature against.
+# Signing itself does not need this file, and neither does a forge — a forge
+# checks against the keys registered on the account.
+#
+# Addresses come from chezmoi data, and the personal key is read from disk at
+# apply time, so neither lands in this repo.
+{{ if .work }}{{ .email }} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMhN9/EmrCcRRlwlG+vR5dBRHNPDGSmqy1+TZMoBp6am
+{{ end }}{{ if stat $personalKey }}{{ .identity.email }} {{ output "cut" "-d" " " "-f" "1,2" $personalKey | trim }}
+{{ end }}
+{{- end -}}
