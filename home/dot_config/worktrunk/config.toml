@@ -100,24 +100,3 @@ exit 0
 # worktrees they were named for and accumulate like any other unreaped process.
 [pre-remove]
 tmux = "tmux kill-session -t '={{ branch | sanitize }}' 2>/dev/null || true"
-||||||| parent of 19ea805 (feat(worktrees): copy guidance files into secondary worktrees)
-# Carry the agent rule files into every new worktree. This lives in the USER
-# config, not a repo's .config/wt.toml, despite looking project-shaped: the
-# source directory is gitignored and per-developer, so a committed hook would
-# reference something a teammate may not have. Personal setup, personal config.
-#
-# Why a hook rather than a .worktreeinclude entry: the agent config directory is
-# gitignored as a whole, so git reports the entire tree as one ignored entry and
-# never descends into it. `wt step copy-ignored` walks those entries, so the only
-# pattern that could match is the whole directory — which holds .claude/worktrees
-# (every sibling worktree) and .claude/projects (session logs). Copying just
-# rules/ is the only safe way to get it across. The CLAUDE.md pointer files ARE
-# individually visible to git, so those go via a repo's .worktreeinclude.
-#
-# The -d guard keeps this a true no-op in repos with no rules directory, so no
-# stray .claude/ is created. --update=none never clobbers an existing file, so a
-# worktree's local edits survive a re-run; it is spelled out rather than as `-n`
-# because coreutils warns that -n's behaviour is non-portable and may change,
-# and a flip to overwrite would silently eat those local edits.
-[[post-start]]
-rules = "[ -d '{{ primary_worktree_path }}/.claude/rules' ] && mkdir -p .claude && cp -r --update=none '{{ primary_worktree_path }}/.claude/rules' .claude/ || true"
