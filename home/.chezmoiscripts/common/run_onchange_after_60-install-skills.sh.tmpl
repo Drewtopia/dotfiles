@@ -6,6 +6,12 @@
 # which went stale every time Pocock refactored upstream. The CLI tracks
 # whatever's currently in each declared repo.
 #
+# An entry's optional `agents:` list becomes `--agent`, pinning the install
+# targets instead of letting the CLI install to every agent it detects. That
+# is what keeps mattpocock's stable skills out of ~/.claude/skills while
+# still reaching the other agents — Claude takes those from the
+# mattpocock-skills plugin instead.
+#
 # run_onchange: fires only when this rendered script changes, i.e. when
 # .chezmoidata/skills.yaml changes the declared repo/skill set. Its job is
 # ADDING newly-declared skills. Ongoing UPDATES are owned by topgrade's
@@ -18,14 +24,16 @@ fi
 
 # Per-repo failures must not abort siblings. No set -e; explicit || log.
 {{- range .skill_repos }}
-echo "[skills] {{ .repo }}: {{ .skills | join ", " }}"
-npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }} \
+echo "[skills] {{ .repo }}{{ if hasKey . "agents" }} ({{ .agents | join ", " }}){{ end }}: {{ .skills | join ", " }}"
+npx -y skills add {{ .repo }} -g -y{{ if hasKey . "agents" }} --agent {{ .agents | join " " }}{{ end }} --skill '{{ .skills | join "' '" }}' \
     || echo "[skills] {{ .repo }}: install failed (continuing)"
 {{- end }}
 
 # Sweep up empty skill directories that `npx skills add` leaves behind
 # during repo discovery (it scans for all available skills, leaving
-# placeholder dirs for ones not in the --skill set).
+# placeholder dirs for ones not in the --skill set). Only Claude needs this:
+# the other agents read ~/.agents/skills directly and get no directory of
+# their own.
 find "$HOME/.claude/skills" -mindepth 1 -maxdepth 1 -type d -empty -delete 2>/dev/null || true
 {{- end }}
 {{- end }}
