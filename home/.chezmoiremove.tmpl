@@ -65,15 +65,21 @@
 .agents/skills/to-issues
 .agents/skills/to-prd
 
+# writing-great-skills is upstream's retired name for writing-for-agents.
+.claude/skills/writing-great-skills
+.agents/skills/writing-great-skills
+
 # mattpocock/skills v1.2.0 (Jul 2026): the stable engineering/ + productivity/
 # skills moved from `npx skills` to the mattpocock-skills@mattpocock plugin
-# (see .chezmoidata/claude.toml). Sweep the old copies so they don't shadow
-# the plugin's namespaced versions with a stale duplicate. Mirrors the names
-# in upstream's .claude-plugin/plugin.json — misc/ and in-progress/ are
-# deliberately absent, they stay on the `npx skills` path.
+# (see .chezmoidata/claude.toml). Sweep the Claude-side symlinks so they don't
+# shadow the plugin's namespaced versions with a stale duplicate. Mirrors the
+# names in upstream's .claude-plugin/plugin.json — misc/ and in-progress/ are
+# deliberately absent, they stay on the `npx skills` path for Claude.
 #
-# writing-great-skills is upstream's retired name for writing-for-agents;
-# both listed so machines that installed the old one get swept too.
+# Symlink only, NOT the ~/.agents/skills payload: skills.yaml now installs the
+# whole repo for Codex, Cursor and GitHub Copilot, which read that store
+# directly. Deleting the payload here would uninstall it from them on every
+# apply.
 #
 # Aug 2026: wizard graduated in-progress/ → engineering/ and to-questionnaire
 # graduated into productivity/, so the plugin now covers both. Those two had to
@@ -88,8 +94,7 @@
   "research" "resolving-merge-conflicts" "setup-matt-pocock-skills" "tdd"
   "to-spec" "to-tickets" "triage" "wayfinder" "wizard"
   "grill-me" "grilling" "handoff" "teach" "to-questionnaire" "wait-what"
-  "writing-for-agents" "writing-great-skills" }}
+  "writing-for-agents" }}
 {{- range $pluginSkills }}
 .claude/skills/{{ . }}
-.agents/skills/{{ . }}
 {{- end }}

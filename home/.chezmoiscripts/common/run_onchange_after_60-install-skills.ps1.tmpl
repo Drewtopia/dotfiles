@@ -3,6 +3,12 @@
 # Reconcile agent skills against .chezmoidata/skills.yaml via `npx skills`
 # (Windows counterpart of the .sh sibling).
 #
+# An entry's optional `agents:` list becomes `--agent`, pinning the install
+# targets instead of letting the CLI install to every agent it detects. That
+# is what keeps mattpocock's stable skills out of ~/.claude/skills while
+# still reaching the other agents — Claude takes those from the
+# mattpocock-skills plugin instead.
+#
 # run_onchange: fires only when this rendered script changes, i.e. when
 # .chezmoidata/skills.yaml changes the declared repo/skill set. Its job is
 # ADDING newly-declared skills. Ongoing UPDATES are owned by topgrade's
@@ -24,9 +30,9 @@ if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
 }
 
 {{- range .skill_repos }}
-Write-Host "[skills] {{ .repo }}: {{ .skills | join ", " }}"
+Write-Host "[skills] {{ .repo }}{{ if hasKey . "agents" }} ({{ .agents | join ", " }}){{ end }}: {{ .skills | join ", " }}"
 try {
-    & npx -y skills add {{ .repo }} -g -y --skill {{ .skills | join " " }}
+    & npx -y skills add {{ .repo }} -g -y{{ if hasKey . "agents" }} --agent {{ .agents | join " " }}{{ end }} --skill '{{ .skills | join "' '" }}'
     if ($LASTEXITCODE -ne 0) { throw "npx skills add exited $LASTEXITCODE" }
 } catch {
     Write-Warning "[skills] {{ .repo }}: install failed ($_); continuing"
@@ -35,7 +41,9 @@ try {
 
 # Sweep up empty skill directories that `npx skills add` leaves behind
 # during repo discovery (it scans for all available skills, leaving
-# placeholder dirs for ones not in the --skill set).
+# placeholder dirs for ones not in the --skill set). Only Claude needs this:
+# the other agents read ~/.agents/skills directly and get no directory of
+# their own.
 $skillsDir = "$HOME\.claude\skills"
 if (Test-Path $skillsDir) {
     Get-ChildItem -Path $skillsDir -Directory -ErrorAction SilentlyContinue | Where-Object {
