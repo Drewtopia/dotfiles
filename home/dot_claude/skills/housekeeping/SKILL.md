@@ -13,6 +13,8 @@ does not run the work.
 | Reach for it when | Skill |
 |---|---|
 | Too many sessions open to know what to do next | **`/whats-next`** — one next action, plus what to do with the finished cards |
+| Two sessions may be standing on the same branch, directory, or file | **`/reconcile-sessions`** — names each collision and which session yields |
+| The cards are stale and you want the sessions to say it themselves | **`/reach-out`** — pings the live ones and reports what comes back |
 | The machine feels cluttered — merged worktrees, finished Agent View cards, unnamed sessions | **`/clean-workspace`** — fast, deterministic, run often |
 | Work has merged but its issues are still open | **`/reconcile-tracker`** — walks merged PRs to close what they closed |
 | The whole backlog has drifted — ghosts, inflated counts, planless tickets | **`/realign-tracker`** — sweeps every open issue; slower, run periodically |
