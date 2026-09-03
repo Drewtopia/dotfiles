@@ -66,6 +66,10 @@ command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haik
 tmux = """
 command -v tmux >/dev/null 2>&1 || exit 0
 S={{ branch | sanitize }}
+# tmux reads `.` in a target as the window.pane separator, so a dotted branch
+# makes has-session miss and new-session collide. sanitize_db also strips dots
+# but lowercases and hashes every name; this leaves dotless branches untouched.
+S=$(printf '%s' "$S" | tr . -)
 W={{ worktree_path }}
 # `=` anchors an exact match; without it tmux resolves the name as a prefix.
 # `if` rather than `has-session && exit 0`: under `set -e` a bare failing
@@ -99,4 +103,8 @@ exit 0
 # Tear the session down with its worktree. Without this, sessions outlive the
 # worktrees they were named for and accumulate like any other unreaped process.
 [pre-remove]
-tmux = "tmux kill-session -t '={{ branch | sanitize }}' 2>/dev/null || true"
+tmux = """
+S={{ branch | sanitize }}
+S=$(printf '%s' "$S" | tr . -)
+tmux kill-session -t "=$S" 2>/dev/null || true
+"""
