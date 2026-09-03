@@ -159,7 +159,8 @@ history_filter = [
 ## Defaults to true. If enabled, upon hitting enter Atuin will immediately execute the command. Press tab to return to the shell and edit.
 # This applies for new installs. Old installs will keep the old behaviour unless configured otherwise.
 enter_accept = true
-search_mode = "daemon-fuzzy"
+# daemon-fuzzy requires the daemon, which is disabled below.
+search_mode = "fuzzy"
 
 ## Defaults to false. If enabled, when triggered after &&, || or |, Atuin will complete commands to chain rather than replace the current line.
 # command_chaining = false
@@ -250,8 +251,10 @@ records = true
 # strategy = "auto"
 
 [daemon]
-enabled = true
-autostart = true
+# Off: the shell hook calls the daemon with no timeout, so a wedged daemon freezes
+# every command until Ctrl+C (atuinsh/atuin#3382; fix PR #3442 closed unmerged).
+enabled = false
+autostart = false
 ## Enables using the daemon to sync. Requires the daemon to be running in the background. Start it with `atuin daemon`
 # enabled = false
 
