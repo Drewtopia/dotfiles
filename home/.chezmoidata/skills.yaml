@@ -43,8 +43,9 @@ skill_repos:
     # enforcement in dot_claude/hooks/bash-checks/gate-push-convention.js.
     skills:
       - conventional-branch
-  - repo: pproenca/dot-skills
-    # 154-skill personal collection; pull only what we use.
+  - repo: anivar/zod-skill
+    # Single-skill repo, SKILL.md at the root. Replaces pproenca/dot-skills,
+    # which never carried a zod skill — only .curated, .experimental, .template.
     skills:
       - zod
   - repo: currents-dev/playwright-best-practices-skill
