@@ -2,22 +2,47 @@
 # Consumed by run_onchange_after_60-install-skills.sh.tmpl — when this
 # file changes, the install script re-runs.
 #
-# Each entry: GitHub repo (owner/name) + the subset of skill names to
-# install. Replaces the static $mattSkills list previously held in
+# Each entry:
+#   repo    GitHub repo (owner/name)
+#   skills  skill names to install; `"*"` installs everything in the repo
+#   agents  optional — agent ids to install for (`skills add --agent`). Omit
+#           to let the CLI install to every agent it detects on the machine.
+#
+# Every skill's payload lands in the shared ~/.agents/skills store regardless.
+# Codex, Cursor and GitHub Copilot read that store directly, so naming them
+# creates no per-agent directory; Claude is the odd one out and gets symlinks
+# under ~/.claude/skills. Naming an agent that isn't installed is therefore
+# harmless — for the store-readers it is a no-op.
+#
+# Replaces the static $mattSkills list previously held in
 # .chezmoiexternal.toml.tmpl, which went stale on upstream refactors.
 skill_repos:
   - repo: mattpocock/skills
-    # The stable engineering/ + productivity/ skills now come from the
-    # `mattpocock-skills@mattpocock` Claude Code plugin (see .chezmoidata/
-    # claude.toml). Upstream's plugin.json enumerates them, so their renames
-    # and removals no longer need hand-reconciling here — the trade-off is
-    # they invoke namespaced (`mattpocock-skills:tdd`, not `tdd`).
+    # Non-Claude agents have no plugin equivalent, so they take the whole
+    # repo. `"*"` means upstream renames and additions need no reconciling
+    # here — the trade-off is that unstable in-progress/ skills land too.
+    agents:
+      - codex
+      - cursor
+      - github-copilot
+    skills:
+      - "*"
+  - repo: mattpocock/skills
+    # Claude gets its copies from the `mattpocock-skills@mattpocock` plugin
+    # (see .chezmoidata/claude.toml), so this path must not symlink what
+    # plugin.json enumerates into ~/.claude/skills — a second copy would
+    # shadow the plugin's namespaced `mattpocock-skills:tdd` with a bare one.
+    # The entry above still puts those payloads in ~/.agents/skills; Claude
+    # simply never links to them.
     #
-    # Only misc/ and in-progress/ remain on this path: plugin.json omits
-    # them, and `npx skills add -l` hides them, but --skill installs them
-    # by name anyway (which is what the reconciler script uses).
+    # Only misc/ and in-progress/ remain: plugin.json omits them, and
+    # `npx skills add -l` hides them, but --skill installs them by name.
     #
     # in-progress/ is unstable upstream — expect renames and breakage.
+    # Upstream also carries implement-spec, retro and setup-pre-commit on
+    # this path; they are deliberately not installed for Claude.
+    agents:
+      - claude-code
     skills:
       # misc/
       - git-guardrails-claude-code
