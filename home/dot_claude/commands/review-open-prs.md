@@ -22,7 +22,7 @@ Track what has already been reviewed in `~/.local/state/claude/pr-review-watch.j
 
 - A secret, credential, token, or dotenv file present in the diff.
 - A test weakened, skipped, or deleted to make a check pass.
-- A governance surface edited: `.github/workflows/`, `docs/adr/`, any `SKILL.md`, `.claude/rules/`, `.claude/hooks/`, `.claude/settings*.json`, `CLAUDE.md`, `AGENTS.md`, or their `dot_claude/` sources.
+- An *undeclared* governance-surface edit — `.github/workflows/`, `docs/adr/`, any `SKILL.md`, `.claude/rules/`, `.claude/hooks/`, `.claude/settings*.json`, `CLAUDE.md`, `AGENTS.md`, or their `dot_claude/` sources — where the PR title and body do not say that surface is being changed. This repository's whole purpose is agent configuration, so a hook or skill PR touching hooks or skills is expected and is not a finding. The signal is a governance file changed as a side effect of a PR that claims to be about something else.
 - Work-machine or private-repo detail in the diff or the PR body — internal hostnames, employer repo or branch names, ticket IDs, work usernames, absolute paths containing any of them. This repository is public.
 - A deletion wider than the PR title and body describe.
 
@@ -32,6 +32,7 @@ Track what has already been reviewed in `~/.local/state/claude/pr-review-watch.j
 - Cross-platform breakage — a change valid on macOS that fails on Windows or WSL, or the reverse.
 - Shell quoting and word-splitting defects.
 - Documentation that contradicts the behaviour in the same diff.
+- A PR that no longer merges cleanly, or whose content is already on `main` while the PR stays open. Check `mergeable` and `mergeStateStatus` from `gh pr view`.
 
 **Drop silently.** Never report:
 
