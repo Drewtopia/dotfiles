@@ -98,3 +98,12 @@
 {{- range $pluginSkills }}
 .claude/skills/{{ . }}
 {{- end }}
+
+# blader/humanizer ships a .claude-plugin/ at its root, so the ~/.claude/skills
+# symlink made Claude Code register a marketplace-less "humanizer@skills-dir"
+# plugin that `claude plugin update` errors on. Claude takes it from the
+# humanizer@humanizer plugin instead.
+#
+# Symlink only, NOT the ~/.agents/skills payload: skills.yaml still installs the
+# repo for Codex, Cursor and GitHub Copilot, which read that store directly.
+.claude/skills/humanizer
