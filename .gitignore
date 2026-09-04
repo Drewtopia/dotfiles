@@ -18,6 +18,10 @@ node_modules/
 # Triage area for unsorted docs. Promote files out of here before committing them.
 /docs/inbox/
 
+# Throwaway prototypes. Answer a design question, then die — the outcome belongs
+# in a reference doc or ADR, not a committed artifact.
+/docs/prototypes/
+
 # Defence in depth — never track these even if a template variant exists.
 # (chezmoi's private_*.tmpl files are safe; these patterns catch raw local files
 # that might land here by accident, e.g. a stray ~/.ssh copy.)
