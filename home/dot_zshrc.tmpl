@@ -123,28 +123,7 @@ setopt rm_star_silent
 alias zshconfig="nvim ~/.zshrc"
 alias zshrc="source ~/.zshrc"
 
-
-# Set the default editor
-{{ if stat (printf "%s/.local/bin/nvim" .chezmoi.homeDir) -}}
-export EDITOR=$HOME/.local/bin/nvim
-{{ else if lookPath "nvim" -}}
-export EDITOR=nvim
-{{ else -}}
-export EDITOR=vim
-{{ end -}}
-# MANPATH is managed via array syntax and typeset -aU
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-
-# Pager configuration
-export LESS=FRX
-export PAGER=less
-
-# Tool configurations
-export RIPGREP_CONFIG_PATH=$XDG_CONFIG_HOME/ripgrep/config
-
-
-# Development tools configuration moved to shell/mise.sh.tmpl for consistency
+# Core env vars are exported from .zshenv so non-interactive shells inherit them.
 
 # Source remaining shell configurations
 # Load all shell configurations via shell-loader

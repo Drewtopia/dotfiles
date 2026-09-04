@@ -44,12 +44,20 @@ export PYTHON_HISTORY="${XDG_STATE_HOME}/python_history"
 export RUSTUP_HOME="${XDG_DATA_HOME}/rustup"
 export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
 
-# Core environment
+# Core environment. Set here (not .zshrc) so non-interactive shells — scripts,
+# git hooks, `ssh host cmd` — see the same values as an interactive terminal.
+{{ if stat (printf "%s/.local/bin/nvim" .chezmoi.homeDir) -}}
+export EDITOR=$HOME/.local/bin/nvim
+{{ else if lookPath "nvim" -}}
 export EDITOR=nvim
+{{ else -}}
+export EDITOR=vim
+{{ end -}}
 export PAGER=less
 export LESS=FRX
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
+export RIPGREP_CONFIG_PATH=$XDG_CONFIG_HOME/ripgrep/config
 
 {{- if eq .chezmoi.os "darwin" }}
 # 1Password SSH Agent (skip when SSH'd — biometric unavailable)
