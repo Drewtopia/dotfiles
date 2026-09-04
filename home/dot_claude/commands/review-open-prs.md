@@ -13,7 +13,7 @@ Track what has already been reviewed in `~/.local/state/claude/pr-review-watch.j
 1. `gh pr list --json number,title,headRefOid,isDraft,url,updatedAt` for the current repo.
 2. Skip a PR when its `headRefOid` matches the recorded SHA — it has not moved since the last pass.
 3. For each remaining PR, run the review with a `cavecrew-reviewer` subagent, one agent per PR, launched concurrently. Give each agent the PR number and tell it to diff against the merge base.
-4. Record each reviewed PR's `headRefOid` in the state file, whether or not findings were produced.
+4. Record each reviewed PR's `headRefOid` in the state file, whether or not findings were produced, and drop entries for PRs no longer in the open list so the file does not grow without bound.
 5. Report per the triage rules below.
 
 ## Triage rules
