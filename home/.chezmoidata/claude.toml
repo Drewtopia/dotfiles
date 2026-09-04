@@ -67,7 +67,14 @@ worktrunk                 = "max-sixty/worktrunk"
 "ralph-loop@claude-plugins-official"               = false
 
 [plugins.personal]
-"claude-brain-sync@claude-brain-sync" = true
+# Retired Aug 2026 — enabled since installation but never initialized: no
+# brain-config.json and no brain directory on any machine (darwin, work-wsl,
+# drew-pd), so brain-sync bailed at its first guard and no cross-machine sync
+# ever ran. drew-pd still holds a live `true` in its own settings.json and
+# needs a `claude plugin disable` — the managed floor merge will not flip it.
+# The job it was meant to do is already covered — chezmoi carries settings and
+# skills, and the vault symlinks carry memory and rules.
+"claude-brain-sync@claude-brain-sync" = false
 
 [plugins.dev_computer]
 # Retired Jul 2026 — markdown-KB search never used; the vault is reached through
