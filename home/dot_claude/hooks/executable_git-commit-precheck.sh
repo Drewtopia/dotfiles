@@ -33,6 +33,22 @@ if ! echo "$COMMAND" | grep -qE '(^|[^a-zA-Z])git( -c [^ ]+)* commit( |$)'; then
     exit 0
 fi
 
+# The command may target a repo other than the session's cwd, as in
+# `cd ~/dotfiles && git commit ...`. This hook runs in the session's cwd, so
+# resolving the repo from here would check the wrong one -- gating a commit on
+# a different repo's lefthook config and staged files. Follow the command's own
+# cd first. No eval: the command text is untrusted, so `~` is expanded by
+# parameter substitution rather than by a shell.
+CD_TARGET=$(printf '%s' "$COMMAND" \
+    | grep -oE '(^|&&|;)[[:space:]]*cd[[:space:]]+[^&;|]+' \
+    | tail -1 | sed -E 's/^.*cd[[:space:]]+//; s/[[:space:]]+$//')
+if [[ -n "$CD_TARGET" ]]; then
+    CD_TARGET="${CD_TARGET%\"}"; CD_TARGET="${CD_TARGET#\"}"
+    CD_TARGET="${CD_TARGET%\'}"; CD_TARGET="${CD_TARGET#\'}"
+    CD_TARGET="${CD_TARGET/#\~/$HOME}"
+    [[ -d "$CD_TARGET" ]] && cd "$CD_TARGET" || true
+fi
+
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$REPO_ROOT" || exit 0
 
