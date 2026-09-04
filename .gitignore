@@ -22,6 +22,10 @@ node_modules/
 # in a reference doc or ADR, not a committed artifact.
 /docs/prototypes/
 
+# Running log of breakages and corrections. Local to each machine — it records
+# work-machine diagnosis detail that must not reach a public repo.
+/MISTAKES.md
+
 # Defence in depth — never track these even if a template variant exists.
 # (chezmoi's private_*.tmpl files are safe; these patterns catch raw local files
 # that might land here by accident, e.g. a stray ~/.ssh copy.)
