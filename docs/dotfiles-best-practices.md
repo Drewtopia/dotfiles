@@ -107,7 +107,7 @@ All URLs verified by live fetch on 2026-09-02 except where flagged. One source â
 
 ## How this repo already aligns / where it could improve
 
-Mapped to concrete files under `/Users/drew/.local/share/chezmoi/home`.
+Mapped to concrete files under this repo's `home/`.
 
 ### Already aligned
 
