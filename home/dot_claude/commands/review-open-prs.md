@@ -12,9 +12,20 @@ Track what has already been reviewed in `~/.local/state/claude/pr-review-watch.j
 
 1. `gh pr list --json number,title,headRefOid,isDraft,url,updatedAt` for the current repo.
 2. Skip a PR when its `headRefOid` matches the recorded SHA — it has not moved since the last pass.
-3. For each remaining PR, run the review with a `cavecrew-reviewer` subagent, one agent per PR, launched concurrently. Give each agent the PR number and tell it to diff against the merge base.
-4. Record each reviewed PR's `headRefOid` in the state file, whether or not findings were produced, and drop entries for PRs no longer in the open list so the file does not grow without bound.
-5. Report per the triage rules below.
+3. First pass — for each remaining PR run `/code-review <number> low`. Low effort keeps a sweep cheap and yields few, high-confidence findings; it is the filter, not the verdict.
+4. Escalation pass — for a PR whose first pass produced a finding, point the one matching specialist at that PR alone. Escalate at most three PRs per sweep, the most severe first, so a bad sweep cannot run away with tokens.
+
+   | First-pass finding | Specialist |
+   |---|---|
+   | Swallowed error, empty catch, silent fallback | `pr-review-toolkit:silent-failure-hunter` |
+   | Logic changed with no matching test, or tests altered | `pr-review-toolkit:pr-test-analyzer` |
+   | New or rewritten comment, docstring, or doc block | `pr-review-toolkit:comment-analyzer` |
+   | New type, interface, or schema | `pr-review-toolkit:type-design-analyzer` |
+   | Anything else | `pr-review-toolkit:code-reviewer` |
+
+   Do not run `code-simplifier` — it polishes rather than reviews, and the triage rules drop what it reports.
+5. Record each reviewed PR's `headRefOid` in the state file, whether or not findings were produced, and drop entries for PRs no longer in the open list so the file does not grow without bound.
+6. Report per the triage rules below. Attribute each finding to the pass that produced it.
 
 ## Triage rules
 
