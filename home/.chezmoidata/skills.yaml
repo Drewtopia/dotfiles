@@ -80,6 +80,12 @@ skill_repos:
     skills:
       - playwright-cli
   - repo: blader/humanizer
+    # Claude takes this from humanizer@humanizer (see .chezmoidata/claude.toml).
+    # The other agents read ~/.agents/skills directly and have no plugin path.
+    agents:
+      - codex
+      - cursor
+      - github-copilot
     skills:
       - humanizer
   - repo: microsoftdocs/agent-skills
