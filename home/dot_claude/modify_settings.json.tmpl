@@ -272,7 +272,9 @@ CHEZMOI_SETTINGS_EOF
 )
 
 existing=$(cat)
-[ -n "${existing//[[:space:]]/}" ] || existing='{}'
+# case, not ${existing//[[:space:]]/}: that substitution is quadratic in bash
+# (40KB of settings pegged a core indefinitely; case is ~5ms).
+case "$existing" in *[![:space:]]*) ;; *) existing='{}' ;; esac
 
 printf '%s' "$existing" | jq --argjson m "$managed" '
   # dm(a;b): merge managed (a) as a floor under runtime (b). b (runtime) wins.
