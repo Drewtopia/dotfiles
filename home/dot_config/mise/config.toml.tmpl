@@ -66,14 +66,12 @@ chezmoi = "latest"
 atuin = "latest"
 "aqua:carapace-sh/carapace-bin" = "latest"
 
-# Platform-specific backends (cargo needs MSVC on Windows)
-{{ if eq .chezmoi.os "windows" -}}
+# Preferred backends only: aqua (checksum-verified) or github. vfox/asdf are not
+# accepted for new tools, and these rust CLIs ship prebuilt binaries, so no cargo.
 "github:iffse/pay-respects" = "latest"
-"github:eza-community/eza" = "latest"
-{{ else -}}
-"cargo:pay-respects" = "latest"
-"cargo:tokei" = "latest"
-eza = "latest"
+"aqua:eza-community/eza" = "latest"
+{{ if ne .chezmoi.os "windows" -}}
+"aqua:XAMPPRocky/tokei" = "latest"
 {{ end -}}
 
 {{ if ne .chezmoi.os "windows" -}}
