@@ -98,3 +98,11 @@
 {{- range $pluginSkills }}
 .claude/skills/{{ . }}
 {{- end }}
+
+# blader/humanizer moved from the `npx skills` path to the humanizer@humanizer
+# plugin (2026-07-27). The repo carries a .claude-plugin/ at its root, so the
+# vendored copy under ~/.claude/skills/ got registered as "humanizer@skills-dir"
+# — a plugin with no marketplace behind it, which `claude plugin update` errors
+# on, failing topgrade's claude_code step. Same dual-path sweep as above.
+.claude/skills/humanizer
+.agents/skills/humanizer

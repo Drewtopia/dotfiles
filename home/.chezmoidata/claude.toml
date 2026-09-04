@@ -23,6 +23,7 @@ qmd                       = "tobi/qmd"
 "superpowers-extended-cc-marketplace" = "pcvelz/superpowers"
 ecc                       = "affaan-m/ECC"
 worktrunk                 = "max-sixty/worktrunk"
+humanizer                 = "blader/humanizer"
 
 # Plugin enablement — grouped by profile (machine class). See CONTEXT.md.
 # Format: "<plugin-name>@<marketplace-name>" = <bool>
@@ -112,3 +113,9 @@ worktrunk                 = "max-sixty/worktrunk"
 # (orch-*, multi-*, gan-*) are ever actually wanted.
 "ecc@ecc"                                 = false
 "worktrunk@worktrunk"                     = true
+# Moved off the `npx skills` path Jul 2026: blader/humanizer ships a
+# .claude-plugin/ at repo root, so vendoring it into ~/.claude/skills/ made
+# Claude Code register a marketplace-less "humanizer@skills-dir" plugin that
+# `claude plugin update` cannot resolve — failing topgrade's claude_code step
+# on every run. Installed from its own marketplace instead.
+"humanizer@humanizer"                     = true
