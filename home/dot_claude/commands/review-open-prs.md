@@ -6,12 +6,12 @@ Review the open pull requests on the current repository and report what needs at
 
 ## State
 
-Track what has already been reviewed in `~/.local/state/claude/pr-review-watch.json`, a map of `"<owner>/<repo>#<number>"` to the head SHA reviewed last. Create the file and its directory if missing.
+Track what has already been reviewed in `~/.local/state/claude/pr-review-watch.json`, a map of `"<owner>/<repo>#<number>"` to `{"sha": "<head SHA>", "draft": <bool>}` — the head SHA reviewed last and whether the PR was a draft at the time. Create the file and its directory if missing. A bare string value is the legacy shape and means the draft state is unknown; treat such a PR as changed and rewrite its entry in the current shape.
 
 ## Steps
 
 1. `gh pr list --json number,title,headRefOid,isDraft,url,updatedAt` for the current repo.
-2. Skip a PR when its `headRefOid` matches the recorded SHA — it has not moved since the last pass.
+2. Skip a PR only when its `headRefOid` matches the recorded `sha` **and** its `isDraft` matches the recorded `draft`. A draft marked ready keeps its SHA but changes what the triage rules allow: it was reviewed under the never-notify clause, so findings that should interrupt were suppressed. Re-review it once so those findings can surface. A ready PR returned to draft is likewise a change of reporting state, so re-review it too — reviewing twice is cheaper than a suppressed finding.
 3. First pass — for each remaining PR run `/code-review <number> low`. Low effort keeps a sweep cheap and yields few, high-confidence findings; it is the filter, not the verdict.
 4. Escalation pass — for a PR whose first pass produced a finding, point the one matching specialist at that PR alone. Escalate at most three PRs per sweep, the most severe first, so a bad sweep cannot run away with tokens.
 
@@ -24,7 +24,7 @@ Track what has already been reviewed in `~/.local/state/claude/pr-review-watch.j
    | Anything else | `pr-review-toolkit:code-reviewer` |
 
    Do not run `code-simplifier` — it polishes rather than reviews, and the triage rules drop what it reports.
-5. Record each reviewed PR's `headRefOid` in the state file, whether or not findings were produced, and drop entries for PRs no longer in the open list so the file does not grow without bound.
+5. Record each reviewed PR's `headRefOid` and `isDraft` in the state file, whether or not findings were produced, and drop entries for PRs no longer in the open list so the file does not grow without bound.
 6. Report per the triage rules below. Attribute each finding to the pass that produced it.
 
 ## Triage rules
