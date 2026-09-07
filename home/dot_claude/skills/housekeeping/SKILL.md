@@ -12,6 +12,7 @@ does not run the work.
 
 | Reach for it when | Skill |
 |---|---|
+| Back after days away — this branch, and what moved while you were gone | **`/catch-up`** — one repo: what changed, what is at risk, one next action |
 | Too many sessions open to know what to do next | **`/whats-next`** — one next action, plus what to do with the finished cards |
 | Two sessions may be standing on the same branch, directory, or file | **`/reconcile-sessions`** — names each collision and which session yields |
 | The cards are stale and you want the sessions to say it themselves | **`/reach-out`** — pings the live ones and reports what comes back |
@@ -25,3 +26,7 @@ does not run the work.
 The two tracker skills differ by **reach**, not by quality: `reconcile-tracker` starts from merged
 work and closes the issues behind it, `realign-tracker` starts from every open issue and checks it
 for drift. `close` reconciles only the branches of the session it is closing.
+
+`whats-next` and `catch-up` differ by **anchor**: `whats-next` starts from the machine full of
+sessions and picks the one to walk into, `catch-up` starts from the repo you are already standing
+in and reports what moved under it.
