@@ -1,0 +1,354 @@
+#!/usr/bin/env bash
+{{/*
+  chezmoi modify_ script for ~/.claude/settings.json.
+
+  Why modify_ and not a plain template: Claude Code rewrites this file at
+  runtime (plugin enable/disable, marketplace adds, survey/tips state) and
+  plugins inject their own hook entries. A plain overwrite template fights
+  that and shows a "changed since chezmoi last wrote it" prompt every apply.
+
+  This treats the chezmoi-managed settings as a FLOOR merged over the live
+  runtime file:
+    - runtime wins on scalar conflicts (Claude's toggles survive);
+    - objects merge in the runtime file's key order (byte-clean vs Claude's
+      serializer -> no formatting drift);
+    - arrays union (managed entries enforced, runtime/plugin additions kept);
+    - hook commands enforced only if absent (never duplicated / double-fired).
+  Net: managed keys stay enforced, Claude's runtime state survives, drift gone.
+
+  The managed JSON below is the former settings.json.tmpl body verbatim; it is
+  rendered per-machine, then deep-merged over the on-disk file via jq.
+*/}}
+set -euo pipefail
+{{ if eq .chezmoi.os "windows" }}
+# chezmoi runs this via Git Bash on Windows; scoop shims (jq) aren't on PATH.
+export PATH="$HOME/scoop/shims:$PATH"
+{{ end }}
+managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "EDITOR": "nvim",
+    "GIT_EDITOR": "nvim --wait"{{- if eq .chezmoi.os "windows" }},
+    "CLAUDE_CODE_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe",
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_AUTO_BACKGROUND_TASKS": "1",
+    "ENABLE_TOOL_SEARCH": "true"{{- end }}
+  },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "permissions": {
+    "defaultMode": "auto",
+    "allow": [
+      "Bash(pnpm run :*)",
+      "Bash(cargo :*)",
+      "Bash(go :*)",
+      "Bash(git :*)",
+      "Bash(wt :*)",
+      "Bash(gh :*)",
+      "Bash(docker :*)",
+      "Bash(kubectl :*)",
+      "Bash(terraform :*)",
+      "Bash(rg :*)",
+      "Bash(fd :*)",
+      "Bash(fzf :*)",
+      "Bash(bat :*)",
+      "Bash(eza :*)",
+      "Bash(delta :*)",
+      "Bash(zoxide :*)",
+      "Bash(btop :*)",
+      "Bash(jq :*)",
+      "Bash(yq :*)",
+      "Bash(mkdir -p /tmp/claude-scratch*)",
+      "Bash(touch /tmp/claude-*)",
+      "Bash(cat /tmp/claude-*)"
+    ],
+    "deny": [
+      "Bash(> /dev/sda*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\"'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-bash-dispatcher.js\"'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/git-commit-precheck.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\"'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-worktree-convention.js\"'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-edit-format.js\"'"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-derived-artifact.js\"'"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/notify.js\"'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+{{- if ne .chezmoi.os "windows" }}
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -name '*.sh' ! -executable -exec chmod +x {} + 2>/dev/null; find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -name '*.py' ! -executable -exec chmod +x {} + 2>/dev/null; true"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/worktree-guidance-topup.sh\""
+          }
+        ]
+      },
+{{- end }}
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-git-status.js\"'",
+            "timeout": 30
+          }
+        ]
+      }
+{{- if ne .chezmoi.os "windows" }},
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-window-name.js\"'"
+          }
+        ]
+      }
+{{- end }}
+      ,
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'h=$(ls -d \"$HOME\"/.claude/plugins/cache/superpowers-extended-cc-marketplace/superpowers-extended-cc/*/hooks/check-onboard-drift 2>/dev/null | sort -V | tail -1); [ -x \"$h\" ] && exec \"$h\"; exit 0'"
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/cwd-changed-worktree-check.js\"'"
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/permission-denied-audit.js\"'"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-failure-log.js\"'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/user-prompt-drift-check.js\"'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-compact-snapshot.js\"'"
+          }
+        ]
+      }
+    ]{{- if ne .chezmoi.os "windows" }},
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX\" ] && tmux set-option -w automatic-rename on || true"
+          }
+        ]
+      }
+    ]
+{{- end }}
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bun x -y ccstatusline@latest",
+    "padding": 0
+  },
+  {{- /* enabledPlugins: merge profile-gated plugin tables from claude.toml */ -}}
+  {{- $enabled := dict -}}
+  {{- range $k, $v := .plugins.always -}}{{- $_ := set $enabled $k $v -}}{{- end -}}
+  {{- if .personal -}}{{- range $k, $v := .plugins.personal -}}{{- $_ := set $enabled $k $v -}}{{- end -}}{{- end -}}
+  {{- if .dev_computer -}}{{- range $k, $v := .plugins.dev_computer -}}{{- $_ := set $enabled $k $v -}}{{- end -}}{{- end }}
+  "enabledPlugins": {{ $enabled | mustToPrettyJson | indent 2 | trim }},
+  {{- /* extraKnownMarketplaces: render all registered marketplaces from claude.toml */ -}}
+  {{- $marketplaces := dict -}}
+  {{- range $name, $repo := .marketplaces -}}
+    {{- $_ := set $marketplaces $name (dict "source" (dict "source" "github" "repo" $repo)) -}}
+  {{- end }}
+  "extraKnownMarketplaces": {{ $marketplaces | mustToPrettyJson | indent 2 | trim }},
+  "autoUpdatesChannel": "latest",
+  "verbose": true,
+  "preferredNotifChannel": "auto",
+  "agentPushNotifEnabled": false
+}
+CHEZMOI_SETTINGS_EOF
+)
+
+existing=$(cat)
+# case, not ${existing//[[:space:]]/}: that substitution is quadratic in bash
+# (40KB of settings pegged a core indefinitely; case is ~5ms).
+case "$existing" in *[![:space:]]*) ;; *) existing='{}' ;; esac
+
+printf '%s' "$existing" | jq --argjson m "$managed" '
+  # dm(a;b): merge managed (a) as a floor under runtime (b). b (runtime) wins.
+  def dm(a;b):
+    if (a|type)=="object" and (b|type)=="object" then
+      reduce (((b|keys_unsorted)+(a|keys_unsorted))
+              | reduce .[] as $x ([]; if any(.[];.==$x) then . else .+[$x] end))[] as $k ({};
+        .[$k] = (if   (b|has($k)) and (a|has($k)) then dm(a[$k]; b[$k])
+                 elif (b|has($k))                 then b[$k]
+                 else                                  a[$k] end))
+    elif (a|type)=="array" and (b|type)=="array" then
+      # hook-event arrays (objects with matcher+hooks): keep runtime verbatim,
+      # append a managed hook only if its command string is absent anywhere.
+      if ((b+a)|length>0) and ((b+a)|all(type=="object" and has("matcher") and has("hooks"))) then
+        ([b[]|.hooks[].command]) as $bc
+        | b + ( [ a[]
+                  | .hooks = [ .hooks[] | select(.command as $c | ($bc|index($c))==null) ]
+                  | select(.hooks|length>0) ] )
+      else
+        b + (a - b)
+      end
+    else b end;
+  # bind runtime input to $e first: jq args are call-by-name filters, so passing
+  # "." rebinds b to the reduce accumulator mid-merge and drops runtime-only keys.
+  . as $e | dm($m; $e)
+  # Tombstones: the merge is add-only (arrays union), so retiring a managed
+  # entry in this file cannot remove it from the live settings. List retired
+  # entries here to prune them on the next apply.
+  | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)"]
+  # Retire the former inline SessionStart rename (shipped via #81): the add-only
+  # merge keeps it in live settings, so strip that exact command and drop any
+  # hook entry it empties. session-start-window-name.js supersedes it.
+  | .hooks.SessionStart = ((.hooks.SessionStart // [])
+      | map(.hooks |= map(select(.command != "[ -n \"$TMUX\" ] && tmux rename-window \"cc:$(basename \"$PWD\")\" || true")))
+      | map(select((.hooks | length) > 0)))
+  # Retire the stop-end-of-turn hook: its lint half was discarded work and its
+  # secret scan is covered by the block-secrets PreToolUse guard plus pre-commit.
+  # Strip it from live settings (add-only merge keeps it) and drop emptied entries.
+  | .hooks.Stop = ((.hooks.Stop // [])
+      | map(.hooks |= map(select((.command | contains("stop-end-of-turn.js")) | not)))
+      | map(select((.hooks | length) > 0)))
+  # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
+  # changed managed default cannot move an already-set live value. Force the few
+  # keys chezmoi must own regardless of runtime drift.
+  | .preferredNotifChannel = "auto"
+  # Auto-memory stays off on every machine: declaring it in the managed floor
+  # cannot force-disable a machine where Claude already enabled it (runtime wins),
+  # so pin it here to re-assert false on every apply.
+  | .autoMemoryEnabled = false
+  # Attribution stays off in every form. sessionUrl defaults to true and the
+  # deprecated includeCoAuthoredBy never covered it, so web and Remote Control
+  # commits still carried a session trailer. Pin the whole object (runtime wins
+  # per scalar otherwise) and drop the superseded key from live settings.
+  | .attribution = { "commit": "", "pr": "", "sessionUrl": false }
+  | del(.includeCoAuthoredBy)
+' | tr -d '\r'
