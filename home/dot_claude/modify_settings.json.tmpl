@@ -188,6 +188,16 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       }
 {{- end }}
+      ,
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'h=$(ls -d \"$HOME\"/.claude/plugins/cache/superpowers-extended-cc-marketplace/superpowers-extended-cc/*/hooks/check-onboard-drift 2>/dev/null | sort -V | tail -1); [ -x \"$h\" ] && exec \"$h\"; exit 0'"
+          }
+        ]
+      }
     ],
     "CwdChanged": [
       {
