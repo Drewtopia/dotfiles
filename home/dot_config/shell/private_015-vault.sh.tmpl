@@ -5,10 +5,11 @@
 # secret in a `token` field, so .opVault selects the machine class and no
 # export needs a .work branch.
 {{ if not .ephemeral -}}
-{{/* MISE_GITHUB_TOKEN, not GITHUB_TOKEN: gh ranks GITHUB_TOKEN above its own
-     keyring, so exporting it here would permanently shadow `gh auth login`.
-     mise reads its namespaced variable first and falls back to GITHUB_TOKEN. */}}
-export MISE_GITHUB_TOKEN={{ onepasswordRead (printf "op://%s/GitHub PAT/token" .opVault) | trim }}
+{{/* chezmoi's own GitHub template functions read GITHUB_TOKEN and fall back to
+     60 unauthenticated requests/hour without it. Consequence: gh ranks
+     GITHUB_TOKEN above its keyring, so `gh auth login` stays shadowed here. */}}
+export GITHUB_TOKEN={{ onepasswordRead (printf "op://%s/GitHub PAT/token" .opVault) | trim }}
+export MISE_GITHUB_TOKEN="$GITHUB_TOKEN"
 export GEMINI_API_KEY={{ onepasswordRead (printf "op://%s/Gemini API Key/token" .opVault) | trim }}
 {{- /* Read by the context7 MCP server, which the plugin launches as
      `npx -y @upstash/context7-mcp` with no key argument — the env var is the
