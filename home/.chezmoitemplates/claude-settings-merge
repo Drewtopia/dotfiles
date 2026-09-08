@@ -283,7 +283,14 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "autoUpdatesChannel": "latest",
   "verbose": true,
   "preferredNotifChannel": "auto",
-  "agentPushNotifEnabled": false
+  "agentPushNotifEnabled": false,
+  {{- /* Seeds, not pins: the floor merge lets runtime win per scalar, so these
+         only reach a machine that has not set its own. */}}
+  "tui": "fullscreen",
+  "theme": "dark",
+  "worktree": {
+    "baseRef": "fresh"
+  }
 }
 CHEZMOI_SETTINGS_EOF
 )
