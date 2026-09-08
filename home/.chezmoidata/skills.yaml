@@ -93,3 +93,8 @@ skill_repos:
     # Azure Repos expert skill; replaces the lost project-vendored azure-repos.
     skills:
       - azure-repos
+  - repo: stablyai/orca
+    # OS/window-level control for local app windows. Skill name does not match
+    # the repo name, so it is pinned rather than taken with `"*"`.
+    skills:
+      - computer-use
