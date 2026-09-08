@@ -1,0 +1,68 @@
+{{- if and (eq .chezmoi.os "windows") (not .work) -}}
+# Sync ~/.claude/settings.json (Windows counterpart of the modify_ path).
+#
+# chezmoi cannot manage this target on Windows. Executing the modify_ script
+# needs [interpreters.json], and registering that extension makes chezmoi
+# consume the `.json` and derive the target `~/.claude/settings` instead --
+# which `.chezmoiignore` then drops. Unix has no such problem: it runs the
+# script from its shebang, so no interpreter is registered there.
+#
+# So run the same script from here. It is shared verbatim via
+# .chezmoitemplates/claude-settings-merge, which the modify_ entry also
+# includes, so both platforms stay on one source of truth.
+#
+# ASCII-only: chezmoi writes scripts as UTF-8 without BOM, and PowerShell
+# defaults to CP1252 parsing on Windows, which mangles multi-byte chars.
+#
+# The merge script is embedded base64-encoded rather than in a here-string
+# for that same reason -- it carries non-ASCII comments and bash/jq quoting
+# that must survive PowerShell parsing untouched. run_onchange still
+# retriggers on any change, because the blob changes with it.
+
+$ErrorActionPreference = "Stop"
+
+$bash = "C:\Program Files\Git\bin\bash.exe"
+if (-not (Test-Path -LiteralPath $bash)) {
+    Write-Host '[skip] Git Bash not found; settings.json not synced'
+    exit 0
+}
+
+$script = [Text.Encoding]::UTF8.GetString(
+    [Convert]::FromBase64String('{{ includeTemplate "claude-settings-merge" . | b64enc }}')
+) -replace "`r`n", "`n"
+
+$claudeDir = Join-Path $env:USERPROFILE '.claude'
+$settings = Join-Path $claudeDir 'settings.json'
+if (-not (Test-Path -LiteralPath $claudeDir)) {
+    New-Item -ItemType Directory -Path $claudeDir -Force | Out-Null
+}
+$existing = if (Test-Path -LiteralPath $settings) { [IO.File]::ReadAllText($settings) } else { '' }
+
+$utf8 = New-Object Text.UTF8Encoding $false
+$scriptPath = Join-Path $env:TEMP 'chezmoi-claude-settings-merge.sh'
+$inPath = Join-Path $env:TEMP 'chezmoi-claude-settings-in.json'
+[IO.File]::WriteAllText($scriptPath, $script, $utf8)
+[IO.File]::WriteAllText($inPath, $existing, $utf8)
+
+# The script reads the live file on stdin, exactly as a modify_ script would.
+$merged = (Get-Content -Raw -LiteralPath $inPath | & $bash $scriptPath) -join "`n"
+$mergeExit = $LASTEXITCODE
+
+Remove-Item -LiteralPath $scriptPath, $inPath -Force -ErrorAction SilentlyContinue
+
+if ($mergeExit -ne 0 -or [string]::IsNullOrWhiteSpace($merged)) {
+    Write-Host '[fail] settings merge produced no output; settings.json left unchanged'
+    exit 1
+}
+try { $null = $merged | ConvertFrom-Json } catch {
+    Write-Host '[fail] settings merge produced invalid JSON; settings.json left unchanged'
+    exit 1
+}
+
+if ($merged -ne $existing) {
+    [IO.File]::WriteAllText($settings, $merged, $utf8)
+    Write-Host '[ok]   settings.json synced'
+} else {
+    Write-Host '[skip] settings.json already in sync'
+}
+{{- end -}}
