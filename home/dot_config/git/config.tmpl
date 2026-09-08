@@ -173,7 +173,7 @@
 [gpg "ssh"]
 	# joinPath returns backslashes on Windows, which git parses as escape
 	# sequences in a config value and rejects — every git command then fails.
-	allowedSignersFile = "{{ joinPath .chezmoi.homeDir ".config" "git" "allowed_signers" | replace "\\" "/" }}"
+	allowedSignersFile = "{{ joinPath .chezmoi.homeDir ".config" "git" "allowed_signers" | replace .chezmoi.pathSeparator "/" }}"
 [user]
 	signingkey = ~/.ssh/id_ed25519.pub
 [commit]
