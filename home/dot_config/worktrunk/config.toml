@@ -20,6 +20,10 @@
 worktree-path = "{{ repo_path }}/.claude/worktrees/{{ branch | sanitize }}"
 
 [list]
+# Collect the two off-machine columns — CI status and LLM branch summaries — on
+# every `wt list` rather than only `wt list --full`. Both are gated on this one
+# flag, so without it the `summary` setting below renders no column at all.
+full = true
 # LLM-generated one-line branch summaries in `wt list`.
 summary = true
 # Pin the `--format=json` output to schema 2 (structured repo/ci metadata). A
