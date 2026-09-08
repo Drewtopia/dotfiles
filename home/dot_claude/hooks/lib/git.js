@@ -21,7 +21,10 @@ function git(args) {
     }
 }
 
-const currentBranch = () => git(['rev-parse', '--abbrev-ref', 'HEAD']);
+const REV_PARSE_BRANCH = ['rev-parse', '--abbrev-ref', 'HEAD'];
+
+/** Branch at `cwd`, or in the process working directory when cwd is omitted. */
+const currentBranch = cwd => git(cwd ? ['-C', cwd, ...REV_PARSE_BRANCH] : REV_PARSE_BRANCH);
 const repoRoot = () => git(['rev-parse', '--show-toplevel']);
 
 module.exports = { git, currentBranch, repoRoot };
