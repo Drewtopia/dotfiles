@@ -136,12 +136,16 @@ README.md
 .claude/**
 {{- else }}
 .claude/*
-!.claude/settings.json
 !.claude/commands/
 !.claude/agents/
 !.claude/hooks/
 !.claude/skills/
 {{-   if eq .chezmoi.os "windows" }}
+# settings.json stays ignored on Windows. chezmoi derives a modify_ entry's
+# target from its extension, so managing it needs [interpreters.json], which
+# makes chezmoi consume the `.json` and target `.claude/settings` instead.
+# run_onchange_after_57-sync-claude-settings.ps1 runs the same merge instead.
+#
 # Personal Windows: the skills installer creates community skills as NTFS
 # junctions under ~/.claude/skills, which chezmoi cannot read (irregular file
 # type). Ignore everything there except the chezmoi-managed skills.
@@ -153,6 +157,9 @@ README.md
 !.claude/rules
 {{-   else }}
 # Mac/Linux: chezmoi-managed symlinks at .claude/memory and .claude/rules.
+# settings.json is managed here: the modify_ script runs from its shebang, so
+# no interpreter is registered and the target keeps its `.json` extension.
+!.claude/settings.json
 !.claude/memory
 !.claude/rules
 {{-   end }}
