@@ -222,6 +222,17 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/user-prompt-drift-check.js\"'"
+          }
+        ]
+      }
+    ],
     "PreCompact": [
       {
         "matcher": "",
