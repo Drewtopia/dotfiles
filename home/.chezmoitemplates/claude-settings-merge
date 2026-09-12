@@ -259,6 +259,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "command": "[ -n \"$TMUX\" ] && tmux set-option -w automatic-rename on || true"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "id=$(jq -r '.session_id // empty'); [ -n \"$id\" ] && \"$HOME/.local/bin/claude-log-session\" \"$id\" >/dev/null 2>&1; \"$HOME/.local/bin/claude-board\" --no-open >/dev/null 2>&1 || true"
+          }
+        ]
       }
     ]
 {{- end }}
