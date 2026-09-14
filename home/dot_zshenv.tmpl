@@ -46,13 +46,13 @@ export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
 
 # Core environment. Set here (not .zshrc) so non-interactive shells — scripts,
 # git hooks, `ssh host cmd` — see the same values as an interactive terminal.
-{{ if stat (printf "%s/.local/bin/nvim" .chezmoi.homeDir) -}}
-export EDITOR=$HOME/.local/bin/nvim
-{{ else if lookPath "nvim" -}}
-export EDITOR=nvim
-{{ else -}}
-export EDITOR=vim
-{{ end -}}
+for _editor in nvim vim vi; do
+    if command -v "$_editor" >/dev/null 2>&1; then
+        export EDITOR="$_editor"
+        break
+    fi
+done
+unset _editor
 export PAGER=less
 export LESS=FRX
 export LANG=en_US.UTF-8

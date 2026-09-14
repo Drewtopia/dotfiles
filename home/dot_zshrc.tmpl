@@ -65,7 +65,7 @@ setopt histignorespace
 setopt rm_star_silent
 
 # Common aliases - configured in shell/050-common-aliases.sh
-alias zshconfig="nvim ~/.zshrc"
+alias zshconfig='"$EDITOR" ~/.zshrc'
 alias zshrc="source ~/.zshrc"
 
 # Core env vars are exported from .zshenv so non-interactive shells inherit them.
