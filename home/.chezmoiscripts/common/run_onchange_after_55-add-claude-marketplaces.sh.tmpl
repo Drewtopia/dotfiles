@@ -1,10 +1,9 @@
 {{- if .dev_computer -}}
 #!/usr/bin/env bash
-# Reconcile Claude Code plugin marketplaces against .chezmoidata/claude.toml.
-# Registers each declared marketplace via `claude plugin marketplace add`,
-# which also refreshes an already-registered one — so this script is the
-# marketplace refresh path. topgrade's Claude Code step is NOT: it runs only
-# `claude update` (the CLI self-updater) and never touches plugins.
+# Register the Claude Code plugin marketplaces declared in .chezmoidata/claude.toml
+# that are not registered yet. `marketplace add` on a registered name replaces it,
+# so those are skipped. topgrade's claude_code_plugins step refreshes registered
+# marketplaces (`claude plugin marketplace update`) and updates installed plugins.
 #
 # Refreshing a marketplace does not re-install its plugins. `claude plugin
 # update` compares the version string alone, so a marketplace that edits
@@ -24,9 +23,23 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 0
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "⚠️  jq not on PATH; skipping marketplace sync" >&2
+  exit 0
+fi
+
+if ! registered=$(claude plugin marketplace list --json | jq -r '.[].name'); then
+  echo "⚠️  could not list registered marketplaces; skipping marketplace sync" >&2
+  exit 0
+fi
+
 {{- range $name, $repo := .marketplaces }}
-output=$(claude plugin marketplace add {{ $repo }} 2>&1) && \
-  echo "✓ marketplace {{ $name }} registered" || \
-  echo "⚠️  marketplace {{ $name }}: add failed, continuing: ${output}" >&2
+if grep -qxF '{{ $name }}' <<<"$registered"; then
+  echo "  marketplace {{ $name }} already registered"
+elif claude plugin marketplace add {{ $repo }}; then
+  echo "✓ marketplace {{ $name }} registered"
+else
+  echo "⚠️  marketplace {{ $name }} ({{ $repo }}) failed to register, continuing" >&2
+fi
 {{- end }}
 {{ end -}}

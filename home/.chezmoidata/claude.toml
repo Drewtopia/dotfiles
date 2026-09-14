@@ -2,8 +2,8 @@
 # `claude plugin marketplace add` reconciler.
 #
 # Consumed by run_onchange_after_55-add-claude-marketplaces.{sh,ps1}.tmpl,
-# which registers each marketplace (idempotent) — and since `marketplace add`
-# also refreshes an already-registered one, that loop is the refresh path too.
+# which registers each marketplace that is not registered yet. Refreshing
+# registered marketplaces is topgrade's claude_code_plugins step.
 #
 # .chezmoitemplates/claude-settings-merge renders extraKnownMarketplaces from
 # this table. dot_claude/modify_settings.json.tmpl includes it on Unix;
@@ -14,7 +14,6 @@
 
 [marketplaces]
 caveman                   = "JuliusBrussee/caveman"
-"claude-brain-sync"       = "toroleapinc/claude-brain"
 "claude-plugins-official" = "anthropics/claude-plugins-official"
 "i-have-adhd"             = "ayghri/i-have-adhd"
 "karpathy-skills"         = "forrestchang/andrej-karpathy-skills"
@@ -25,6 +24,7 @@ qmd                       = "tobi/qmd"
 ecc                       = "affaan-m/ECC"
 worktrunk                 = "max-sixty/worktrunk"
 humanizer                 = "blader/humanizer"
+superwhisper              = "superultrainc/superwhisper-claude-code"
 
 # Plugin enablement — grouped by profile (machine class). See CONTEXT.md.
 # Format: "<plugin-name>@<marketplace-name>" = <bool>
@@ -57,10 +57,6 @@ humanizer                 = "blader/humanizer"
 "claude-code-setup@claude-plugins-official"        = false
 "security-guidance@claude-plugins-official"        = true
 # Output shaping, not dev tooling — wanted on every machine.
-# Upstream tag 0.1.0 added a redundant "hooks": "./hooks/hooks.json" to its
-# manifest, which Claude Code rejects ("Duplicate hooks file detected") since
-# hooks/hooks.json is auto-loaded. Until that is fixed upstream, a fresh install
-# needs the key removed from the cached manifest to load.
 "i-have-adhd@i-have-adhd"                          = true
 # Retired Aug 2026 — output styles are a native setting now (settings.json
 # `outputStyle`); the plugins are superseded.
@@ -69,14 +65,8 @@ humanizer                 = "blader/humanizer"
 "ralph-loop@claude-plugins-official"               = false
 
 [plugins.personal]
-# Retired Aug 2026 — enabled since installation but never initialized: no
-# brain-config.json and no brain directory on any machine (darwin, work-wsl,
-# drew-pd), so brain-sync bailed at its first guard and no cross-machine sync
-# ever ran. drew-pd still holds a live `true` in its own settings.json and
-# needs a `claude plugin disable` — the managed floor merge will not flip it.
-# The job it was meant to do is already covered — chezmoi carries settings and
-# skills, and the vault symlinks carry memory and rules.
-"claude-brain-sync@claude-brain-sync" = false
+# Installed Aug 2026 and disabled since; the Superwhisper dictation app is personal-only.
+"superwhisper@superwhisper" = false
 
 [plugins.dev_computer]
 # Retired Jul 2026 — markdown-KB search never used; the vault is reached through
