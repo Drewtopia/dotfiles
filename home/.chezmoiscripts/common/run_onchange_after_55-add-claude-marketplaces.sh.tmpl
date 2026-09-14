@@ -1,3 +1,4 @@
+{{- if .dev_computer -}}
 #!/usr/bin/env bash
 # Register the Claude Code plugin marketplaces declared in .chezmoidata/claude.toml
 # that are not registered yet. `marketplace add` on a registered name replaces it,
@@ -22,8 +23,15 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 0
 fi
 
-registered=$(claude plugin marketplace list --json | jq -r '.[].name')
-failed=0
+if ! command -v jq >/dev/null 2>&1; then
+  echo "⚠️  jq not on PATH; skipping marketplace sync" >&2
+  exit 0
+fi
+
+if ! registered=$(claude plugin marketplace list --json | jq -r '.[].name'); then
+  echo "⚠️  could not list registered marketplaces; skipping marketplace sync" >&2
+  exit 0
+fi
 
 {{- range $name, $repo := .marketplaces }}
 if grep -qxF '{{ $name }}' <<<"$registered"; then
@@ -31,9 +39,7 @@ if grep -qxF '{{ $name }}' <<<"$registered"; then
 elif claude plugin marketplace add {{ $repo }}; then
   echo "✓ marketplace {{ $name }} registered"
 else
-  echo "✗ marketplace {{ $name }} ({{ $repo }}) failed to register" >&2
-  failed=1
+  echo "⚠️  marketplace {{ $name }} ({{ $repo }}) failed to register, continuing" >&2
 fi
 {{- end }}
-
-exit "$failed"
+{{ end -}}

@@ -1,4 +1,4 @@
-{{- if and (eq .osid "linux-debian" "linux-raspbian" "linux-ubuntu") (not .ephemeral) -}}
+{{- if and (includeTemplate "linux-supported" .) (not .ephemeral) -}}
 #!/bin/bash
 
 set -eufo pipefail
