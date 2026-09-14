@@ -37,6 +37,11 @@ setw -g mode-keys vi                                  # Use vi-style key binding
 set -g pane-active-border-style 'fg=magenta,bg=default'  # Active pane border color
 set -g pane-border-style 'fg=brightblack,bg=default'     # Inactive pane border color
 
+{{- if and .ephemeral (eq .chezmoi.os "linux") }}
+# Minimal machines keep bash as the login shell; panes open zsh when installed.
+if-shell '[ -x /usr/bin/zsh ]' 'set -g default-shell /usr/bin/zsh'
+{{- end }}
+
 {{- if ne .chezmoi.os "windows" }}
 # FZF URL plugin configuration
 set -g @fzf-url-fzf-options '-p 60%,30% --prompt="   " --border-label=" Open URL "'
@@ -99,7 +104,8 @@ set -g @plugin 'omerxx/tmux-floax'
 {{- if .is_wsl }}
 # WSL: route tmux-yank copies through clip.exe so selections land in the
 # Windows clipboard regardless of whether the outer terminal honours OSC 52.
-set -g @override_copy_command 'clip.exe'
+# Full path: appendWindowsPath=false keeps clip.exe off PATH.
+set -g @override_copy_command '/mnt/c/Windows/System32/clip.exe'
 {{- end }}
 set -g @floax-width '80%'
 set -g @floax-height '80%'
