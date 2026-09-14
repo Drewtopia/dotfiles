@@ -17,20 +17,43 @@
 # Commands that need vault data authenticate transparently.
 set -euo pipefail
 
-# Resolved at chezmoi render time; the WinGet hash suffix is wildcarded so a
-# CLI version bump does not invalidate the path.
-OP_EXE="{{ glob (printf "/mnt/c/Users/%s/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe" .chezmoi.username) | first }}"
+# appendWindowsPath=false keeps cmd.exe off PATH, so it is called by full path.
+CMD_EXE=/mnt/c/Windows/System32/cmd.exe
+CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/op-shim/op-exe-path"
 
-# WinGet can relocate the package on reinstall. Re-resolve rather than fail.
-# The Windows profile is capitalised (AndrewCl) where the Linux user is not;
-# this matches because /mnt/c is mounted case-insensitively.
+# The Windows profile name need not match the Linux username, so ask Windows
+# for it. cmd.exe runs from /mnt/c because it warns about a Linux (UNC) cwd.
+find_op_exe() {
+    local win_profile profile_dir
+    win_profile=$(cd /mnt/c && "$CMD_EXE" /d /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r') || return 0
+    [ -n "$win_profile" ] || return 0
+    profile_dir=$(wslpath -u "$win_profile") || return 0
+
+    shopt -s nullglob
+    local matches=("$profile_dir"/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe)
+    shopt -u nullglob
+    if [ "${#matches[@]}" -gt 0 ]; then
+        printf '%s\n' "${matches[0]}"
+    fi
+}
+
+OP_EXE=""
+if [ -f "$CACHE_FILE" ]; then
+    OP_EXE=$(cat "$CACHE_FILE")
+fi
+
+# WinGet relocates the package on upgrade or reinstall. Re-resolve rather than fail.
 if [ -z "$OP_EXE" ] || [ ! -f "$OP_EXE" ]; then
-    OP_EXE=$(ls -1 /mnt/c/Users/"$(id -un)"/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe 2>/dev/null | head -n1 || true)
+    OP_EXE=$(find_op_exe)
+    if [ -n "$OP_EXE" ]; then
+        mkdir -p "$(dirname "$CACHE_FILE")"
+        printf '%s\n' "$OP_EXE" > "$CACHE_FILE"
+    fi
 fi
 
 if [ -z "$OP_EXE" ]; then
     echo "op: 1Password CLI for Windows not found." >&2
-    echo "    Install it on the Windows host:  winget install 1Password.CLI" >&2
+    echo "    Install it on the Windows host:  winget install AgileBits.1Password.CLI" >&2
     echo "    The Linux op cannot reach 1Password for Windows." >&2
     exit 127
 fi
