@@ -6,13 +6,20 @@
 
 # Re-launch with pwsh 7 if running under PowerShell 5.1, which lacks
 # PSResourceGet (bundled with PowerShell 7.4+).
+# The apply's PATH predates a pwsh installed earlier in the same apply, so fall
+# back to the default install location before giving up.
 if ($PSVersionTable.PSVersion.Major -lt 7) {
-    if (Get-Command pwsh -ErrorAction SilentlyContinue) {
-        pwsh -NoProfile -File $MyInvocation.MyCommand.Path
-        exit $LASTEXITCODE
+    $pwsh = (Get-Command pwsh -ErrorAction SilentlyContinue).Source
+    if (-not $pwsh) {
+        $default = Join-Path $env:ProgramFiles 'PowerShell\7\pwsh.exe'
+        if (Test-Path $default) { $pwsh = $default }
     }
-    Write-Host "[WARN] pwsh 7 not found, skipping module install" -ForegroundColor Yellow
-    exit 0
+    if (-not $pwsh) {
+        Write-Host "[ERROR] pwsh 7 not found; install Microsoft.PowerShell and re-run chezmoi apply" -ForegroundColor Red
+        exit 1
+    }
+    & $pwsh -NoProfile -NonInteractive -File $MyInvocation.MyCommand.Path
+    exit $LASTEXITCODE
 }
 
 if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
