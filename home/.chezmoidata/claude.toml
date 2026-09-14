@@ -14,7 +14,6 @@
 
 [marketplaces]
 caveman                   = "JuliusBrussee/caveman"
-"claude-brain-sync"       = "toroleapinc/claude-brain"
 "claude-plugins-official" = "anthropics/claude-plugins-official"
 "i-have-adhd"             = "ayghri/i-have-adhd"
 "karpathy-skills"         = "forrestchang/andrej-karpathy-skills"
@@ -25,6 +24,7 @@ qmd                       = "tobi/qmd"
 ecc                       = "affaan-m/ECC"
 worktrunk                 = "max-sixty/worktrunk"
 humanizer                 = "blader/humanizer"
+superwhisper              = "superultrainc/superwhisper-claude-code"
 
 # Plugin enablement — grouped by profile (machine class). See CONTEXT.md.
 # Format: "<plugin-name>@<marketplace-name>" = <bool>
@@ -65,14 +65,8 @@ humanizer                 = "blader/humanizer"
 "ralph-loop@claude-plugins-official"               = false
 
 [plugins.personal]
-# Retired Aug 2026 — enabled since installation but never initialized: no
-# brain-config.json and no brain directory on any machine (darwin, work-wsl,
-# drew-pd), so brain-sync bailed at its first guard and no cross-machine sync
-# ever ran. drew-pd still holds a live `true` in its own settings.json and
-# needs a `claude plugin disable` — the managed floor merge will not flip it.
-# The job it was meant to do is already covered — chezmoi carries settings and
-# skills, and the vault symlinks carry memory and rules.
-"claude-brain-sync@claude-brain-sync" = false
+# Installed Aug 2026 and disabled since; the Superwhisper dictation app is personal-only.
+"superwhisper@superwhisper" = false
 
 [plugins.dev_computer]
 # Retired Jul 2026 — markdown-KB search never used; the vault is reached through
