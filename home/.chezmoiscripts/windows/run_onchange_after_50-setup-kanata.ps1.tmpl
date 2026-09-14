@@ -7,10 +7,10 @@
 # Windows uses native LLHOOK (no driver needed). Behavior depends on
 # whether this is a personal or work machine:
 #
-#   Personal (.personal = true): register scheduled task at logon,
-#     start kanata now. Kanata auto-starts on every boot.
+#   Personal (.personal = true): create a Startup folder shortcut and
+#     start kanata now. Kanata auto-starts at every logon.
 #
-#   Work (.personal = false): DO NOT register the scheduled task.
+#   Work (.personal = false): DO NOT auto-start kanata.
 #     Reason: when you remote into this machine via Jump Desktop from
 #     the Mac, your Mac kanata has already remapped the keystroke -
 #     running kanata on Windows too would double-remap. Instead, the

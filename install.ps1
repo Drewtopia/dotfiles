@@ -2,7 +2,7 @@
 # Windows sibling of install.sh.
 #
 # Note: chezmoi.toml.tmpl uses a hybrid `if lookPath "op"` block — if op
-# is already installed (via scoop in run_onchange_before_10-install-scoop),
+# is already on PATH (no Windows chezmoi script installs it),
 # identity is read from 1Password; if not, init prompts for name + email
 # and stores them locally. Either way, no manual prereqs needed beyond
 # chezmoi itself, which this script installs.
