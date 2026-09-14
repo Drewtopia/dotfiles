@@ -184,6 +184,8 @@ Notable changes, newest first. Generated from Conventional Commits by git-cliff.
 - Keep the mistakes log local, drop an absolute path from the research note
 - **ccstatusline:** Track the v4 settings schema, drop the tmpl suffix
 - **mise:** Move eza, tokei and pay-respects to preferred backends
+- Replace changesets with git-cliff for the changelog
+- **changelog:** Harden the git-cliff release flow
 
 ### Other
 

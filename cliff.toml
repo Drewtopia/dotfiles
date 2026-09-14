@@ -1,6 +1,5 @@
-# git-cliff house style. Start a repo with `git cliff --init drew`
-# (GIT_CLIFF_TEMPLATES_DIR points here), then add that repo's [remote.*] section.
-# git-cliff has no config inheritance: each repo's cliff.toml is a copy.
+# Copy of the shared house style in home/dot_config/git-cliff/templates/drew.toml,
+# plus this repo's [remote.github] section. Keep the two in step.
 
 [changelog]
 header = """
@@ -24,7 +23,7 @@ body = """
 {% else %}
 ## Unreleased
 {% endif %}
-{% if message %}
+{% if message and message | trim != version %}
 {{ message | trim }}
 {% endif %}
 {% for entry in commits | unique(attribute="message") | commit_groups(groups=commit_parsers_groups) %}
@@ -65,7 +64,7 @@ sort_commits = "oldest"
 [bump]
 features_always_bump_minor = true
 breaking_always_bump_major = true
-initial_tag = "0.1.0"
+initial_tag = "v0.1.0"
 
 [remote.github]
 owner = "Drewtopia"
