@@ -1,9 +1,8 @@
 {{- if ne .chezmoi.os "windows" -}}
 {{- if .dev_computer -}}
 #!/usr/bin/env bash
-# Reconcile pnpm globals against .chezmoidata/pnpm-globals.yaml. v11's atomic
-# single-workspace model needs all packages in one `pnpm add -g` transaction;
-# this skips the call when actual already covers the desired set.
+# Reconcile pnpm globals against .chezmoidata/pnpm-globals.yaml: add what is
+# missing, remove undeclared globals, and skip pnpm entirely when they match.
 set -euo pipefail
 
 # Inlining the desired list makes run_onchange retrigger when the YAML changes:
@@ -15,6 +14,9 @@ desired=(
     '{{ . }}'
 {{- end }}
 )
+# `pnpm self-update` installs pnpm itself as a global; removing it as an extra
+# would uninstall the pnpm binary this script is running.
+protected=('@pnpm/exe' 'pnpm')
 
 if ! command -v pnpm >/dev/null 2>&1; then
     echo "[pnpm-globals] pnpm not on PATH; skipping"
@@ -52,7 +54,7 @@ done
 if [ ${#actual[@]} -gt 0 ]; then
     for a in "${actual[@]}"; do
         found=false
-        for d in "${desired[@]}"; do [ "$d" = "$a" ] && found=true && break; done
+        for d in "${desired[@]}" "${protected[@]}"; do [ "$d" = "$a" ] && found=true && break; done
         $found || extras+=("$a")
     done
 fi
@@ -67,7 +69,7 @@ reasons=()
 [ ${#extras[@]}  -gt 0 ] && reasons+=("extras: ${extras[*]}")
 echo "[pnpm-globals] reconciling - ${reasons[*]}"
 
-# v11: add -g is additive (new hash dir); remove -g garbage-collects.
+# v11: each space-separated package in `add -g` gets its own isolated install.
 if [ ${#extras[@]} -gt 0 ]; then
     pnpm remove -g "${extras[@]}"
 fi

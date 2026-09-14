@@ -1,9 +1,8 @@
 {{- if eq .chezmoi.os "windows" -}}
 {{- if .dev_computer -}}
 #!/usr/bin/env pwsh
-# Reconcile pnpm globals against .chezmoidata/pnpm-globals.yaml. v11's atomic
-# single-workspace model needs all packages in one `pnpm add -g` transaction;
-# this skips the call when actual already covers the desired set.
+# Reconcile pnpm globals against .chezmoidata/pnpm-globals.yaml: add what is
+# missing, remove undeclared globals, and skip pnpm entirely when they match.
 
 $ErrorActionPreference = "Stop"
 
@@ -50,8 +49,12 @@ try {
     Write-Host "[pnpm-globals] couldn't read state ($($_.Exception.Message)); will rebuild" -ForegroundColor Yellow
 }
 
+# `pnpm self-update` installs pnpm itself as a global; removing it as an extra
+# would uninstall the pnpm binary this script is running.
+$protected = @('@pnpm/exe', 'pnpm')
+
 $missing = $desired | Where-Object { $_ -notin $actual }
-$extras  = $actual  | Where-Object { $_ -notin $desired }
+$extras  = $actual  | Where-Object { $_ -notin $desired -and $_ -notin $protected }
 
 if (-not $missing -and -not $extras) {
     Write-Host "[pnpm-globals] up to date ($($desired.Count) packages)" -ForegroundColor Green
@@ -63,7 +66,7 @@ if ($missing) { $reasons += "missing: $($missing -join ', ')" }
 if ($extras)  { $reasons += "extras: $($extras -join ', ')" }
 Write-Host "[pnpm-globals] reconciling - $($reasons -join '; ')" -ForegroundColor Blue
 
-# v11: add -g is additive (new hash dir); remove -g garbage-collects.
+# v11: each space-separated package in `add -g` gets its own isolated install.
 if ($extras) {
     & pnpm remove -g @extras
 }
