@@ -130,21 +130,6 @@
 [trim]
 	bases = main,gh-pages
 
-{{- /* Find gh: try lookPath first, fall back to mise shim */ -}}
-{{- $ghPath := lookPath "gh" }}
-{{- if not $ghPath }}
-{{-   $shimPath := joinPath .chezmoi.homeDir ".local/share/mise/shims/gh" }}
-{{-   if stat $shimPath }}
-{{-     $ghPath = $shimPath }}
-{{-   end }}
-{{- end }}
-{{- if $ghPath }}
-{{- $ghPath = $ghPath | replace "\\" "/" }}
-[credential "https://github.com"]
-	helper = !"{{ $ghPath }}" auth git-credential
-[credential "https://gist.github.com"]
-	helper = !"{{ $ghPath }}" auth git-credential
-{{- end }}
 {{- /* Azure DevOps applies on: macOS (work-on-personal), native Windows, and
        work WSL. NOT personal WSL (azure is work-only there). */ -}}
 {{- $azure := or (eq .chezmoi.os "darwin") (and (eq .chezmoi.os "windows") (not .is_wsl)) (and .work .is_wsl) }}
@@ -213,11 +198,32 @@
 # prevents chaining system + user entries (double GCM call per request).
 # `manager` is the GfW alias for GCM — avoids hardcoding the full GCM path and
 # survives GCM moving (scoop / GfW update). Covers non-github https remotes;
-# github.com is handled by the gh-CLI block above. Azure-specific settings live
+# github.com is handled by the gh-CLI block below. Azure-specific settings live
 # in the shared dev.azure.com block above.
 [credential]
 	helper =
 	helper = manager
+{{- end }}
+
+{{- /* Find gh: try lookPath first, fall back to mise shim */ -}}
+{{- $ghPath := lookPath "gh" }}
+{{- if not $ghPath }}
+{{-   $shimPath := joinPath .chezmoi.homeDir ".local/share/mise/shims/gh" }}
+{{-   if stat $shimPath }}
+{{-     $ghPath = $shimPath }}
+{{-   end }}
+{{- end }}
+{{- if $ghPath }}
+{{- $ghPath = $ghPath | replace "\\" "/" }}
+# NOTE: must stay below every global [credential] helper. The empty helper only
+# clears helpers read before it; placed earlier, GitHub logins still reach GCM or
+# osxkeychain, and on WSL the GCM store call hangs whenever interop is down.
+[credential "https://github.com"]
+	helper =
+	helper = !"{{ $ghPath }}" auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !"{{ $ghPath }}" auth git-credential
 {{- end }}
 
 {{- if lookPath "delta" }}
