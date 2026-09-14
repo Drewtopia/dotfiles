@@ -190,6 +190,8 @@
     pager = "delta"
 {{- end }}
 
+{{- if $dev_computer }}
+
 [merge]
     command = "nvim"
     args = [
@@ -198,6 +200,7 @@
         {{ printf "%q" "{{ .Source }}" }},
         {{ printf "%q" "{{ .Target }}" }},
     ]
+{{- end }}
 
 {{ if eq .chezmoi.os "windows" -}}
 # cd uses pwsh (interactive only, available after 00-install-pwsh runs)
