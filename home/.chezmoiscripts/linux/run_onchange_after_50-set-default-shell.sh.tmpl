@@ -1,7 +1,16 @@
-{{- if (not .ephemeral) -}}
+{{- if and (eq .osid "linux-debian" "linux-raspbian" "linux-ubuntu") (not .ephemeral) -}}
 #!/bin/bash
 
 set -eufo pipefail
 
-chsh -s /usr/bin/zsh
+if ! zsh_path="$(command -v zsh)"; then
+    echo "❌ zsh is not installed; cannot make it the login shell" >&2
+    exit 1
+fi
+
+current_shell="$(getent passwd "$USER" | cut -d: -f7)"
+if [[ "$current_shell" != "$zsh_path" ]]; then
+    echo "🔧 Changing login shell from $current_shell to $zsh_path..."
+    sudo chsh -s "$zsh_path" "$USER"
+fi
 {{ end -}}
