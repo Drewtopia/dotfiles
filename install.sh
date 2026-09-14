@@ -5,9 +5,9 @@ set -e # -e: exit on error
 # Note: chezmoi.toml.tmpl now uses a hybrid `if lookPath "op"` block —
 # if op is installed, identity is read from 1Password; if not, init
 # prompts for name + email and stores them in the local chezmoi.toml.
-# Either way, init succeeds without manual prereqs. After first apply,
-# run_onchange_before_20-install-1password installs op for downstream
-# apply-time templates that need it (zshrc, ssh keys, etc.).
+# Either way, init succeeds without manual prereqs. The first apply installs
+# op (Homebrew cask on macOS, apt script on Linux) for downstream apply-time
+# templates that need it (zshrc, ssh keys, etc.).
 
 if [ ! "$(command -v chezmoi)" ]; then
   bin_dir="$HOME/.local/bin"

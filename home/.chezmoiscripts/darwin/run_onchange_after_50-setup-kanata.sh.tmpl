@@ -17,6 +17,10 @@ KANATA_BIN="/opt/homebrew/bin/kanata"
 KANATA_CFG="{{ .chezmoi.homeDir }}/.config/kanata/kanata.kbd"
 KANATA_LOG="/tmp/kanata.log"
 
+# kanata speaks one Karabiner driver protocol per release: kanata < 1.13 needs
+# driver 6.2.0, kanata >= 1.13 needs 8.0.0. Bump this with kanata, never to latest.
+DRIVER_VERSION="6.2.0"
+DRIVER_PKG_ID="org.pqrs.Karabiner-DriverKit-VirtualHIDDevice"
 DRIVER_DAEMON="/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Daemon"
 DRIVER_MANAGER="/Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager"
 
@@ -55,6 +59,17 @@ NEEDS_INPUT_MONITORING=false
 
 if [[ ! -f "$DRIVER_MANAGER" ]]; then
     NEEDS_DRIVER_INSTALL=true
+else
+    installed_driver=$(pkgutil --pkg-info "$DRIVER_PKG_ID" 2>/dev/null | awk '/^version:/ {print $2}')
+    if [[ "$installed_driver" != "$DRIVER_VERSION" ]]; then
+        echo "❌ Karabiner driver ${installed_driver:-unknown} is installed; this kanata needs $DRIVER_VERSION."
+        echo "   kanata cannot send output with a mismatched driver and runs without remapping."
+        echo "   Remove the installed driver, then re-run chezmoi apply:"
+        echo "     bash '/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/scripts/uninstall/deactivate_driver.sh'"
+        echo "     sudo bash '/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/scripts/uninstall/remove_files.sh'"
+        echo "     sudo killall Karabiner-VirtualHIDDevice-Daemon"
+        exit 1
+    fi
 fi
 
 # Check if kanata is running successfully
@@ -76,20 +91,12 @@ echo "🎹 Setting up Kanata..."
 # Step 1: Install Karabiner-DriverKit-VirtualHIDDevice if not present
 # =============================================================================
 if [[ "$NEEDS_DRIVER_INSTALL" == "true" ]]; then
-    echo "📦 Installing Karabiner-DriverKit-VirtualHIDDevice..."
+    echo "📦 Installing Karabiner-DriverKit-VirtualHIDDevice $DRIVER_VERSION..."
 
-    # Get latest release URL
-    DRIVER_URL=$(curl -s "https://api.github.com/repos/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/latest" \
-        | grep -o '"browser_download_url": "[^"]*\.pkg"' \
-        | cut -d'"' -f4)
-
-    if [[ -z "$DRIVER_URL" ]]; then
-        echo "❌ Failed to get driver download URL"
-        exit 1
-    fi
+    DRIVER_URL="https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/download/v${DRIVER_VERSION}/Karabiner-DriverKit-VirtualHIDDevice-${DRIVER_VERSION}.pkg"
 
     echo "   Downloading from: $DRIVER_URL"
-    curl -L -o /tmp/karabiner-driverkit.pkg "$DRIVER_URL"
+    curl -fL -o /tmp/karabiner-driverkit.pkg "$DRIVER_URL"
 
     echo "   Installing driver (requires sudo)..."
     sudo installer -pkg /tmp/karabiner-driverkit.pkg -target /
@@ -215,7 +222,7 @@ sleep 2
 create_plist "$MANAGER_PLIST" \
     "com.chezmoi.karabiner-vhid-manager" \
     "$DRIVER_MANAGER" \
-    "activate"
+    "forceActivate"
 
 load_service "$MANAGER_PLIST" "com.chezmoi.karabiner-vhid-manager"
 sleep 3
