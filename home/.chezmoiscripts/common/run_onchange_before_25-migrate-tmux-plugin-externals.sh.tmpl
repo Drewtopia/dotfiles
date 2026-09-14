@@ -1,0 +1,15 @@
+{{- if ne .chezmoi.os "windows" -}}
+#!/usr/bin/env bash
+# tpm and tmux-sensible moved from archive to git-repo externals. chezmoi runs
+# `git pull` on an existing target, so remove old archive copies (no .git)
+# before the update phase re-clones them.
+set -euo pipefail
+
+for plugin in tpm tmux-sensible; do
+    dir="$HOME/.config/tmux/plugins/$plugin"
+    if [[ -d "$dir" && ! -d "$dir/.git" ]]; then
+        echo "[tmux] removing archive copy of $plugin so chezmoi can clone it"
+        rm -rf "$dir"
+    fi
+done
+{{- end }}
