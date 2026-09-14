@@ -68,11 +68,12 @@ command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haik
 # firing pre-remove is what stops that accumulating.
 #
 # Skipped when a Claude session creates the worktree (EnterWorktree, Agent
-# isolation="worktree") or Orca runs the hooks as its setup script: Claude and
-# Orca already own the agent terminal, so a tmux claude would be an idle duplicate.
+# isolation="worktree") or from Orca: Claude and Orca already own the agent
+# terminal, so a tmux claude would be an idle duplicate. Orca's setup script env
+# carries ORCA_ROOT_PATH but not ORCA_WORKTREE_ID, which only its terminals set.
 [pre-start]
 tmux = """
-if [ -n "${CLAUDECODE:-}" ] || [ -n "${ORCA_WORKTREE_ID:-}" ]; then exit 0; fi
+if [ -n "${CLAUDECODE:-}" ] || [ -n "${ORCA_ROOT_PATH:-}" ] || [ -n "${ORCA_WORKTREE_ID:-}" ]; then exit 0; fi
 command -v tmux >/dev/null 2>&1 || exit 0
 S={{ branch | sanitize }}
 # tmux reads `.` in a target as the window.pane separator, so a dotted branch
