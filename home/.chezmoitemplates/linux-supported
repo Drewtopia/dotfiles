@@ -1,0 +1,8 @@
+{{- /* Renders "true" on a supported Linux: Debian/Raspbian 12+ or Ubuntu 22.04+.
+       A release without VERSION_ID (Debian testing/sid) counts as new enough. */ -}}
+{{- $versionID := get .chezmoi.osRelease "versionID" | toString -}}
+{{- $major := atoi (first (splitList "." $versionID)) -}}
+{{- $minimum := dict "linux-debian" 12 "linux-raspbian" 12 "linux-ubuntu" 22 -}}
+{{- if and (hasKey $minimum .osid) (or (eq $versionID "") (ge $major (get $minimum .osid))) -}}
+true
+{{- end -}}
