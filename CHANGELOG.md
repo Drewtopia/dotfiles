@@ -106,6 +106,8 @@ Notable changes, newest first. Generated from Conventional Commits by git-cliff.
 - **claude:** Sync settings.json on Windows via a run_onchange script
 - **mise:** Install tokei via cargo
 - **worktrunk:** Stop worktree hooks multiplying claude sessions
+- **worktrunk:** Skip tmux claude session when Orca runs the hooks
+- **git:** Let gh alone answer GitHub HTTPS logins
 
 ### Refactoring
 
