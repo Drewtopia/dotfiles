@@ -94,7 +94,7 @@ yt-dlp = "latest"
 {{ end -}}
 
 [env]
-GIT_CLIFF_TEMPLATES_DIR = "{{ joinPath .chezmoi.homeDir ".config" "git-cliff" "templates" }}"
+GIT_CLIFF_TEMPLATES_DIR = "{{ joinPath .chezmoi.homeDir ".config" "git-cliff" "templates" | replace .chezmoi.pathSeparator "/" }}"
 
 [settings]
 experimental = true
