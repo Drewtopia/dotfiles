@@ -2,8 +2,8 @@
 # `claude plugin marketplace add` reconciler.
 #
 # Consumed by run_onchange_after_55-add-claude-marketplaces.{sh,ps1}.tmpl,
-# which registers each marketplace (idempotent) — and since `marketplace add`
-# also refreshes an already-registered one, that loop is the refresh path too.
+# which registers each marketplace that is not registered yet. Refreshing
+# registered marketplaces is topgrade's claude_code_plugins step.
 #
 # .chezmoitemplates/claude-settings-merge renders extraKnownMarketplaces from
 # this table. dot_claude/modify_settings.json.tmpl includes it on Unix;
@@ -57,10 +57,6 @@ humanizer                 = "blader/humanizer"
 "claude-code-setup@claude-plugins-official"        = false
 "security-guidance@claude-plugins-official"        = true
 # Output shaping, not dev tooling — wanted on every machine.
-# Upstream tag 0.1.0 added a redundant "hooks": "./hooks/hooks.json" to its
-# manifest, which Claude Code rejects ("Duplicate hooks file detected") since
-# hooks/hooks.json is auto-loaded. Until that is fixed upstream, a fresh install
-# needs the key removed from the cached manifest to load.
 "i-have-adhd@i-have-adhd"                          = true
 # Retired Aug 2026 — output styles are a native setting now (settings.json
 # `outputStyle`); the plugins are superseded.
