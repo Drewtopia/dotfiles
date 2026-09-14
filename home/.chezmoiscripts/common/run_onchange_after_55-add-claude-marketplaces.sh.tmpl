@@ -1,3 +1,4 @@
+{{- if .dev_computer -}}
 #!/usr/bin/env bash
 # Reconcile Claude Code plugin marketplaces against .chezmoidata/claude.toml.
 # Registers each declared marketplace via `claude plugin marketplace add`,
@@ -26,5 +27,6 @@ fi
 {{- range $name, $repo := .marketplaces }}
 output=$(claude plugin marketplace add {{ $repo }} 2>&1) && \
   echo "✓ marketplace {{ $name }} registered" || \
-  echo "  marketplace {{ $name }} already registered (or add failed: ${output})"
+  echo "⚠️  marketplace {{ $name }}: add failed, continuing: ${output}" >&2
 {{- end }}
+{{ end -}}
