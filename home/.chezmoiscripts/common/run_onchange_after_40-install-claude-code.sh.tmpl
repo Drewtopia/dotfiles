@@ -1,3 +1,4 @@
+{{- if .dev_computer -}}
 #!/bin/bash
 
 set -eufo pipefail
@@ -13,7 +14,11 @@ echo "Ensuring Claude Code is installed/updated to ~/.local/bin/claude..."
 
 # macOS, Linux, WSL installation
 echo "Installing Claude Code for Unix-like systems..."
-curl -fsSL https://claude.ai/install.sh | bash
+if ! curl -fsSL https://claude.ai/install.sh | bash; then
+    echo "⚠️  Claude Code install failed; continuing the apply" >&2
+    echo "⚠️  Retry with: curl -fsSL https://claude.ai/install.sh | bash" >&2
+    exit 0
+fi
 
 # Ensure ~/.local/bin is in PATH for the current session
 export PATH="$HOME/.local/bin:$PATH"
@@ -26,7 +31,7 @@ if command -v claude >/dev/null 2>&1; then
     echo "Running installation health check..."
     claude doctor || echo "Doctor check completed with warnings"
 else
-    echo "Error: Claude Code installation failed or not found in PATH"
-    echo "Please ensure ~/.local/bin is in your PATH"
-    exit 1
+    echo "⚠️  Claude Code installed but not found in PATH; continuing the apply" >&2
+    echo "⚠️  Please ensure ~/.local/bin is in your PATH" >&2
 fi
+{{ end -}}
