@@ -16,8 +16,7 @@ Host *
 
 Host github.com
   User git
-  # Port 22 blocked by corporate firewall; also needed on Windows because
-  # work-WSL git routes SSH through ssh.exe, which reads the Windows config.
+  # Port 22 is blocked by the corporate firewall.
   Hostname ssh.github.com
   Port 443
 
