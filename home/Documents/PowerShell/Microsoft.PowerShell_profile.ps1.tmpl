@@ -135,7 +135,7 @@ if (Get-Command fnox -ErrorAction SilentlyContinue) {
 # Kanata toggles - manual on/off (used primarily on work machines where
 # auto-start is intentionally disabled to avoid Jump Desktop double-remap).
 # Personal machines also get these as a convenience alongside the
-# scheduled task.
+# Startup folder shortcut.
 # Probe the known scoop shim path directly rather than Get-Command: a
 # Get-Command miss triggers a full PATH scan (~400ms) across the large mise
 # shims and install dirs. kanata is installed via scoop (see
