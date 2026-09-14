@@ -13,7 +13,7 @@ set -eufo pipefail
     "gnupg"
     "kanata"
     "mas"
-    "pkg-config"
+    "pkgconf"
     "shellcheck"
     "tmux"
     "wget"
@@ -55,7 +55,6 @@ set -eufo pipefail
     "setapp"
     "spotify"
     "soundsource"
-    "glance-chamburr"
     "syntax-highlight"
     "tailscale-app"
     "telegram"
@@ -79,7 +78,6 @@ set -eufo pipefail
     "CloudMounter;1130254674"
     "Dato;1470584107"
     "Day Progress;6450280202"
-    "Fusion;6759285919"
     "Hyperduck;6444667067"
     "Just Press Record;1033342465"
     "Kagi Search;1622835804"
@@ -98,7 +96,7 @@ set -eufo pipefail
 
 echo "🍎 Installing system packages via Homebrew..."
 
-brew bundle --file=/dev/stdin <<EOF
+brew bundle --file=- <<EOF
 {{ range ($brews | sortAlpha | uniq) -}}
 brew "{{ . }}"
 {{ end -}}
@@ -110,13 +108,5 @@ cask "{{ . }}"
 mas "{{ index $m 0 }}", id: {{ index $m 1 }}
 {{ end -}}
 EOF
-
-# Remove quarantine flag from Quick Look plugins that need it
-for cask in glance-chamburr qlmarkdown; do
-    cask_dir="$(brew --caskroom)/$cask" 2>/dev/null
-    if [[ -d "$cask_dir" ]]; then
-        xattr -dr com.apple.quarantine "$cask_dir" 2>/dev/null || true
-    fi
-done
 
 echo "✅ Homebrew packages installed!"
