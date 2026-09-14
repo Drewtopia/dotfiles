@@ -122,18 +122,16 @@
     exact = true
     stripComponents = 1
 
+# git-repo, not archive: tpm treats a plugin dir without a git remote as not
+# installed and fails re-cloning it into the existing directory.
 [".config/tmux/plugins/tpm"]
-    type = "archive"
-    url = "https://github.com/tmux-plugins/tpm/archive/refs/heads/master.zip"
-    exact = true
-    stripComponents = 1
+    type = "git-repo"
+    url = "https://github.com/tmux-plugins/tpm.git"
     refreshPeriod = "168h"
 
 [".config/tmux/plugins/tmux-sensible"]
-    type = "archive"
-    url = "https://github.com/tmux-plugins/tmux-sensible/archive/refs/heads/master.zip"
-    exact = true
-    stripComponents = 1
+    type = "git-repo"
+    url = "https://github.com/tmux-plugins/tmux-sensible.git"
     refreshPeriod = "168h"
 
 # Zsh Plugin Manager
