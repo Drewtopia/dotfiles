@@ -19,8 +19,8 @@ zig = "latest"
 # mise ecosystem
 usage = "latest"
 fnox = "latest"
-# neovim via mise core backend (tracks GitHub releases directly, upgrades on `mise upgrade`)
-neovim = "latest"
+# Explicit aqua: the bare `neovim` shorthand resolves to a vfox plugin first.
+"aqua:neovim/neovim" = "latest"
 # chezmoi via mise so upgrades don't collide with a running chezmoi.exe the
 # way winget's reinstall-style upgrade does (lock error on the live binary).
 chezmoi = "latest"
@@ -69,7 +69,7 @@ atuin = "latest"
 
 # Preferred backends only: aqua (checksum-verified) or github. vfox/asdf are not
 # accepted for new tools. Rust CLIs use cargo only when they ship no prebuilt binaries.
-"github:iffse/pay-respects" = "latest"
+"aqua:iffse/pay-respects" = "latest"
 {{ if eq .chezmoi.os "darwin" -}}
 # NOTE: eza publishes no macOS binaries; aqua maps darwin to cargo-only, which its backend rejects.
 "cargo:eza" = "latest"
@@ -81,14 +81,17 @@ atuin = "latest"
 "cargo:tokei" = "latest"
 {{ end -}}
 
-{{ if ne .chezmoi.os "windows" -}}
-# Unix-only (no Windows binary)
+{{ if not (or (eq .chezmoi.os "windows") (and (eq .chezmoi.os "linux") (eq .chezmoi.arch "arm64"))) -}}
+# jless ships binaries for macOS and linux/amd64 only
 "aqua:PaulJuliusMartinez/jless" = "latest"
+{{ end -}}
+
+{{ if ne .chezmoi.os "windows" -}}
 # qmd — local search engine for markdown (BM25 + vector + LLM rerank).
 # Native deps (node-llama-cpp) build cleanly on macOS/Linux; deferring Windows.
 "npm:@tobilu/qmd" = "latest"
 # herdr — agent-aware terminal multiplexer (tmux-like; persists panes + resumes
-# Claude Code sessions across a reboot). Unix-only; Windows uses psmux (see tmux.conf).
+# Claude Code sessions across a reboot). Kept off Windows, which uses psmux (see tmux.conf).
 herdr = "latest"
 {{ end -}}
 
@@ -128,8 +131,4 @@ fetch_remote_versions_cache = '24h'
 hook_env.chpwd_only = true
 hook_env.cache_ttl = '5s'
 {{ end -}}
-
-[settings.node]
-gpg_verify = false
-
 {{- end }}

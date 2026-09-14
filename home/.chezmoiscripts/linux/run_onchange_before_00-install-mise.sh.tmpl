@@ -20,7 +20,7 @@ if ! command -v curl >/dev/null 2>&1; then
     exit 1
 fi
 
-curl https://mise.run | sh
+curl -fsSL https://mise.run | sh
 
 if ! command -v mise >/dev/null 2>&1; then
     # mise.run installs to ~/.local/bin which may not be on PATH yet
