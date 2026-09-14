@@ -66,8 +66,13 @@ command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haik
 # hook existed (`wt switch --create --execute=claude`). The difference is that it
 # now survives detaching, so worktrees left open keep a resident agent — `wtr`
 # firing pre-remove is what stops that accumulating.
+#
+# Skipped when a Claude session creates the worktree (EnterWorktree, Agent
+# isolation="worktree"): that session is already the agent, so a tmux session
+# would only add an idle duplicate claude. Claude sets CLAUDECODE in its env.
 [pre-start]
 tmux = """
+if [ -n "${CLAUDECODE:-}" ]; then exit 0; fi
 command -v tmux >/dev/null 2>&1 || exit 0
 S={{ branch | sanitize }}
 # tmux reads `.` in a target as the window.pane separator, so a dotted branch
