@@ -1,4 +1,4 @@
-{{- if .dev_computer -}}
+{{- if and .dev_computer (or (ne .chezmoi.os "linux") (includeTemplate "linux-supported" .)) -}}
 #!/bin/bash
 # run_onchange: re-fires only when the declared mise tool set changes.
 # mise config: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
@@ -46,7 +46,12 @@ if command -v mise >/dev/null 2>&1; then
         ln -sfn "$mise_dir/cache" "$HOME/.cache/mise"
     fi
 
-    mise install --yes
+    # mise still installs the other tools when one fails, then exits non-zero.
+    if ! mise install --yes; then
+        failed="$(mise ls --missing 2>/dev/null | awk '{printf "%s%s", sep, $1; sep=" "}')" || true
+        echo "⚠️  mise could not install: ${failed:-see errors above}" >&2
+        echo "⚠️  Continuing the apply; retry later with: mise install" >&2
+    fi
     mise prune --yes 2>/dev/null || true
 fi
 {{- end }}
