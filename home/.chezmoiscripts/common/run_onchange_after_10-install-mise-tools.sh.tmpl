@@ -8,7 +8,7 @@ set -eufo pipefail
 # Install mise if needed
 if ! command -v mise >/dev/null 2>&1; then
     echo "📦 Installing mise..."
-    curl https://mise.run | sh
+    curl -fsSL https://mise.run | sh
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
@@ -17,7 +17,6 @@ if command -v mise >/dev/null 2>&1; then
     if command -v gh >/dev/null 2>&1; then
         export GITHUB_TOKEN="$(gh auth token 2>/dev/null)" || true
     fi
-    mise trust --all 2>/dev/null || true
     echo "📦 Installing mise tools..."
     # Consolidate mise XDG dirs under ~/.mise before install
     # (avoids re-downloading tools already present at the old XDG location)
