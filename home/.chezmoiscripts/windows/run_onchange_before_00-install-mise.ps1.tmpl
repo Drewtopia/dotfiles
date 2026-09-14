@@ -41,8 +41,9 @@ if (Get-Command winget -ErrorAction SilentlyContinue) {
         New-Item -ItemType Directory -Force -Path $miseInstallRoot | Out-Null
     }
     Write-Host "[bootstrap] Installing mise via winget portable to $miseInstallRoot..." -ForegroundColor Blue
-    winget install jdx.mise `
+    winget install --id jdx.mise --exact --source winget `
         --location $miseInstallRoot `
+        --disable-interactivity `
         --accept-source-agreements `
         --accept-package-agreements
 {{- else }}
@@ -50,7 +51,8 @@ if (Get-Command winget -ErrorAction SilentlyContinue) {
     # No --location override needed; tools_root == home dir means there is
     # no special placement requirement.
     Write-Host "[bootstrap] Installing mise via winget portable (default location)..." -ForegroundColor Blue
-    winget install jdx.mise `
+    winget install --id jdx.mise --exact --source winget `
+        --disable-interactivity `
         --accept-source-agreements `
         --accept-package-agreements
 {{- end }}
@@ -67,11 +69,6 @@ if (Get-Command winget -ErrorAction SilentlyContinue) {
     }
 } else {
     Write-Host "[bootstrap] winget not available on PATH" -ForegroundColor Yellow
-}
-
-if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
-    Write-Host "[bootstrap] winget approach failed; falling back to https://mise.run installer..." -ForegroundColor Yellow
-    Invoke-RestMethod https://mise.run | Invoke-Expression
 }
 
 if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {

@@ -18,12 +18,12 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 # env, so a sibling script's PATH changes aren't visible without this).
 $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
 
-# mise is installed via scoop in run_onchange_before_10-install-scoop.ps1.tmpl
+# mise is installed via winget in windows/run_onchange_before_00-install-mise.ps1.tmpl
 if (Get-Command mise -ErrorAction SilentlyContinue) {
     if (Get-Command gh -ErrorAction SilentlyContinue) {
         $env:GITHUB_TOKEN = (gh auth token 2>$null)
     }
-    # Consolidate mise XDG dirs under $miseDir (see mise.jdx.dev/how-i-use-mise).
+    # Consolidate mise XDG dirs under $miseDir (see mise.jdx.dev/directories.html).
     # Matches the Unix sibling (run_after_10-install-mise-tools.sh.tmpl): symlink
     # data + state -> $miseDir, cache -> $miseDir/cache. Config stays at the
     # XDG path (chezmoi-managed via home/dot_config/mise/config.toml.tmpl).
