@@ -1,0 +1,68 @@
+# git-cliff house style. Start a repo with `git cliff --init drew`
+# (GIT_CLIFF_TEMPLATES_DIR points here), then add that repo's [remote.*] section.
+# git-cliff has no config inheritance: each repo's cliff.toml is a copy.
+
+[changelog]
+header = """
+# Changelog
+
+Notable changes, newest first. Generated from Conventional Commits by git-cliff.
+<!-- git-cliff: end of header -->
+"""
+header_marker = "<!-- git-cliff: end of header -->"
+body = """
+{%- macro pr_url(number) -%}
+  {%- if remote.github.owner -%}
+    https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ number }}
+  {%- elif remote.azure_devops.owner -%}
+    https://dev.azure.com/{{ remote.azure_devops.owner }}/_git/{{ remote.azure_devops.repo }}/pullrequest/{{ number }}
+  {%- endif -%}
+{%- endmacro -%}
+
+{% if version %}
+## {{ version | trim_start_matches(pat="v") }} - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}
+## Unreleased
+{% endif %}
+{% if message %}
+{{ message | trim }}
+{% endif %}
+{% for entry in commits | unique(attribute="message") | commit_groups(groups=commit_parsers_groups) %}
+### {{ entry.group }}
+
+{% for commit in entry.commits -%}
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
+{% if commit.breaking %}**BREAKING** {% endif %}\
+{{ commit.message | split(pat="\n") | first | upper_first | trim }}\
+{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}]({{ self::pr_url(number=commit.remote.pr_number) }})){% endif %}
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+format = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+protect_breaking_commits = true
+commit_parsers = [
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Fixes" },
+  { message = "^perf", group = "Performance" },
+  { message = "^refactor", group = "Refactoring" },
+  { message = "^doc", group = "Documentation" },
+  { message = "^revert", group = "Reverts" },
+  { message = "^(chore|build|ci|test|style)", group = "Maintenance" },
+  { message = ".*", group = "Other" },
+]
+filter_commits = false
+tag_pattern = "^v[0-9]"
+topo_order = false
+sort_commits = "oldest"
+
+[bump]
+features_always_bump_minor = true
+breaking_always_bump_major = true
+initial_tag = "0.1.0"
