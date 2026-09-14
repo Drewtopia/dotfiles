@@ -16,7 +16,8 @@ Either bootstrapper installs `chezmoi` if missing, then runs
 `chezmoi init --apply drewtopia`. The rest is handled by chezmoi scripts:
 
 - `run_onchange_before_00-install-mise` (Mac, Linux) — installs `mise`
-- `run_onchange_before_20-install-1password` (Mac, Linux) — installs `op`
+- `run_onchange_before_20-install-1password` (Linux) — installs `op`; macOS
+  gets it from the `1password-cli` Homebrew cask
 - `run_onchange_before_10-install-scoop` (Windows) — installs scoop, then
   mise + 1password-cli + other packages declared in `.chezmoidata/scoop.toml`
 - `run_*_after_*` scripts (all OSes) — mise tools, pnpm globals, Claude
