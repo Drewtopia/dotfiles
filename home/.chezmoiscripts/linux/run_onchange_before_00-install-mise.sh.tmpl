@@ -1,4 +1,4 @@
-{{- if eq .chezmoi.os "linux" -}}
+{{- if and (eq .chezmoi.os "linux") (not .ephemeral) (includeTemplate "linux-supported" .) -}}
 #!/usr/bin/env bash
 # Pre-flight bootstrap: ensure mise is installed before any downstream
 # script tries to use mise-managed tools. See the macOS sibling for the
