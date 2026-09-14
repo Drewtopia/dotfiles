@@ -2,6 +2,17 @@
 
 Drew's dotfiles, managed with [`chezmoi`](https://github.com/twpayne/chezmoi).
 
+## Supported machines
+
+- **Full:** macOS, Windows 11, WSL2 Ubuntu.
+- **Minimal:** Proxmox VE hosts and Debian/Ubuntu LXC containers get the OS
+  base packages and shell config, with no dev tools or secrets.
+- Anything else may work, with no promises.
+
+The Linux install scripts run only on Debian and Ubuntu (Debian 12+ /
+Ubuntu 22.04+). Which tool comes from apt, Homebrew, mise or a direct download
+is set out in [docs/reference/package-sources.md](docs/reference/package-sources.md).
+
 ## Fresh-machine bootstrap
 
 **macOS / Linux / WSL:**
@@ -16,10 +27,11 @@ Either bootstrapper installs `chezmoi` if missing, then runs
 `chezmoi init --apply drewtopia`. The rest is handled by chezmoi scripts:
 
 - `run_onchange_before_00-install-mise` (Mac, Linux) — installs `mise`
-- `run_onchange_before_20-install-1password` (Linux) — installs `op`; macOS
-  gets it from the `1password-cli` Homebrew cask
-- `run_onchange_before_10-install-scoop` (Windows) — installs scoop, then
-  mise + 1password-cli + other packages declared in `.chezmoidata/scoop.toml`
+- `run_onchange_before_20-install-1password` (Linux, not WSL) — installs `op`;
+  macOS gets it from the `1password-cli` Homebrew cask, and WSL uses a shim that
+  runs the Windows `op.exe`
+- `run_onchange_before_10-install-scoop` (Windows) — installs scoop, then the
+  packages declared in `.chezmoidata/scoop.toml`
 - `run_*_after_*` scripts (all OSes) — mise tools, pnpm globals, Claude
   Code, plugin marketplaces, agent skills
 

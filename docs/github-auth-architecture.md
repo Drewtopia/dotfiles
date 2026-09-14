@@ -78,7 +78,7 @@ export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password"
 
 **Current setup:** Not configured (was briefly added then removed — see Session Notes below).
 
-**When you'd need it:** Only if `chezmoi apply` hits GitHub rate limits from many externals using `gitHubLatestReleaseAssetURL`. Currently only `cue` and `nvim` use this on Linux, so rate limits are unlikely.
+**When you'd need it:** Only if `chezmoi apply` hits GitHub rate limits from many externals using `gitHubLatestReleaseAssetURL`. Currently only `cue` (Ubuntu) and the Maple Mono font archives (non-ephemeral Linux and Windows) use this, so rate limits are unlikely.
 
 **If added, should look like:**
 ```toml
