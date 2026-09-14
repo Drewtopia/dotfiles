@@ -181,10 +181,9 @@
 {{- end }}
 
 {{- if and .work .is_wsl }}
-# Route git SSH transport through Windows ssh.exe so it uses the 1Password
-# SSH agent on the Windows host (interop). Full path: appendWindowsPath=false.
-[core]
-	sshCommand = /mnt/c/Windows/System32/OpenSSH/ssh.exe
+# NOTE: git SSH transport uses native Linux ssh with the keys chezmoi writes to
+# ~/.ssh. Routing it through Windows ssh.exe failed every push and pull whenever
+# WSL interop dropped (UtilAcceptVsock accept4 failed 110).
 # Windows Git Credential Manager via interop (full path). Azure-specific settings
 # live in the shared dev.azure.com block above.
 [credential]
