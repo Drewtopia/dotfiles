@@ -44,6 +44,17 @@ When you create a new file under `tools/` or `domain/`, add a one-line entry to 
 
 **Reconcile the tracker** — on split-host projects (code on Azure, issues on GitHub) a merged PR does **not** auto-close its issue. Close them per [`_lib/closing-merged-issues.md`](../_lib/closing-merged-issues.md), reaching only as far as this session's branches (`merged-set.sh`). Skip silently if the project is single-host.
 
+### 3. Inventory what the session left behind
+
+List everything this session created, changed, or started — branches (local and remote), worktrees, PRs, issues, comments it wrote, files outside the repo, scratch dirs, processes, containers. Check each one **live** (remote, tracker, filesystem, `docker ps`), never from memory, and sort it:
+
+- **Landed** — merged, closed, released, verified on the remote.
+- **In flight** — waiting on review, CI, a pipeline, or a person; name who or what.
+- **Debris** — a branch after its merge, a leftover worktree, a temp file or container, a stale comment this session wrote.
+- **Out of scope** — a finding that deserves its own tracker issue. Draft the title and one-paragraph body now, while the context is live; file it on confirm.
+
+Report the sorted list with one proposed action per item and act only on what Drew confirms. Decisions go through step 1, not here. Worktree removal stays with Phase 2 step 5; branch deletion follows `deletion-safety`.
+
 ## Phase 2 — Housekeeping
 
 ### 1. Locate the project repo
@@ -127,10 +138,20 @@ Rename: [YYYY-MM-DD] <project-or-topic> — <what-was-done>
 
 `<what-was-done>` should be one short noun phrase, not a sentence (e.g. `built /close skill`, not `today I built the /close skill`).
 
-### 2. Print closing counter
+### 2. Print next-session prompt
+
+If anything is in flight or open, print on its own line, prefixed `Next:`, a prompt Drew can paste into a fresh session — the first action and the skill to call:
 
 ```
-<N> memory updates · <N> commits · <N> issues closed · worktree removed · SESSION_LOG updated
+Next: <skill or command> — <first action, naming the branch, PR, or issue>
+```
+
+Skip the line when nothing is left open.
+
+### 3. Print closing counter
+
+```
+<N> memory updates · <N> commits · <N> issues closed · <N> issues filed · worktree removed · SESSION_LOG updated
 ```
 
 If a step was skipped (e.g. no git repo, no merge to clean up), drop that segment from the line rather than printing `0`.
