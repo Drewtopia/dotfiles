@@ -43,6 +43,7 @@ chezmoi = "latest"
 "aqua:mikefarah/yq" = "latest"
 "aqua:alexpasmantier/television" = "latest"
 "aqua:biomejs/biome" = "latest"
+"aqua:orhun/git-cliff" = "latest"
 # moon: monorepo task runner. The global launcher proxies to each project's
 # pinned @moonrepo/cli version. Installed via mise so it lands in the whitelisted
 # dir and builds run on Windows without falling back to WSL.
@@ -91,6 +92,9 @@ herdr = "latest"
 yt-dlp = "latest"
 "aqua:schollz/croc" = "latest"
 {{ end -}}
+
+[env]
+GIT_CLIFF_TEMPLATES_DIR = "{{ joinPath .chezmoi.homeDir ".config" "git-cliff" "templates" | replace .chezmoi.pathSeparator "/" }}"
 
 [settings]
 experimental = true
