@@ -70,7 +70,12 @@ atuin = "latest"
 # Preferred backends only: aqua (checksum-verified) or github. vfox/asdf are not
 # accepted for new tools. Rust CLIs use cargo only when they ship no prebuilt binaries.
 "github:iffse/pay-respects" = "latest"
+{{ if eq .chezmoi.os "darwin" -}}
+# NOTE: eza publishes no macOS binaries; aqua maps darwin to cargo-only, which its backend rejects.
+"cargo:eza" = "latest"
+{{ else -}}
 "aqua:eza-community/eza" = "latest"
+{{ end -}}
 {{ if ne .chezmoi.os "windows" -}}
 # NOTE: tokei publishes no binaries after 12.1.2; aqua rejects later versions as cargo-only.
 "cargo:tokei" = "latest"
