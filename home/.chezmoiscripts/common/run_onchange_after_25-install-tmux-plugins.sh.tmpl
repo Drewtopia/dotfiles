@@ -1,0 +1,16 @@
+{{- if ne .chezmoi.os "windows" -}}
+#!/usr/bin/env bash
+# tpm only installs plugins on prefix+I; this installs the tmux.conf @plugin
+# list up front. Re-runs when tmux.conf changes.
+# tmux.conf hash: {{ include "dot_config/tmux/tmux.conf.tmpl" | sha256sum }}
+set -euo pipefail
+
+tpm_installer="$HOME/.config/tmux/plugins/tpm/bin/install_plugins"
+
+if ! command -v tmux >/dev/null 2>&1 || [[ ! -x "$tpm_installer" ]]; then
+    echo "[tmux] tmux or tpm not installed; skipping plugin install"
+    exit 0
+fi
+
+"$tpm_installer"
+{{- end }}
