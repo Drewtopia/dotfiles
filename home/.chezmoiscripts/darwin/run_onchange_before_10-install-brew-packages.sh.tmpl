@@ -97,6 +97,8 @@ set -eufo pipefail
 echo "🍎 Installing system packages via Homebrew..."
 
 brew bundle --file=- <<EOF
+tap "ognistik/formulae"
+brew "ognistik/formulae/macrowhisper", trusted: true
 {{ range ($brews | sortAlpha | uniq) -}}
 brew "{{ . }}"
 {{ end -}}
