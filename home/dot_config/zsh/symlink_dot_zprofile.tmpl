@@ -1,3 +1,5 @@
+{{- /* .zshenv sets ZDOTDIR, so zsh reads .zprofile from here. Same macOS-only
+       gate as dot_zprofile.tmpl, which renders empty on Linux. */ -}}
 {{- if eq .chezmoi.os "darwin" -}}
 {{ .chezmoi.homeDir }}/.zprofile
 {{- end -}}

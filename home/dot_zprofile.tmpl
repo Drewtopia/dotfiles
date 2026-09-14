@@ -1,3 +1,6 @@
+{{- /* macOS only: its /etc/zprofile runs path_helper after .zshenv. Debian and
+       Ubuntu (WSL included) ship an /etc/zsh/zprofile that runs nothing, so
+       .zshenv alone sets PATH there; Windows has no zsh. */ -}}
 {{- if eq .chezmoi.os "darwin" }}
 # Re-source .zshenv — macOS /etc/zprofile runs path_helper which reorders PATH,
 # pushing ~/.local/bin and /opt/homebrew/bin down. Re-sourcing restores priority.
