@@ -130,6 +130,16 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-derived-artifact.js\""
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(*git*)",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-commit-clear-nudge.js\""
+          }
+        ]
       }
     ],
     "Notification": [
