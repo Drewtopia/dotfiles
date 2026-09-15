@@ -9,7 +9,24 @@ Which skill, by where you are in the work. This file routes; it does not run the
 
 ## The loop these serve
 
-One issue → `wtc <branch>` (worktree, tmux session, claude) → work, commit, `/clear`, repeat → PR → `/close` → merge → `wtr <branch>`. A session is scratch; the issue, the commits, the PR and the SESSION_LOG `Next:` line carry the work, so clearing after a commit loses nothing.
+One issue → `wtc <branch>` (worktree, tmux session, claude) → work, committing each finished piece → PR → `/close` → merge → `wtr <branch>`. Commits save the code; the reasoning behind it lives only in the conversation until it is written into the issue. So keep one session while commits build on the same discussion, and `/clear` at a task boundary: after `/close`, or after posting the plan or progress to the issue.
+
+## Closing the loop
+
+Work stalls after the code is done: it waits on review, then nothing cleans up after the merge.
+
+**One number ties it together.** Carry the issue or work-item number through everything: issue `#42` → branch `feat/42-slug` → PR (`Closes #42` on GitHub; on Azure Repos, link the work item and name a GitHub tracker issue `GH-42`) → the `/close` session name `<project>-42-slug`. The agents view shows each session's PR and its status; `wt list` shows each worktree's PR and marks merged branches `⊂` or `_`.
+
+**What is waiting on review or merge:**
+
+```bash
+gh search prs --author @me --state open               # GitHub, every repo
+az repos pr list --creator <you> --status active      # Azure Repos, current project
+```
+
+`/close` colors those sessions `orange` (waiting on someone else) or `yellow` (waiting on you to merge).
+
+**After a merge:** `wtc` prints how many merged worktrees and branches can go; `wt step prune --dry-run` lists them, including squash merges. `/clean-workspace` removes them and clears finished cards. On a split-host project (code on Azure, issues on GitHub) a merge does not close the issue — run `/reconcile-tracker`.
 
 ## By stage
 
