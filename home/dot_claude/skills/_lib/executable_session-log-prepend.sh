@@ -4,7 +4,7 @@
 # hand-typed hostname is how the log ended up with two spellings of one machine.
 # Refuses on a missing title/summary/artifact: a placeholder entry is drift
 # with extra steps.
-#   session-log-prepend.sh --title T --summary S --artifact A [--log PATH]
+#   session-log-prepend.sh --title T --summary S --artifact A [--next N] [--log PATH]
 set -euo pipefail
 
 log="${HOME}/.claude/memory/SESSION_LOG.md"

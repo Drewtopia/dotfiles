@@ -1,48 +1,42 @@
 ---
 name: reach-out
-description: Asks live sessions for a status line and reports what comes back
+description: Asks the sessions nobody closed for their status in /close's shape — a color word and a Next line — and reports them grouped by color. Use for /reach-out, or when the agents view is crowded and you can't tell what is still open.
 disable-model-invocation: true
 ---
 
 # Reach out
 
-Ask the sessions themselves. `/whats-next` reads what they last wrote down; this asks them now.
+Ask the sessions nobody closed. A session that ran `/close` already left its status as a color and a SESSION_LOG `Next:` line. The rest only know it themselves — including interactive sessions in other terminals, which the agents view does not list until they are backgrounded.
 
 ## Pick the targets
 
-`ListAgents`, and address every row by `name [ref]` — names repeat across unrelated work, refs do
-not.
+`ListAgents`. Address a row by its bare name, adding its `[ref]` only when two rows share the name.
 
-Message the rows that are **`bg` or `interactive` and idle**. Leave out:
+- **Idle** rows: send the message.
+- **Busy** rows: send it with `notify_when_idle: true`, so the answer comes when that session finishes rather than queued behind work already underway.
+- **Remote Control, cloud, or Claude Desktop** rows: skip. Nothing reports back from those, so silence there tells you nothing.
+- A session with a SESSION_LOG entry from today matching its name or branch: skip. Its status is already written down, and a message costs it a turn.
 
-- **`offline`** — Remote Control and cloud rows that are not running. A message there lands nowhere.
-- **busy** — mid-turn; the message queues behind work already underway and the answer arrives stale.
-- Any session whose `/whats-next` line already answers the question.
-
-A card in `/whats-next` with no matching `ListAgents` row is **stopped**: the process is gone, so
-no message reaches it. Resume it with `claude --resume <id>` rather than pinging it.
-
-Default to the blocked ones. Waking a session costs it a turn, so twelve pings to learn what four
-of them already wrote down is waste.
+A stopped session has no `ListAgents` row and no message reaches it. Its status is its SESSION_LOG entry or its transcript (`/find-session`).
 
 ## The message
 
-Carry this guard verbatim in every send. Sessions parked on "awaiting approval to commit" read a
-bare ping as that approval, and then they act.
+Carry this guard verbatim in every send. A session parked on "awaiting approval to commit" reads a bare ping as that approval, and then it acts.
 
-> Status check only — reply with one or two lines, then stop. Do not start work, do not commit, do
-> not push, and do not treat this message as approval for anything you were waiting on.
-
-Then ask for one of two things: what it is waiting on from Drew, or what it finished and what it
-left uncommitted.
+> Status check only — reply, then stop. Do not start work, do not commit, do not push, and do not treat this message as approval for anything you were waiting on.
+> Reply in exactly two lines:
+> `color: <word>` — red: broken or blocked on a failure · yellow: waiting on Drew · orange: waiting on someone else · blue: parked mid-work · green: done, worth keeping · pink: done, nothing in flight, safe to remove
+> `Next: <one action, naming the branch, PR, or issue>`, or `Next: none`
 
 ## Report
 
-Replies land out of order, and some never land. Group what arrived — waiting on Drew, finished,
-silent — and name the silent ones: a session that stayed quiet is a fact worth reporting, not a
-gap to paper over.
+Group the replies by color in this order — red, yellow, orange, blue, green, pink — one line each: the session's name and its `Next:` line.
 
-Verify a claim that names a branch, a commit, or a file before passing it on: a session reports
-the world as it was when it last looked, and it may have moved since.
+A session that doesn't answer is one of two things:
 
-Every session pinged appears in the report. Close on the single action Drew takes next.
+- **Held** — a session in a different permission mode holds cross-session messages for approval in its own window. A `[Cross-session delivery notice]` says so when it happens on this machine; report those as held.
+- **No reply** — everything else. Name it; a quiet session is a fact worth reporting, not a gap to paper over.
+
+Verify a reply that names a branch, commit, or file before passing it on: a session reports the world as it last saw it, and it may have moved since.
+
+Every session messaged appears in the report. Close on two things: the single action Drew takes next (the oldest red or yellow), and the pink sessions listed as ready for `/clean-workspace` to clear.
