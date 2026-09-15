@@ -3,7 +3,7 @@
 
 Prints the way a human skims a session to remember it: what it was for (the
 first real prompt), and where it got to (the last prompt and the last reply).
-Feeds `claude-board`'s recap column; also useful on its own.
+Feeds `claude-log-session`'s SESSION_TAILS entries; also useful on its own.
 
   claude-tail <session-id>       # digest for one session, resolved from ~/.claude/projects
   claude-tail <path-to.jsonl>    # digest for a transcript file directly
