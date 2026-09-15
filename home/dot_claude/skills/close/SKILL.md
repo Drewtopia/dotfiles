@@ -1,124 +1,58 @@
 ---
 name: close
-description: Close out a session — memory updates, tracker reconcile, commits split by purpose, merged-worktree tidy, SESSION_LOG.md, session-leftover inventory, rename and color-status commands, next-session prompt. Use for /close, "close the session", "wrap up", "end session".
+description: Close out a session — quick by default (commit, notes, SESSION_LOG with a Next line, rename and color-status commands); full extras only when a merge, plan docs, or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
 disable-model-invocation: true
 ---
 
 # /close — session closeout
 
-Three phases. Run them in order. End with a counter line, then `/rename` and `/color` commands.
+Quick close runs every time and stays short: a heavy closeout is a closeout that gets skipped. Full extras run only when their trigger is present, or when invoked as `/close full`. End with a counter line, then `/rename` and `/color` commands.
 
-Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
+Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
-## Phase 1 — Retrospective
+## Quick close — every time
 
-### 1. Scan context
+### 1. Commit
 
-Read back through the session and account for **every** candidate in the five categories below —
-each one either written to a memory file or named out loud as skipped. Report the tally
-(`<N> found · <N> written · <N> skipped`) with a reason beside each skip. Saying "nothing else"
-silently is how a retrospective ends early; the skip has to be spoken.
+```bash
+git rev-parse --show-toplevel 2>/dev/null
+git status --short
+git diff --stat HEAD
+```
 
-- **Decisions** — choices made that shape future work (architectural, taxonomic, naming).
-- **Insights / inefficiencies** — patterns spotted, surprises, things slower than expected.
-- **Open tasks** — work named but not finished.
-- **References** — external URLs, doc paths, dashboards, channels worth remembering.
-- **Mistakes** — breakages or corrections this session not yet in the repo's `MISTAKES.md` → append them now (what happened / root cause / consequence / prevention, newest first).
+Not inside a git repo → skip to step 2. Clean tree → say so in one line and move on.
 
-Skip ephemeral debugging steps, retracted ideas, and anything already obvious from the diff.
+Dirty tree → read the full diff (`git diff HEAD`): hunks, not filenames.
 
-### 2. Update memory files
+- On `main`, `master`, or `develop`, cut a feature branch first — the `gate-commit-not-protected` hook hard-blocks commits there: `git checkout -b <type>/<topic>` (Conventional Branch name, e.g. `chore/session-closeout`).
+- Group hunks by **purpose**, not by file. A single file can span two commits; two files can belong to one. One logical change → one commit; don't manufacture splits.
+- For each group: state the paths/hunks and the commit message (English imperative, conventional-commit prefix when it fits), confirm with Drew, stage only those paths (`git add -p` when hunks in one file split), commit.
+- Do **not** push. Do **not** use `git add -A`.
 
-**Global memory** — `~/.claude/memory/` (the only memory destination; auto-memory is disabled)
+### 2. Notes — one pass
 
-| Content | Destination |
+Read back through the session once for what future work needs:
+
+- **Mistakes** — breakages or corrections not yet in the repo's `MISTAKES.md` → append them (what happened / root cause / consequence / prevention, newest first).
+- **Decisions, insights, references** worth keeping → the memory file that owns them (table below).
+- **Open tasks** → the `Next:` line (step 3) or a tracker issue, not memory.
+
+Skip ephemeral debugging steps, retracted ideas, and anything obvious from the diff. Nothing worth keeping is a valid result: say "no notes".
+
+| Content | Destination (`~/.claude/memory/`, the only memory destination; auto-memory is disabled) |
 |---|---|
 | Cross-project conventions, preferences, naming, workflow style | `general.md` (append) |
 | Tool configs, CLI patterns, workarounds for a specific tool | `tools/{tool}.md` (one file per tool) |
 | Domain knowledge for a product, area, or codebase | `domain/{topic}.md` |
 | Project-specific learnings | the project's own repo docs (see `projects.md`) |
 
-When you create a new file under `tools/` or `domain/`, add a one-line entry to `~/.claude/memory/memory.md` (the global index): a row with file path + description.
+A new file under `tools/` or `domain/` gets a one-line row (file path + description) in `~/.claude/memory/memory.md`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
-**Live state** — memory holds durable shapes and gotchas. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
+### 3. Rename and color
 
-**Reconcile the tracker** — on split-host projects (code on Azure, issues on GitHub) a merged PR does **not** auto-close its issue. Close them per [`_lib/closing-merged-issues.md`](../_lib/closing-merged-issues.md), reaching only as far as this session's branches (`merged-set.sh`). Skip silently if the project is single-host.
+Run any full-close extras that apply (below) before this step, so their outcome shapes the status and the `Next:` line.
 
-## Phase 2 — Housekeeping
-
-### 1. Locate the project repo
-
-```bash
-git rev-parse --show-toplevel 2>/dev/null
-```
-
-If not inside a git repo, skip the rest of Phase 2 and go to Phase 3 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
-
-### 2. Inspect changes
-
-```bash
-git status --short
-git diff --stat HEAD
-git diff HEAD
-```
-
-Read the full diff. Don't just look at filenames — read hunks.
-
-### 3. Get off protected branches
-
-If HEAD is on `main`, `master`, or `develop`, cut a feature branch before committing — the `gate-commit-not-protected` hook hard-blocks commits there:
-
-```bash
-git checkout -b <type>/<topic>   # Conventional Branch name, e.g. chore/session-closeout
-```
-
-### 4. Split the diff into logical commits
-
-Group hunks by **purpose**, not by file. A single file can span two commits; two files can belong to the same commit.
-
-For each proposed group:
-
-1. State the group: which paths/hunks, and the commit message (English imperative, conventional-commit prefix when it fits — `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`).
-2. Ask Drew to confirm before staging.
-3. On confirm: stage only the relevant paths. If hunks within a file split across commits, use `git add -p` and select.
-4. Commit.
-
-Do **not** push. Do **not** use `git add -A`.
-
-If the diff is genuinely one logical change, propose a single commit — don't manufacture splits.
-
-### 5. Post-merge cleanup (only if this branch's PR has already merged)
-
-The normal closeout case is a WIP/unmerged branch — **skip this whole step** for that. Only when the branch you're closing out has already merged (its Azure PR is `Completed`, or the `GH-N` issue's PR shows merged):
-
-1. **Confirm the merge — don't infer it.** Check the PR state (`az repos pr list`) or ask Drew. worktrunk has no post-merge hook, and an Azure-UI merge never fires one, so nothing has cleaned up locally.
-2. Ensure the `GH-N` issue is closed (Phase 1 reconcile already does this).
-3. Verify `git status` is clean and **confirm with Drew** — a worktree with uncommitted changes is never removed. Then hand the removal to `clean-workspace`'s worktree step, which owns it for every caller: its dirty-tree refusal and no-`wt` fallback apply to this single branch exactly as they do to a bulk prune.
-
-### 6. Plan/design sweep (documentation-policy lifecycle)
-
-Implementation plans and completed design docs do not survive task closure. List `.claude/tasks/*.md` and any design docs belonging to work closed this session. For each: fold durable outcomes into CHANGELOG/ADR/execution summary first, then propose deletion and confirm per file. Plans for still-open work stay untouched.
-
-### 7. SESSION_LOG.md (cross-device)
-
-The SESSION_LOG entry is written in **Phase 3 §4**, once the leftovers inventory (§1) and the `Next:` line (§3) are known — the entry carries that `Next:` line so the reckoning board and the next session can read it. The file lives in the vault; after writing it, `cvault apply` pushes it so entries reach all of Drew's machines.
-
-## Phase 3 — Close
-
-### 1. Inventory what the session left behind
-
-Runs after Phase 2 so its commits and cleanup show up. List everything this session created, changed, or started — branches (local and remote), worktrees, PRs, issues, comments it wrote, files outside the repo, scratch dirs, processes, containers. Check each one **live** (remote, tracker, filesystem, `docker ps`), never from memory, and sort it:
-
-- **Landed** — merged, closed, released, verified on the remote.
-- **In flight** — waiting on review, CI, a pipeline, or a person; name who or what.
-- **Debris** — a branch after its merge, a leftover worktree, a temp file or container, a stale comment this session wrote.
-- **Out of scope** — a finding that deserves its own tracker issue. Draft the title and one-paragraph body now, while the context is live; file it on confirm.
-
-Report the sorted list with one proposed action per item and act only on what Drew confirms. Decisions go through Phase 1 step 1, not here. Worktree removal goes to `clean-workspace`'s worktree step; branch deletion follows the `deletion-safety` rule.
-
-### 2. Compose the rename and color commands
-
-Compose two commands from the §1 inventory. Drew pastes them at the prompt; the agent cannot run slash commands itself. They are printed as the report's last two lines, after the §5 counter, so they are not lost mid-report:
+Decide the session's name and color now: the SESSION_LOG entry in step 4 records both. Compose them as two commands. Drew pastes them at the prompt; the agent cannot run slash commands itself. They are the report's last two lines, after the counter, so they are not lost mid-report:
 
 ```
 /rename <project>-<ticket-or-pr>-<topic>
@@ -138,11 +72,11 @@ Compose two commands from the §1 inventory. Drew pastes them at the prompt; the
 | `green` | done, kept — reference material or a likely follow-up |
 | `pink` | done and closed out — nothing in flight, safe to remove |
 
-Nothing open defaults to `pink`; use `green` only when the session holds context worth returning to or Drew asks to keep it. `purple` and `cyan` stay unassigned.
+Nothing open defaults to `pink`; use `green` only when the session holds context worth returning to or Drew asks to keep it. `purple` and `cyan` stay unassigned. A `pink` session's card is what `/clean-workspace` clears, which keeps the agents view short.
 
-### 3. Print next-session prompt
+### 4. Next line and SESSION_LOG
 
-If anything is in flight or open, print on its own line, prefixed `Next:`, a prompt Drew can paste into a fresh session — the first action and the skill to call:
+If anything is in flight or open, print on its own line a prompt Drew can paste into a fresh session — the first action and the skill to call:
 
 ```
 Next: <skill or command> — <first action, naming the branch, PR, or issue>
@@ -150,33 +84,71 @@ Next: <skill or command> — <first action, naming the branch, PR, or issue>
 
 Skip the line when nothing is left open.
 
-### 4. Write SESSION_LOG.md
-
-Now prepend the entry — the leftovers (§1) and the `Next:` line (§3) are known. The helper owns the format, derives date/machine/project, and refuses an empty required field:
+Prepend the SESSION_LOG entry. The helper owns the format, derives date, machine, project and branch, writes the `Next: ` prefix itself, and refuses an empty required field or an unknown color:
 
 ```bash
 bash ~/.claude/skills/_lib/session-log-prepend.sh \
   --title "<title>" \
   --summary "<1–2 sentences on what got done and why it mattered>" \
   --artifact "<path, PR link, or skill name>" \
-  --next "<the §3 Next: line>"
+  --next "<the Next line's text, without the Next: prefix>" \
+  --name "<the /rename name from step 3>" \
+  --color "<the /color word from step 3>"
 ```
 
-Pass `--next` with the §3 line so the entry carries it; omit `--next` when §3 was skipped. Creates `SESSION_LOG.md` if absent. Then `cvault apply` to push it.
+Omit `--next` when there is no Next line. Run it from the repo or worktree the session worked in, so the derived branch is the right one. Creates `SESSION_LOG.md` if absent. Then `cvault apply` to push it.
 
-### 5. Print closing counter
+## Full close — only when triggered
+
+Run each extra whose trigger is present. `/close full` runs all of them.
+
+| Trigger | Extra |
+|---|---|
+| Split-host project (code on Azure, issues on GitHub) and a branch this session worked on has merged | Tracker reconcile |
+| The branch being closed has merged | Worktree tidy |
+| `.claude/tasks/*.md` or design docs belong to work closed this session | Plan sweep |
+| The session made things outside this repo — remote branches, other repos, containers, processes, scratch dirs, comments, files | Leftovers inventory |
+
+### Tracker reconcile
+
+A merged PR does **not** auto-close its issue on a split-host project. Close them per [`_lib/closing-merged-issues.md`](../_lib/closing-merged-issues.md). `merged-set.sh` lists every merged or `[gone]` branch in the repo, so keep only the branches this session worked on. Skip silently on a single-host project, where `Closes #N` already closes the issue.
+
+### Worktree tidy
+
+The normal closeout case is a WIP/unmerged branch — skip this. Only when the branch you're closing out has merged (its Azure PR is `Completed`, or the `GH-N` issue's PR shows merged):
+
+1. **Confirm the merge — don't infer it.** Check the PR state (`az repos pr list`, `gh pr view`) or ask Drew. worktrunk has no post-merge hook, and an Azure-UI merge never fires one, so nothing has cleaned up locally.
+2. Ensure the `GH-N` issue is closed (tracker reconcile does this on split-host projects).
+3. Verify `git status` is clean and **confirm with Drew** — a worktree with uncommitted changes is never removed. Then hand the removal to `clean-workspace`'s worktree step, which owns it for every caller: its dirty-tree refusal and no-`wt` fallback apply to this single branch exactly as they do to a bulk prune.
+
+### Plan sweep
+
+Implementation plans and completed design docs do not survive task closure (documentation-policy lifecycle). List `.claude/tasks/*.md` and any design docs belonging to work closed this session. For each: fold durable outcomes into CHANGELOG/ADR/execution summary first, then propose deletion and confirm per file. Plans for still-open work stay untouched.
+
+### Leftovers inventory
+
+List everything this session created, changed, or started outside the commits — branches (local and remote), worktrees, PRs, issues, comments it wrote, files outside the repo, scratch dirs, processes, containers. Check each one **live** (remote, tracker, filesystem, `docker ps`), never from memory, and sort it:
+
+- **Landed** — merged, closed, released, verified on the remote.
+- **In flight** — waiting on review, CI, a pipeline, or a person; name who or what.
+- **Debris** — a branch after its merge, a leftover worktree, a temp file or container, a stale comment this session wrote.
+- **Out of scope** — a finding that deserves its own tracker issue. Draft the title and one-paragraph body now, while the context is live; file it on confirm.
+
+Report the sorted list with one proposed action per item and act only on what Drew confirms. Worktree removal goes to `clean-workspace`'s worktree step; branch deletion follows the `deletion-safety` rule.
+
+## Report
+
+Print the counter:
 
 ```
 <N> memory updates · <N> commits · <N> issues closed · <N> issues filed · worktree removed · SESSION_LOG updated
 ```
 
-If a step was skipped (e.g. no git repo, no merge to clean up), drop that segment from the line rather than printing `0`.
-
-Then print the §2 `/rename` and `/color` commands as the last two lines of the report, each on its own line, with nothing after them.
+Drop any segment whose step didn't run rather than printing `0`. Then the `/rename` and `/color` commands as the last two lines, each on its own line, with nothing after them.
 
 ## Self-check before reporting done
 
 - Every new memory file has a one-line pointer in `memory.md`.
 - Counter line reflects actual counts, not aspirational ones.
-- Governance unlock cleared: `~/.claude/governance-unlock/` is empty or stale.
+- If this session unlocked governance: `~/.claude/governance-unlock/` is empty or stale.
 - If the session touched vault or chezmoi source: both repos clean and pushed.

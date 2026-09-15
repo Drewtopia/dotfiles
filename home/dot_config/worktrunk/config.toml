@@ -110,6 +110,18 @@ echo "   Build on one of those, or Ctrl-C to abort this new '$B' worktree. (Warn
 exit 0
 """
 
+# Nothing prompts cleanup after a merge, so report merged worktrees and branches
+# when new work starts. Report only — removal stays with /clean-workspace.
+# Skipped under Claude, where mid-task worktrees would only add noise.
+merged-report = """
+if [ -n "${CLAUDECODE:-}" ]; then exit 0; fi
+R=$(wt step prune --dry-run 2>&1 || true)
+N=$(printf '%s\\n' "$R" | grep -c ' — ' || true)
+[ "$N" -gt 0 ] || exit 0
+echo "🧹 $N merged worktrees or branches can go — preview: wt step prune --dry-run · remove: /clean-workspace"
+exit 0
+"""
+
 # Tear the session down with its worktree. Without this, sessions outlive the
 # worktrees they were named for and accumulate like any other unreaped process.
 [pre-remove]
