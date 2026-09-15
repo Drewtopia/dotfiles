@@ -48,33 +48,11 @@ Skip ephemeral debugging steps, retracted ideas, and anything obvious from the d
 
 A new file under `tools/` or `domain/` gets a one-line row (file path + description) in `~/.claude/memory/memory.md`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
-### 3. Next line and SESSION_LOG
+### 3. Rename and color
 
-Run any full-close extras that apply (below) before this step, so their outcome lands in the `Next:` line.
+Run any full-close extras that apply (below) before this step, so their outcome shapes the status and the `Next:` line.
 
-If anything is in flight or open, print on its own line a prompt Drew can paste into a fresh session — the first action and the skill to call:
-
-```
-Next: <skill or command> — <first action, naming the branch, PR, or issue>
-```
-
-Skip the line when nothing is left open.
-
-Prepend the SESSION_LOG entry. The helper owns the format, derives date/machine/project, writes the `Next: ` prefix itself, and refuses an empty required field:
-
-```bash
-bash ~/.claude/skills/_lib/session-log-prepend.sh \
-  --title "<title>" \
-  --summary "<1–2 sentences on what got done and why it mattered>" \
-  --artifact "<path, PR link, or skill name>" \
-  --next "<the Next line's text, without the Next: prefix>"
-```
-
-Omit `--next` when there is no Next line. Creates `SESSION_LOG.md` if absent. Then `cvault apply` to push it.
-
-### 4. Rename and color
-
-Compose two commands. Drew pastes them at the prompt; the agent cannot run slash commands itself. They are the report's last two lines, after the counter, so they are not lost mid-report:
+Decide the session's name and color now: the SESSION_LOG entry in step 4 records both. Compose them as two commands. Drew pastes them at the prompt; the agent cannot run slash commands itself. They are the report's last two lines, after the counter, so they are not lost mid-report:
 
 ```
 /rename <project>-<ticket-or-pr>-<topic>
@@ -95,6 +73,30 @@ Compose two commands. Drew pastes them at the prompt; the agent cannot run slash
 | `pink` | done and closed out — nothing in flight, safe to remove |
 
 Nothing open defaults to `pink`; use `green` only when the session holds context worth returning to or Drew asks to keep it. `purple` and `cyan` stay unassigned. A `pink` session's card is what `/clean-workspace` clears, which keeps the agents view short.
+
+### 4. Next line and SESSION_LOG
+
+If anything is in flight or open, print on its own line a prompt Drew can paste into a fresh session — the first action and the skill to call:
+
+```
+Next: <skill or command> — <first action, naming the branch, PR, or issue>
+```
+
+Skip the line when nothing is left open.
+
+Prepend the SESSION_LOG entry. The helper owns the format, derives date, machine, project and branch, writes the `Next: ` prefix itself, and refuses an empty required field or an unknown color:
+
+```bash
+bash ~/.claude/skills/_lib/session-log-prepend.sh \
+  --title "<title>" \
+  --summary "<1–2 sentences on what got done and why it mattered>" \
+  --artifact "<path, PR link, or skill name>" \
+  --next "<the Next line's text, without the Next: prefix>" \
+  --name "<the /rename name from step 3>" \
+  --color "<the /color word from step 3>"
+```
+
+Omit `--next` when there is no Next line. Run it from the repo or worktree the session worked in, so the derived branch is the right one. Creates `SESSION_LOG.md` if absent. Then `cvault apply` to push it.
 
 ## Full close — only when triggered
 
