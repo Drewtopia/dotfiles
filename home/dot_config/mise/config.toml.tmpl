@@ -55,6 +55,9 @@ chezmoi = "latest"
 
 # npm-backed CLI tools (pure JS, cross-platform)
 "npm:defuddle" = "latest"
+# Pinned, not "latest": the Claude Code status line runs it on every repaint, so
+# it must resolve to an installed binary rather than a registry lookup.
+"npm:ccstatusline" = "2.2.29"
 
 # pipx-backed CLI tools (pure Python, cross-platform)
 # commit-check: policy engine for Conventional Commits + Conventional Branch +
