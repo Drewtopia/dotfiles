@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""claude-tail — the point and latest activity of a Claude Code session.
+
+Prints the way a human skims a session to remember it: what it was for (the
+first real prompt), and where it got to (the last prompt and the last reply).
+Feeds `claude-board`'s recap column; also useful on its own.
+
+  claude-tail <session-id>       # digest for one session, resolved from ~/.claude/projects
+  claude-tail <path-to.jsonl>    # digest for a transcript file directly
+
+Output is three labelled lines (POINT / LAST-USER / LAST-ASSISTANT); missing
+fields are dropped. Read-only — it never writes to a session.
+"""
+import glob
+import json
+import os
+import sys
+
+PROJECTS = os.path.expanduser("~/.claude/projects")
+POINT_CAP = 240
+STATUS_CAP = 400
+
+
+def resolve(arg):
+    """A path, or a session id to locate under ~/.claude/projects/*/."""
+    if os.path.isfile(arg):
+        return arg
+    hits = glob.glob(os.path.join(PROJECTS, "*", f"{arg}*.jsonl"))
+    return hits[0] if hits else None
+
+
+def text_of(rec):
+    """User/assistant text from a transcript record, or '' for tool-only turns."""
+    msg = rec.get("message") or {}
+    content = msg.get("content")
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts = [b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"]
+        return " ".join(p.strip() for p in parts if p.strip())
+    return ""
+
+
+def is_noise(text):
+    """Hook/system-reminder wrappers and command scaffolding, not a real prompt."""
+    if not text:
+        return True
+    head = text.lstrip()
+    return head.startswith("<") or head.startswith("Caveman") or "system-reminder" in head[:40]
+
+
+def digest(path):
+    first_user = last_user = last_asst = ""
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            t = rec.get("type")
+            if t == "user":
+                txt = text_of(rec)
+                if is_noise(txt):
+                    continue
+                if not first_user:
+                    first_user = txt
+                last_user = txt
+            elif t == "assistant":
+                txt = text_of(rec)
+                if txt:
+                    last_asst = txt
+    return first_user, last_user, last_asst
+
+
+def clip(text, cap):
+    text = " ".join(text.split())
+    return text if len(text) <= cap else text[: cap - 1] + "…"
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit("usage: claude-tail <session-id | path-to.jsonl>")
+    path = resolve(sys.argv[1])
+    if not path:
+        sys.exit(f"claude-tail: no transcript found for '{sys.argv[1]}'")
+    first_user, last_user, last_asst = digest(path)
+    lines = []
+    if first_user:
+        lines.append(f"POINT: {clip(first_user, POINT_CAP)}")
+    if last_user and last_user != first_user:
+        lines.append(f"LAST-USER: {clip(last_user, STATUS_CAP)}")
+    if last_asst:
+        lines.append(f"LAST-ASSISTANT: {clip(last_asst, STATUS_CAP)}")
+    if not lines:
+        sys.exit("claude-tail: transcript had no readable prompts")
+    print("\n".join(lines))
+
+
+if __name__ == "__main__":
+    main()
