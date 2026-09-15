@@ -133,7 +133,7 @@ The `aqua:` backend is preferred when the tool exists in the aqua registry. Fall
 2. **aqua backend preferred** — checksum verification, Windows support, curated registry
 3. **Keep brew for GUI apps and macOS system deps** — mise can't replace casks
 4. **Keep apt for Linux system packages** — needed before mise exists
-5. **Keep scoop for Windows fonts and neovim** — mise doesn't handle fonts
+5. **Keep scoop for Windows fonts** — mise doesn't handle fonts
 6. **Test each phase** before proceeding to the next
 7. **Set GITHUB_TOKEN** during `mise install` to avoid API rate limits
 
@@ -144,7 +144,6 @@ The `aqua:` backend is preferred when the tool exists in the aqua registry. Fall
 | git, curl, wget | System-level, needed before mise exists |
 | gnupg, git-lfs, xz | System dependencies |
 | tmux, zsh, shellcheck | Unix-only, need system libraries |
-| neovim | AppImage on Linux, Scoop on Windows — platform quirks |
 | ffmpeg, pkg-config | Build dependencies |
 | All brew casks | GUI apps — mise doesn't manage these |
 | All apt core packages | System packages on Linux servers |
@@ -248,7 +247,7 @@ Remove the standalone curl installs for zoxide (line 62-63).
 age, age-keygen, croc, eza, gdu, glow, golangci-lint, jless, delta, lazygit, yt-dlp, jj, carapace
 ```
 
-Keep: `cue` (not moving to mise), `nvim` (platform quirks), `uv` (already in mise but Linux external is a fallback)
+Keep: `cue` (not moving to mise). neovim comes from mise (`aqua:neovim/neovim`), not an external.
 
 ### Verification
 
@@ -359,7 +358,7 @@ Phase 2 is the natural time to refactor path management, since shell loading is 
 
 1. **chezmoi externals** (`home/.chezmoiexternal.toml.tmpl`):
    - Remove all `[".local/bin/<tool>"]` entries for tools now in mise
-   - Keep: oh-my-zsh, powerlevel10k, zinit, tmux plugins, claude skills, fonts, cue, nvim
+   - Keep: oh-my-zsh, powerlevel10k, zinit, tmux plugins, claude skills, fonts, cue
 
 2. **Linux apt packages** — Consider removing `age` from apt list (now in mise)
 

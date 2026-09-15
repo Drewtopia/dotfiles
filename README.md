@@ -2,6 +2,13 @@
 
 Drew's dotfiles, managed with [`chezmoi`](https://github.com/twpayne/chezmoi).
 
+## Supported machines
+
+Full setup on macOS, Windows 11 and WSL2 Ubuntu; a minimal shell-only setup on
+Proxmox VE hosts and Debian/Ubuntu LXC containers. Machine tiers, supported
+Linux versions and where each tool comes from are in
+[docs/reference/package-sources.md](docs/reference/package-sources.md).
+
 ## Fresh-machine bootstrap
 
 **macOS / Linux / WSL:**
@@ -16,8 +23,9 @@ Either bootstrapper installs `chezmoi` if missing, then runs
 `chezmoi init --apply drewtopia`. The rest is handled by chezmoi scripts:
 
 - `run_onchange_before_00-install-mise` (Mac, Linux) — installs `mise`
-- `run_onchange_before_20-install-1password` (Linux) — installs `op`; macOS
-  gets it from the `1password-cli` Homebrew cask
+- `run_onchange_before_20-install-1password` (Linux, not WSL) — installs `op`;
+  macOS gets it from the `1password-cli` Homebrew cask, and WSL uses a shim that
+  runs the Windows `op.exe`
 - `run_onchange_before_00-install-mise` (Windows) — installs `mise` via winget
 - `run_onchange_before_08-install-winget-pkgs` and
   `run_onchange_before_10-install-scoop` (Windows) — install the packages
