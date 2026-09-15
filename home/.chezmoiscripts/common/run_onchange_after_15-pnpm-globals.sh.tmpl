@@ -14,11 +14,11 @@ desired=(
     '{{ . }}'
 {{- end }}
 )
-# `pnpm self-update` installs pnpm itself as a global; removing it as an extra
-# would uninstall the pnpm binary this script is running.
-protected=('@pnpm/exe' 'pnpm')
 
-if ! command -v pnpm >/dev/null 2>&1; then
+# mise owns pnpm. Resolve its binary before PNPM_HOME/bin joins PATH, so removing
+# a leftover self-installed pnpm global never runs through the shim being removed.
+pnpm_cmd="$(mise which pnpm 2>/dev/null || command -v pnpm || true)"
+if [ -z "$pnpm_cmd" ]; then
     echo "[pnpm-globals] pnpm not on PATH; skipping"
     exit 0
 fi
@@ -35,7 +35,7 @@ fi
 
 # v11 returns [{path, dependencies: {<name>: {version, ...}}}]. jq pulls names.
 actual=()
-if list_json=$(pnpm list -g --json --depth=0 2>/dev/null) && [ -n "$list_json" ]; then
+if list_json=$("$pnpm_cmd" list -g --json --depth=0 2>/dev/null) && [ -n "$list_json" ]; then
     while IFS= read -r name; do
         [ -n "$name" ] && actual+=("$name")
     done < <(echo "$list_json" | jq -r '.[].dependencies // {} | keys[]' 2>/dev/null)
@@ -54,7 +54,7 @@ done
 if [ ${#actual[@]} -gt 0 ]; then
     for a in "${actual[@]}"; do
         found=false
-        for d in "${desired[@]}" "${protected[@]}"; do [ "$d" = "$a" ] && found=true && break; done
+        for d in "${desired[@]}"; do [ "$d" = "$a" ] && found=true && break; done
         $found || extras+=("$a")
     done
 fi
@@ -71,12 +71,12 @@ echo "[pnpm-globals] reconciling - ${reasons[*]}"
 
 # v11: each space-separated package in `add -g` gets its own isolated install.
 if [ ${#extras[@]} -gt 0 ]; then
-    pnpm remove -g "${extras[@]}"
+    "$pnpm_cmd" remove -g "${extras[@]}"
 fi
 if [ ${#missing[@]} -gt 0 ]; then
     specs=()
     for d in "${missing[@]}"; do specs+=("${d}@latest"); done
-    pnpm add -g "${specs[@]}"
+    "$pnpm_cmd" add -g "${specs[@]}"
 fi
 {{- end }}
 {{- end }}
