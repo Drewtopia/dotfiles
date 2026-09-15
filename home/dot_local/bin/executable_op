@@ -17,20 +17,36 @@
 # Commands that need vault data authenticate transparently.
 set -euo pipefail
 
-# Resolved at chezmoi render time; the WinGet hash suffix is wildcarded so a
-# CLI version bump does not invalidate the path.
-OP_EXE="{{ glob (printf "/mnt/c/Users/%s/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe" .chezmoi.username) | first }}"
+CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/op-shim/op-exe-path"
 
-# WinGet can relocate the package on reinstall. Re-resolve rather than fail.
-# The Windows profile is capitalised (AndrewCl) where the Linux user is not;
-# this matches because /mnt/c is mounted case-insensitively.
+# The Windows profile need not match the Linux username, so ask Windows for
+# %LOCALAPPDATA%. cmd.exe is off PATH (appendWindowsPath=false) and runs from
+# /mnt/c because it warns about a Linux (UNC) cwd.
+find_op_exe() {
+    local localappdata f
+    localappdata=$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /d /c 'echo %LOCALAPPDATA%' 2>/dev/null) || return 0
+    localappdata=$(wslpath -u "${localappdata%$'\r'}") || return 0
+    for f in "$localappdata"/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe; do
+        [ -f "$f" ] && { printf '%s\n' "$f"; return 0; }
+    done
+    return 0
+}
+
+OP_EXE=""
+read -r OP_EXE 2>/dev/null < "$CACHE_FILE" || true
+
+# WinGet relocates the package on upgrade or reinstall. Re-resolve rather than fail.
 if [ -z "$OP_EXE" ] || [ ! -f "$OP_EXE" ]; then
-    OP_EXE=$(ls -1 /mnt/c/Users/"$(id -un)"/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe 2>/dev/null | head -n1 || true)
+    OP_EXE=$(find_op_exe)
+    if [ -n "$OP_EXE" ]; then
+        mkdir -p "${CACHE_FILE%/*}"
+        printf '%s\n' "$OP_EXE" > "$CACHE_FILE"
+    fi
 fi
 
 if [ -z "$OP_EXE" ]; then
     echo "op: 1Password CLI for Windows not found." >&2
-    echo "    Install it on the Windows host:  winget install 1Password.CLI" >&2
+    echo "    Install it on the Windows host:  winget install AgileBits.1Password.CLI" >&2
     echo "    The Linux op cannot reach 1Password for Windows." >&2
     exit 127
 fi

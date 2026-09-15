@@ -4,7 +4,14 @@
 # Every item below is named the same in Private and Employee and keeps its
 # secret in a `token` field, so .opVault selects the machine class and no
 # export needs a .work branch.
-{{ if not .ephemeral -}}
+{{/* No op on PATH on a first apply: render nothing, and the next apply fills the
+     exports in. Once rendered, a missing op fails the apply rather than blanking
+     working secrets (e.g. chezmoi run from a shell without ~/.local/bin on PATH). */ -}}
+{{ $hasOp := lookPath "op" -}}
+{{ if and (not .ephemeral) (not $hasOp) (stat (joinPath .chezmoi.homeDir ".config" "shell" "015-vault.sh")) -}}
+{{ fail "015-vault.sh: op not found on PATH; refusing to overwrite rendered secrets" }}
+{{- end -}}
+{{ if and (not .ephemeral) $hasOp -}}
 {{/* chezmoi's own GitHub template functions read GITHUB_TOKEN and fall back to
      60 unauthenticated requests/hour without it. Consequence: gh ranks
      GITHUB_TOKEN above its keyring, so `gh auth login` stays shadowed here. */}}

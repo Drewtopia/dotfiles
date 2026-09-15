@@ -63,7 +63,7 @@ Don't reintroduce per-OS or `.work`-based branching for the vault clone. PS1 idi
 - `dev_computer` — gates mise and dev tools
 - `ephemeral` — skip secrets, fonts
 - `work` / `personal` — vault, email, tool selection
-- `is_wsl` — PATH filtering, `op.exe` alias
+- `is_wsl` — `op.exe` shim (`~/.local/bin/op`), `.bashrc`, Windows executables by full `/mnt/c` path
 - `osid` — Ubuntu-specific apt packages
 
 ## Patterns

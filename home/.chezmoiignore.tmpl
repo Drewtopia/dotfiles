@@ -29,10 +29,13 @@ Library
 .local/share/fonts
 {{ end }}
 
-# Bash login files are WSL-only (other Linux uses distro defaults; Mac uses zsh)
+# .profile on non-ephemeral Linux, so minimal hosts keep the distro file;
+# .bashrc is WSL-only. macOS uses zsh.
+{{ if or (ne .chezmoi.os "linux") .ephemeral }}
+.profile
+{{ end }}
 {{ if not .is_wsl }}
 .bashrc
-.profile
 {{ end }}
 
 # wezterm is a host GUI emulator that reaches into WSL via the WSL domain; it
