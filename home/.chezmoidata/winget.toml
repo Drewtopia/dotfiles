@@ -30,7 +30,7 @@ packages = [
 # header would bind to that sub-table in TOML.)
 no_scope = [
   # Not machine-scope: kept in the default WinGet\Packages dir because the WSL
-  # op shim (dot_local/bin/executable_op) looks for op.exe there.
+  # op shim (.chezmoitemplates/op-wsl-shim) looks for op.exe there.
   "AgileBits.1Password.CLI",
   "Zen-Team.Zen-Browser",
 ]

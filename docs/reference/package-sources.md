@@ -38,5 +38,5 @@ in `dot_zshenv.tmpl` stops Homebrew reinstalling tools mise owns.
 |----------|--------|
 | macOS | `1password-cli` Homebrew cask |
 | Linux (non-WSL, non-ephemeral) | 1Password's apt repository, added by `linux/run_onchange_before_20-install-1password` |
-| WSL | No Linux package. `~/.local/bin/op` is a shim that runs the Windows `op.exe`, because the Linux CLI cannot reach 1Password for Windows |
+| WSL | No Linux package. `~/.local/bin/op` is a shim that runs the Windows `op.exe`, because the Linux CLI cannot reach 1Password for Windows. `linux/run_onchange_before_20-install-op-wsl-shim` writes it from `.chezmoitemplates/op-wsl-shim` before any template renders |
 | Minimal tier | Not installed |
