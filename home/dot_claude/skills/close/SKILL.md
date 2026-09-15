@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # /close — session closeout
 
-Three phases. Run them in order. Print a counter line at the end.
+Three phases. Run them in order. End with a counter line, then a `/rename` command.
 
 Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
@@ -116,15 +116,15 @@ Runs after Phase 2 so its commits and cleanup show up. List everything this sess
 
 Report the sorted list with one proposed action per item and act only on what Drew confirms. Decisions go through Phase 1 step 1, not here. Worktree removal goes to `clean-workspace`'s worktree step; branch deletion follows the `deletion-safety` rule.
 
-### 2. Print rename suggestion
+### 2. Compose the rename command
 
-Print on its own line, prefixed `Rename:` so Drew can copy it directly into the session-name field:
+Compose a `/rename` command naming the session by everything it did, not just its opening ask. Drew pastes it at the prompt; the agent cannot rename a session itself. It is printed as the report's final line, after the §5 counter, so it is not lost mid-report:
 
 ```
-Rename: [YYYY-MM-DD] <project-or-topic> — <what-was-done>
+/rename [YYYY-MM-DD] <project-or-topic> — <what-was-done>
 ```
 
-`<what-was-done>` should be one short noun phrase, not a sentence (e.g. `built /close skill`, not `today I built the /close skill`).
+`<what-was-done>` should be one short noun phrase, not a sentence (e.g. `built /close skill`, not `today I built the /close skill`). Lead with a ticket, PR, or branch when there is one — those are what Drew searches for.
 
 ### 3. Print next-session prompt
 
@@ -157,6 +157,8 @@ Pass `--next` with the §3 line so the entry carries it; omit `--next` when §3 
 ```
 
 If a step was skipped (e.g. no git repo, no merge to clean up), drop that segment from the line rather than printing `0`.
+
+Then print the §2 `/rename` command as the last line of the report, with nothing after it.
 
 ## Self-check before reporting done
 
