@@ -44,7 +44,9 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # sitting in ~/.claude/settings.json wins. Each machine also needs
 # `claude plugin enable context7@claude-plugins-official` once.
 "context7@claude-plugins-official"                 = true
-"hookify@claude-plugins-official"                  = true
+# Retired Sep 2026 — no hookify rules in use, yet it ran python3 before and
+# after every tool call and on every prompt. claude-settings-merge pins it off.
+"hookify@claude-plugins-official"                  = false
 # Retired Jul 2026 — never invoked. This repo carries no checked-in CLAUDE.md,
 # so the audit/improve skills had nothing to act on.
 "claude-md-management@claude-plugins-official"     = false

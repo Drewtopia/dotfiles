@@ -80,7 +80,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\""
           }
         ]
       },
@@ -89,11 +89,12 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-bash-dispatcher.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-bash-dispatcher.js\""
           },
           {
             "type": "command",
-            "command": "bash -c '\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/git-commit-precheck.sh'"
+            "if": "Bash(*git*)",
+            "command": "\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/git-commit-precheck.sh"
           }
         ]
       },
@@ -102,11 +103,11 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\""
           },
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-worktree-convention.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-worktree-convention.js\""
           }
         ]
       }
@@ -117,7 +118,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-edit-format.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-edit-format.js\""
           }
         ]
       },
@@ -126,7 +127,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-derived-artifact.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-derived-artifact.js\""
           }
         ]
       }
@@ -137,7 +138,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/notify.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/notify.js\""
           }
         ]
       }
@@ -168,7 +169,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-git-status.js\"'",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-git-status.js\"",
             "timeout": 30
           }
         ]
@@ -179,7 +180,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-window-name.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-window-name.js\""
           }
         ]
       }
@@ -201,7 +202,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/cwd-changed-worktree-check.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/cwd-changed-worktree-check.js\""
           }
         ]
       }
@@ -212,7 +213,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/permission-denied-audit.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/permission-denied-audit.js\""
           }
         ]
       }
@@ -223,7 +224,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-failure-log.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-failure-log.js\""
           }
         ]
       }
@@ -234,7 +235,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/user-prompt-drift-check.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/user-prompt-drift-check.js\""
           }
         ]
       }
@@ -245,7 +246,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-compact-snapshot.js\"'"
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-compact-snapshot.js\""
           }
         ]
       }
@@ -274,7 +275,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   },
   "statusLine": {
     "type": "command",
-    "command": "bun x -y ccstatusline@latest",
+    "command": "command -v ccstatusline >/dev/null 2>&1 && exec ccstatusline || exec bun x ccstatusline@2.2.29",
     "padding": 0
   },
   {{- /* enabledPlugins: merge profile-gated plugin tables from claude.toml */ -}}
@@ -349,10 +350,24 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   | .hooks.Stop = ((.hooks.Stop // [])
       | map(.hooks |= map(select((.command | contains("stop-end-of-turn.js")) | not)))
       | map(select((.hooks | length) > 0)))
+  # Retire the bash -c wrapper form of managed hooks: shell-form hooks already run
+  # under sh -c (Git Bash on Windows), and the add-only merge would keep both forms.
+  | .hooks = ((.hooks // {}) | with_entries(.value |= (
+      map(.hooks |= map(select(
+            ((.command | startswith("bash -c '\''node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/"))
+             or .command == "bash -c '\''\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/git-commit-precheck.sh'\''")
+            | not)))
+      | map(select((.hooks | length) > 0)))))
   # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
   # changed managed default cannot move an already-set live value. Force the few
   # keys chezmoi must own regardless of runtime drift.
   | .preferredNotifChannel = "auto"
+  # The status line runs on every repaint of every session: pin the installed
+  # binary so a stale runtime value cannot keep a registry lookup per repaint.
+  | .statusLine = $m.statusLine
+  # hookify has no rules anywhere but spawns python3 around every tool call;
+  # a runtime `true` would otherwise outrank the managed `false`.
+  | .enabledPlugins["hookify@claude-plugins-official"] = false
   # Auto-memory stays off on every machine: declaring it in the managed floor
   # cannot force-disable a machine where Claude already enabled it (runtime wins),
   # so pin it here to re-assert false on every apply.
