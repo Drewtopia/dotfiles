@@ -52,7 +52,7 @@ When you create a new file under `tools/` or `domain/`, add a one-line entry to 
 git rev-parse --show-toplevel 2>/dev/null
 ```
 
-If not inside a git repo, skip to step 7 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
+If not inside a git repo, skip the rest of Phase 2 and go to Phase 3 (SESSION_LOG fallback to `~/SESSION_LOG.md`).
 
 ### 2. Inspect changes
 
@@ -101,19 +101,7 @@ Implementation plans and completed design docs do not survive task closure. List
 
 ### 7. SESSION_LOG.md (cross-device)
 
-Prepend to `~/.claude/memory/SESSION_LOG.md`. This file lives in the vault; after writing it, `cvault apply` pushes it so entries reach all of Drew's machines.
-
-The helper owns the entry format. It derives date, machine and project, and refuses on an empty
-field — hand-typing those three is how the log ended up with two spellings of one machine:
-
-```bash
-bash ~/.claude/skills/_lib/session-log-prepend.sh \
-  --title "<title>" \
-  --summary "<1–2 sentences on what got done and why it mattered>" \
-  --artifact "<path, PR link, or skill name>"
-```
-
-If `SESSION_LOG.md` doesn't exist yet, the prepend creates it.
+The SESSION_LOG entry is written in **Phase 3 §4**, once the leftovers inventory (§1) and the `Next:` line (§3) are known — the entry carries that `Next:` line so the reckoning board and the next session can read it. The file lives in the vault; after writing it, `cvault apply` pushes it so entries reach all of Drew's machines.
 
 ## Phase 3 — Close
 
@@ -148,7 +136,21 @@ Next: <skill or command> — <first action, naming the branch, PR, or issue>
 
 Skip the line when nothing is left open.
 
-### 4. Print closing counter
+### 4. Write SESSION_LOG.md
+
+Now prepend the entry — the leftovers (§1) and the `Next:` line (§3) are known. The helper owns the format, derives date/machine/project, and refuses an empty required field:
+
+```bash
+bash ~/.claude/skills/_lib/session-log-prepend.sh \
+  --title "<title>" \
+  --summary "<1–2 sentences on what got done and why it mattered>" \
+  --artifact "<path, PR link, or skill name>" \
+  --next "<the §3 Next: line>"
+```
+
+Pass `--next` with the §3 line so the entry carries it; omit `--next` when §3 was skipped. Creates `SESSION_LOG.md` if absent. Then `cvault apply` to push it.
+
+### 5. Print closing counter
 
 ```
 <N> memory updates · <N> commits · <N> issues closed · <N> issues filed · worktree removed · SESSION_LOG updated
