@@ -1,0 +1,38 @@
+{{- $active := dict "always" true "personal" .personal "work" .work "dev_computer" .dev_computer -}}
+{{- $servers := dict -}}
+{{- range $profile, $set := .mcp_servers -}}
+{{-   if get $active $profile -}}
+{{-     range $name, $server := $set }}{{ $_ := set $servers $name $server }}{{ end -}}
+{{-   end -}}
+{{- end -}}
+{{- if $servers -}}
+#!/usr/bin/env bash
+# Add the user-scope MCP servers .chezmoidata/claude.toml declares for this
+# machine's profiles. A server already configured under the same name is left
+# as is, so a hand-edited entry survives.
+#
+# Inlining the desired servers below makes run_onchange retrigger when
+# claude.toml changes:
+{{- range $name, $server := $servers }}
+#   {{ $name }} -> {{ $server | mustToJson }}
+{{- end }}
+
+set -euo pipefail
+
+if ! command -v claude >/dev/null 2>&1; then
+  echo "ℹ️  claude CLI not on PATH; skipping MCP server sync" >&2
+  exit 0
+fi
+
+{{- range $name, $server := $servers }}
+if claude mcp get '{{ $name }}' >/dev/null 2>&1; then
+  echo "  MCP server {{ $name }} already configured"
+elif claude mcp add -s user '{{ $name }}'
+{{- range $k, $v := get $server "env" | default dict }} -e '{{ printf "%s=%s" $k $v | replace "'" "'\\''" }}'{{ end }} -- '{{ $server.command | replace "'" "'\\''" }}'
+{{- range $server.args }} '{{ . | replace "'" "'\\''" }}'{{ end }} >/dev/null; then
+  echo "✓ MCP server {{ $name }} added"
+else
+  echo "⚠️  MCP server {{ $name }} failed to add, continuing" >&2
+fi
+{{- end }}
+{{ end -}}
