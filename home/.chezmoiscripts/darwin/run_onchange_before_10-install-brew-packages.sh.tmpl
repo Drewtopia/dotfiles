@@ -98,6 +98,12 @@ echo "🍎 Installing system packages via Homebrew..."
 brew bundle --file=- <<EOF
 tap "ognistik/formulae"
 brew "ognistik/formulae/macrowhisper", trusted: true
+tap "hamed-elfayome/claude-usage"
+cask "hamed-elfayome/claude-usage/claude-usage-tracker", trusted: true
+tap "nikitabobko/tap"
+cask "nikitabobko/tap/aerospace", trusted: true
+tap "stablyai/orca", trusted: true
+cask "stablyai/orca/orca", trusted: true
 {{ range ($brews | sortAlpha | uniq) -}}
 brew "{{ . }}"
 {{ end -}}

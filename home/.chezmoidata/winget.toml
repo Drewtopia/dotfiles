@@ -6,9 +6,6 @@
 # GUI apps and tools that publish a manifest in winget-pkgs. mise stays
 # canonical for dev CLIs; scoop is retained on work for nerd-fonts and
 # editors whose winget manifest is machine-scope-only (e.g. Zed/Inno).
-#
-# Phase 0: schema only. All lists empty until packages are migrated
-# from scoop or declared from a `winget list` snapshot.
 
 [winget]
 # Always-install: packages installed on every Windows dev machine
@@ -17,18 +14,17 @@
 packages = [
   "JanDeDobbeleer.OhMyPosh",
   "marlocarlo.psmux",
-  "arndawg.zellij-windows",
 ]
 
 # Install-without-scope exceptions (cross-cutting; orthogonal to the section
 # lists - keep the package in packages/work/personal for selection, list its
-# ID here to change HOW it installs). These manifests ship a scope-less
-# installer (a bare .exe with no Scope declared), so the relocated default
-# `--scope user --location` filters out the only installer ("No applicable
-# installer found"; verified: `winget show <id> --scope user`). IDs here
-# install with bare flags and land in their default location. Safe for
-# browsers/GUI apps - the endpoint-security exec block targets dev/sandbox
-# binaries under the profile, not these.
+# ID here to change HOW it installs). These manifests declare only a
+# machine-scope installer, so the relocated default `--scope user --location`
+# filters it out ("No applicable installer found"; verified:
+# `winget show <id> --scope user`). IDs here install with bare flags, land in
+# their default location, and need admin. Safe for browsers/GUI apps - the
+# endpoint-security exec block targets dev/sandbox binaries under the
+# profile, not these.
 # (Must stay above the [winget.*] sub-tables: a bare key after a sub-table
 # header would bind to that sub-table in TOML.)
 no_scope = [
@@ -42,14 +38,14 @@ no_scope = [
 packages = [
   "ZedIndustries.Zed",
   "wez.wezterm",
-  "Warp.Warp",
+  "StablyAI.Orca",
 ]
 
 # Work-only additions (gated by .work). The install script passes
 # --scope user --location <tools_root>\tools so portable manifests land
 # inside the whitelisted path. Manifests rejected by those flags have two
 # escape hatches: list the ID in `no_scope` above (installs bare, default
-# location - for browsers/GUI apps like Zen, whose exe has no user scope),
+# location - for browsers/GUI apps like Zen, whose exe is machine-scope only),
 # or move it to scoop.toml [scoop.work] (Inno/machine-scope MSI dev tools).
 [winget.work]
 packages = [
