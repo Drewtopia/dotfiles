@@ -21,6 +21,20 @@ $desired = @(
 {{- end }}
 )
 
+# mise owns pnpm. Resolve its binary before PNPM_HOME/bin joins PATH, so removing
+# a leftover self-installed pnpm global never runs through the shim being removed.
+$pnpmCmd = $null
+if (Get-Command mise -ErrorAction SilentlyContinue) {
+    $pnpmCmd = (& mise which pnpm 2>$null | Select-Object -First 1)
+}
+if (-not $pnpmCmd) {
+    $pnpmCmd = (Get-Command pnpm -ErrorAction SilentlyContinue).Source
+}
+if (-not $pnpmCmd) {
+    Write-Host "[pnpm-globals] pnpm not on PATH; skipping" -ForegroundColor Yellow
+    exit 0
+}
+
 # pnpm v11 errors any global command if PNPM_HOME/bin isn't on PATH.
 # Profile adds it for interactive shells, but chezmoi spawns scripts fresh.
 if ($env:PNPM_HOME) {
@@ -30,14 +44,9 @@ if ($env:PNPM_HOME) {
     }
 }
 
-if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
-    Write-Host "[pnpm-globals] pnpm not on PATH; skipping" -ForegroundColor Yellow
-    exit 0
-}
-
 $actual = @()
 try {
-    $listOutput = & pnpm list -g --json --depth=0 2>$null | Out-String
+    $listOutput = & $pnpmCmd list -g --json --depth=0 2>$null | Out-String
     if ($LASTEXITCODE -eq 0 -and $listOutput.Trim()) {
         foreach ($workspace in ($listOutput | ConvertFrom-Json)) {
             if ($workspace.dependencies) {
@@ -49,12 +58,8 @@ try {
     Write-Host "[pnpm-globals] couldn't read state ($($_.Exception.Message)); will rebuild" -ForegroundColor Yellow
 }
 
-# `pnpm self-update` installs pnpm itself as a global; removing it as an extra
-# would uninstall the pnpm binary this script is running.
-$protected = @('@pnpm/exe', 'pnpm')
-
 $missing = $desired | Where-Object { $_ -notin $actual }
-$extras  = $actual  | Where-Object { $_ -notin $desired -and $_ -notin $protected }
+$extras  = $actual  | Where-Object { $_ -notin $desired }
 
 if (-not $missing -and -not $extras) {
     Write-Host "[pnpm-globals] up to date ($($desired.Count) packages)" -ForegroundColor Green
@@ -68,11 +73,11 @@ Write-Host "[pnpm-globals] reconciling - $($reasons -join '; ')" -ForegroundColo
 
 # v11: each space-separated package in `add -g` gets its own isolated install.
 if ($extras) {
-    & pnpm remove -g @extras
+    & $pnpmCmd remove -g @extras
 }
 if ($missing) {
     $specs = $missing | ForEach-Object { $_ + '@latest' }
-    & pnpm add -g @specs
+    & $pnpmCmd add -g @specs
 }
 {{- end }}
 {{- end }}
