@@ -18,7 +18,7 @@
 {{- if .work }},
     "azure-devops": {
       "command": "npx",
-      "args": ["-y", "@azure-devops/mcp@latest"],
+      "args": ["-y", "@azure-devops/mcp@latest", "${input:ado_org}"],
       "type": "stdio"
     },
     "microsoft-docs": {
@@ -27,4 +27,13 @@
     }
 {{- end }}
   }
+{{- if .work }},
+  "inputs": [
+    {
+      "id": "ado_org",
+      "type": "promptString",
+      "description": "Azure DevOps organization name"
+    }
+  ]
+{{- end }}
 }

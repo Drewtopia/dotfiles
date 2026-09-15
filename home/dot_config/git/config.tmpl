@@ -61,7 +61,9 @@
 [column]
 	ui = auto
 [core]
+{{- if .dev_computer }}
 	editor = nvim
+{{- end }}
 	whitespace = trailing-space,space-before-tab
 	# Line-ending policy for repos without their own .gitattributes:
 	# Windows → true  (LF in repo, CRLF in working tree)
@@ -95,14 +97,18 @@
 	defaultBranch = main
 [merge]
 	conflictStyle = zdiff3
+{{- if .dev_computer }}
 	tool = nvimdiff
+{{- end }}
 [mergetool]
 	keepBackup = false
 	prompt = false
+{{- if .dev_computer }}
 [mergetool "nvimdiff"]
 	# 4-pane: LOCAL | BASE | REMOTE on top, MERGED below.
 	# Matches the chezmoi merge config's `nvim -d` style.
 	layout = "LOCAL,BASE,REMOTE / MERGED"
+{{- end }}
 [pager]
 	branch = false
 	grep = false
@@ -147,7 +153,10 @@
 {{- end }}
 {{- end }}
 {{ if eq .chezmoi.os "darwin" -}}
+# The Command Line Tools system gitconfig already sets osxkeychain; the empty
+# reset stops git calling it twice per request.
 [credential]
+	helper =
 	helper = osxkeychain
 {{- end }}
 {{- if .personal }}
@@ -207,7 +216,7 @@
 {{- /* Find gh: try lookPath first, fall back to mise shim */ -}}
 {{- $ghPath := lookPath "gh" }}
 {{- if not $ghPath }}
-{{-   $shimPath := joinPath .chezmoi.homeDir ".local/share/mise/shims/gh" }}
+{{-   $shimPath := joinPath .directories.mise_dir "shims" "gh" }}
 {{-   if stat $shimPath }}
 {{-     $ghPath = $shimPath }}
 {{-   end }}

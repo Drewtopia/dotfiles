@@ -2,12 +2,16 @@
 #!/bin/bash
 set -euo pipefail
 
-# Passwordless sudo for WSL (local dev VM, not a shared server)
-SUDOERS_FILE="/etc/sudoers.d/{{ .chezmoi.username }}"
+# Passwordless sudo for WSL (local dev VM, not a shared server).
+# sudo ignores sudoers.d files whose names contain '.', so dots become '_'.
+SUDOERS_FILE="/etc/sudoers.d/{{ .chezmoi.username | replace "." "_" }}"
 if [[ ! -f "$SUDOERS_FILE" ]]; then
     echo "🔧 Configuring passwordless sudo..."
-    echo "{{ .chezmoi.username }} ALL=(ALL) NOPASSWD:ALL" | sudo tee "$SUDOERS_FILE" > /dev/null
-    sudo chmod 0440 "$SUDOERS_FILE"
+    sudoers_tmp=$(mktemp)
+    echo "{{ .chezmoi.username }} ALL=(ALL) NOPASSWD:ALL" > "$sudoers_tmp"
+    sudo visudo -cf "$sudoers_tmp"
+    sudo install -m 0440 -o root -g root "$sudoers_tmp" "$SUDOERS_FILE"
+    rm -f "$sudoers_tmp"
     echo "✅ Passwordless sudo configured"
 else
     echo "✅ Passwordless sudo already configured"
@@ -16,23 +20,38 @@ fi
 # Configure WSL2: interop ON, appendWindowsPath OFF.
 # mise provides native Linux tools; keeping Windows PATH out avoids ~40 host
 # PATH entries slowing command resolution and .exe shadowing Linux binaries.
-# Windows executables (op.exe, code, explorer.exe) reached explicitly via /mnt/c.
-if [[ ! -f /etc/wsl.conf ]] || ! grep -q "appendWindowsPath" /etc/wsl.conf 2>/dev/null; then
-    echo "🔧 Configuring /etc/wsl.conf..."
-    sudo tee /etc/wsl.conf > /dev/null <<EOF
-[interop]
-enabled = true
-appendWindowsPath = false
+# Keys are added only when missing, so other tooling's settings in the file
+# (boot commands, network options) and local overrides are left intact.
+WSL_CONF="${WSL_CONF:-/etc/wsl.conf}"
+SUDO="${SUDO-sudo}"
+wsl_conf_changed=false
 
-[automount]
-enabled = true
-options = "metadata,umask=22,fmask=11"
+ensure_wsl_conf_key() {
+    local section="$1" key="$2" value="$3"
+    if [[ -f "$WSL_CONF" ]] && awk -v section="[$section]" -v key="$key" '
+        /^[[:space:]]*\[/ { in_section = ($1 == section) }
+        in_section && $0 ~ "^[[:space:]]*" key "[[:space:]]*=" { found = 1 }
+        END { exit !found }' "$WSL_CONF"; then
+        return
+    fi
+    if [[ -f "$WSL_CONF" ]] && grep -qxF "[$section]" "$WSL_CONF"; then
+        $SUDO sed -i "/^\[$section\]\$/a $key = $value" "$WSL_CONF"
+    else
+        printf '\n[%s]\n%s = %s\n' "$section" "$key" "$value" | $SUDO tee -a "$WSL_CONF" > /dev/null
+    fi
+    echo "🔧 $WSL_CONF: set [$section] $key = $value"
+    wsl_conf_changed=true
+}
 
-[user]
-default = {{ .chezmoi.username }}
-EOF
+ensure_wsl_conf_key interop enabled true
+ensure_wsl_conf_key interop appendWindowsPath false
+ensure_wsl_conf_key automount enabled true
+ensure_wsl_conf_key automount options '"metadata,umask=22,fmask=11"'
+ensure_wsl_conf_key user default "{{ .chezmoi.username }}"
+
+if [[ "$wsl_conf_changed" == true ]]; then
     echo "✅ WSL configured. Run 'wsl --shutdown' from Windows to apply."
 else
-    echo "✅ /etc/wsl.conf already configured"
+    echo "✅ $WSL_CONF already configured"
 fi
 {{- end }}
