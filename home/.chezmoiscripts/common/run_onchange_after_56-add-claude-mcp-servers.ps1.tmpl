@@ -1,0 +1,48 @@
+{{- $servers := includeTemplate "claude-mcp-servers" . | mustFromJson -}}
+{{- if $servers -}}
+# Add the user-scope MCP servers .chezmoidata/claude.toml declares for this
+# machine's profiles. Names already in .claude.json are left as is.
+# servers-hash (retriggers run_onchange when the servers change): {{ $servers | mustToJson | sha256sum }}
+#
+# `claude mcp add ... -- <command> <args>`, not add-json: Windows PowerShell
+# strips embedded double quotes from native command arguments.
+# ASCII-only: PowerShell parses BOM-less scripts as CP1252.
+
+$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    Write-Host 'i  claude CLI not on PATH; skipping MCP server sync'
+    exit 0
+}
+
+$configDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { $HOME }
+$configFile = Join-Path $configDir '.claude.json'
+$configured = @()
+if (Test-Path $configFile) {
+    try {
+        $configured = @((Get-Content $configFile -Raw | ConvertFrom-Json).mcpServers.PSObject.Properties.Name)
+    } catch {
+        Write-Host "[warn] could not parse $configFile; skipping MCP server sync" -ForegroundColor Yellow
+        exit 0
+    }
+}
+$failed = 0
+
+{{- range $name, $server := $servers }}
+if ($configured -contains '{{ $name }}') {
+    Write-Host '[skip] MCP server {{ $name }} already configured' -ForegroundColor DarkGray
+} else {
+    & claude mcp add -s user '{{ $name }}'
+    {{- range $k, $v := get $server "env" | default dict }} -e '{{ printf "%s=%s" $k $v | replace "'" "''" }}'{{ end }} -- '{{ $server.command | replace "'" "''" }}'
+    {{- range $server.args }} '{{ . | replace "'" "''" }}'{{ end }} | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host '[ok]   MCP server {{ $name }} added' -ForegroundColor Green
+    } else {
+        Write-Host '[fail] MCP server {{ $name }} failed to add' -ForegroundColor Red
+        $failed = 1
+    }
+}
+{{- end }}
+
+exit $failed
+{{- end -}}
