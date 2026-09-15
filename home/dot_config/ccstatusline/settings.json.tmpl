@@ -3,9 +3,41 @@
   "lines": [
     [
       {
+        "id": "1",
+        "type": "model",
+        "color": "cyan"
+      },
+      {
+        "id": "2",
+        "type": "separator"
+      },
+      {
         "id": "3",
         "type": "context-length",
         "color": "brightBlack"
+      },
+      {
+        "id": "0d6f8d6a-aa4e-4df7-ae38-4a2b60241b04",
+        "type": "separator"
+      },
+      {
+        "id": "070bb72b-5eab-4f55-8367-28d9bfa5fb31",
+        "type": "current-working-dir",
+        "metadata": {
+          "segments": "1"
+        }
+      },
+      {
+        "id": "4",
+        "type": "separator"
+      },
+      {
+        "id": "5",
+        "type": "git-branch",
+        "color": "magenta",
+        "metadata": {
+          "hide": "no-git"
+        }
       },
       {
         "id": "6",
@@ -41,7 +73,7 @@
       {
         "id": "worktrunk-statusline",
         "type": "custom-command",
-        "commandPath": "wt list statusline --format=claude-code",
+        "commandPath": {{ if eq .chezmoi.os "windows" }}"wt list statusline --format=claude-code"{{ else }}"\"$HOME/.local/bin/wt-statusline\""{{ end }},
         "timeout": 5000,
         "preserveColors": true
       }

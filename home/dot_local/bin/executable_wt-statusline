@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# wt-statusline — worktrunk status cells for ccstatusline's custom-command widget.
+#
+# `wt list statusline --format=claude-code` also prints the directory, branch,
+# model and context, which ccstatusline already renders. This keeps only the
+# status cells: change flags, ahead/behind, diff against main, and the PR link.
+# Reads Claude Code's status JSON on stdin to target the session's directory.
+set -uo pipefail
+
+cwd=$(jq -r '.workspace.current_dir // .cwd // empty' 2>/dev/null)
+if [ -n "$cwd" ]; then
+  json=$(wt -C "$cwd" list statusline --format=json 2>/dev/null) || exit 0
+else
+  json=$(wt list statusline --format=json 2>/dev/null) || exit 0
+fi
+
+jq -r '.items[0] as $i | $i.display.statusline | ltrimstr($i.branch + "  ")' <<<"$json"
