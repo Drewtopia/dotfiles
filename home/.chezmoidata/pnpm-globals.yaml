@@ -1,5 +1,6 @@
 # Pnpm globals — declared by name only. The reconciler adds missing ones as
-# `<name>@latest` and removes undeclared ones (pnpm itself is always kept).
+# `<name>@latest` and removes undeclared ones. pnpm itself comes from mise, so
+# a self-installed pnpm or @pnpm/exe global counts as undeclared.
 # Use topgrade or `pnpm update -g` to bump versions.
 pnpm_globals:
   - "@openai/codex"
