@@ -12,6 +12,7 @@
 # regardless of profile. Use package IDs exactly as published in
 # winget-pkgs (e.g. 'jtroo.kanata_gui', not 'jtroo.kanata').
 packages = [
+  "AgileBits.1Password.CLI",
   "JanDeDobbeleer.OhMyPosh",
   "marlocarlo.psmux",
 ]
@@ -28,6 +29,9 @@ packages = [
 # (Must stay above the [winget.*] sub-tables: a bare key after a sub-table
 # header would bind to that sub-table in TOML.)
 no_scope = [
+  # Not machine-scope: kept in the default WinGet\Packages dir because the WSL
+  # op shim (dot_local/bin/executable_op) looks for op.exe there.
+  "AgileBits.1Password.CLI",
   "Zen-Team.Zen-Browser",
 ]
 

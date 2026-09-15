@@ -2,10 +2,10 @@
 # Windows sibling of install.sh.
 #
 # Note: chezmoi.toml.tmpl uses a hybrid `if lookPath "op"` block — if op
-# is already on PATH (no Windows chezmoi script installs it),
-# identity is read from 1Password; if not, init prompts for name + email
-# and stores them locally. Either way, no manual prereqs needed beyond
-# chezmoi itself, which this script installs.
+# is already on PATH, identity is read from 1Password; if not, init prompts
+# for name + email and stores them locally. The first apply installs op via
+# winget (.chezmoidata/winget.toml), so later inits can use it. Either way,
+# no manual prereqs needed beyond chezmoi itself, which this script installs.
 
 $ErrorActionPreference = "Stop"
 
