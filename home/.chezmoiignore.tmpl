@@ -13,7 +13,6 @@
 .chezmoiscripts/darwin/**
 .config/aerospace
 .config/homebrew
-.config/leaderkey
 .config/macrowhisper
 Library
 {{ end }}
@@ -27,7 +26,6 @@ Library
 {{ if ne .chezmoi.os "linux" }}
 .chezmoiscripts/linux/**
 .hushlogin
-.local/bin/nvim
 .local/share/fonts
 {{ end }}
 
