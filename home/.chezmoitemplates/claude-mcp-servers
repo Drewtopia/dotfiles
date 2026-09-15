@@ -1,0 +1,11 @@
+{{- /* The [mcp_servers.<profile>] tables from claude.toml that apply to this machine,
+       merged into one name -> server map and rendered as JSON. Profiles apply in
+       the plugin tables' order, so a later profile wins a name clash. */ -}}
+{{- $active := dict "always" true "personal" .personal "dev_computer" .dev_computer "work" .work -}}
+{{- $servers := dict -}}
+{{- range $profile := list "always" "personal" "dev_computer" "work" -}}
+{{-   if get $active $profile -}}
+{{-     range $name, $server := get $.mcp_servers $profile | default dict }}{{ $_ := set $servers $name $server }}{{ end -}}
+{{-   end -}}
+{{- end -}}
+{{- $servers | mustToJson -}}
