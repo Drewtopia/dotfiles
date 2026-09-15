@@ -38,7 +38,7 @@ no_scope = [
 packages = [
   "ZedIndustries.Zed",
   "wez.wezterm",
-  "Warp.Warp",
+  "StablyAI.Orca",
 ]
 
 # Work-only additions (gated by .work). The install script passes
