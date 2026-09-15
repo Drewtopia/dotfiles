@@ -12,12 +12,13 @@ if (Get-Command pwsh -ErrorAction SilentlyContinue) {
 
 Write-Host "[Install] Installing PowerShell 7 via winget..." -ForegroundColor Blue
 
-try {
-    winget install --id Microsoft.PowerShell --source winget --accept-package-agreements --accept-source-agreements
-    Write-Host "[OK] PowerShell 7 installed successfully" -ForegroundColor Green
-} catch {
-    Write-Host "[ERROR] Failed to install PowerShell 7: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "[INFO] Install manually: winget install Microsoft.PowerShell" -ForegroundColor Yellow
+# A failing native command sets $LASTEXITCODE but never throws, so check it.
+winget install --id Microsoft.PowerShell --exact --source winget --disable-interactivity `
+    --accept-package-agreements --accept-source-agreements
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] winget install Microsoft.PowerShell exited $LASTEXITCODE" -ForegroundColor Red
+    Write-Host "[INFO] Install manually: winget install --id Microsoft.PowerShell --source winget" -ForegroundColor Yellow
     exit 1
 }
+Write-Host "[OK] PowerShell 7 installed" -ForegroundColor Green
 {{- end }}
