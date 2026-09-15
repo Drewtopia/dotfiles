@@ -17,36 +17,29 @@
 # Commands that need vault data authenticate transparently.
 set -euo pipefail
 
-# appendWindowsPath=false keeps cmd.exe off PATH, so it is called by full path.
-CMD_EXE=/mnt/c/Windows/System32/cmd.exe
 CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/op-shim/op-exe-path"
 
-# The Windows profile name need not match the Linux username, so ask Windows
-# for it. cmd.exe runs from /mnt/c because it warns about a Linux (UNC) cwd.
+# The Windows profile need not match the Linux username, so ask Windows for
+# %LOCALAPPDATA%. cmd.exe is off PATH (appendWindowsPath=false) and runs from
+# /mnt/c because it warns about a Linux (UNC) cwd.
 find_op_exe() {
-    local win_profile profile_dir
-    win_profile=$(cd /mnt/c && "$CMD_EXE" /d /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r') || return 0
-    [ -n "$win_profile" ] || return 0
-    profile_dir=$(wslpath -u "$win_profile") || return 0
-
-    shopt -s nullglob
-    local matches=("$profile_dir"/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe)
-    shopt -u nullglob
-    if [ "${#matches[@]}" -gt 0 ]; then
-        printf '%s\n' "${matches[0]}"
-    fi
+    local localappdata f
+    localappdata=$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /d /c 'echo %LOCALAPPDATA%' 2>/dev/null) || return 0
+    localappdata=$(wslpath -u "${localappdata%$'\r'}") || return 0
+    for f in "$localappdata"/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_*/op.exe; do
+        [ -f "$f" ] && { printf '%s\n' "$f"; return 0; }
+    done
+    return 0
 }
 
 OP_EXE=""
-if [ -f "$CACHE_FILE" ]; then
-    OP_EXE=$(cat "$CACHE_FILE")
-fi
+read -r OP_EXE 2>/dev/null < "$CACHE_FILE" || true
 
 # WinGet relocates the package on upgrade or reinstall. Re-resolve rather than fail.
 if [ -z "$OP_EXE" ] || [ ! -f "$OP_EXE" ]; then
     OP_EXE=$(find_op_exe)
     if [ -n "$OP_EXE" ]; then
-        mkdir -p "$(dirname "$CACHE_FILE")"
+        mkdir -p "${CACHE_FILE%/*}"
         printf '%s\n' "$OP_EXE" > "$CACHE_FILE"
     fi
 fi

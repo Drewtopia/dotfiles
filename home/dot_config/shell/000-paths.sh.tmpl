@@ -24,7 +24,6 @@ manpath=($manpath /opt/homebrew/share/man /usr/local/share/man)
 manpath=($manpath /usr/share/man "$HOME/.local/share/man")
 
 {{- if .is_wsl }}
-# WSL2: interop enabled but appendWindowsPath=false (set in /etc/wsl.conf)
-# No Windows paths to filter — mise provides native Linux tools
-# Windows executables (code, explorer.exe, op.exe) available via /mnt/c/ when needed
+# WSL2: interop enabled but appendWindowsPath=false (set in /etc/wsl.conf), so
+# Windows executables are called by full /mnt/c path. op is the ~/.local/bin/op shim.
 {{- end }}

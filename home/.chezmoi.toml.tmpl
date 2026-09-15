@@ -87,8 +87,8 @@
 {{-     $email = onepasswordRead (printf "op://%s/Identity/email" $opVault) | trim -}}
 {{-   else -}}
 {{/*   Fresh-machine fallback: op not yet installed. Prompt and store in the
-       local chezmoi.toml (never committed to git). After this apply, the
-       run_onchange_before_install-op script installs op, so subsequent
+       local chezmoi.toml (never committed to git). After this apply, op is
+       installed (Linux script, macOS cask, WSL shim), so subsequent
        inits could use the vault path — but the cached prompt value sticks
        because of promptStringOnce. Manually delete the entry to switch. */}}
 {{-     $name = promptStringOnce . "name" "Your full name (op CLI not detected; stored locally only)" -}}
