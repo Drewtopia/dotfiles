@@ -4,14 +4,10 @@ Drew's dotfiles, managed with [`chezmoi`](https://github.com/twpayne/chezmoi).
 
 ## Supported machines
 
-- **Full:** macOS, Windows 11, WSL2 Ubuntu.
-- **Minimal:** Proxmox VE hosts and Debian/Ubuntu LXC containers get the OS
-  base packages and shell config, with no dev tools or secrets.
-- Anything else may work, with no promises.
-
-The Linux install scripts run only on Debian and Ubuntu (Debian 12+ /
-Ubuntu 22.04+). Which tool comes from apt, Homebrew, mise or a direct download
-is set out in [docs/reference/package-sources.md](docs/reference/package-sources.md).
+Full setup on macOS, Windows 11 and WSL2 Ubuntu; a minimal shell-only setup on
+Proxmox VE hosts and Debian/Ubuntu LXC containers. Machine tiers, supported
+Linux versions and where each tool comes from are in
+[docs/reference/package-sources.md](docs/reference/package-sources.md).
 
 ## Fresh-machine bootstrap
 
