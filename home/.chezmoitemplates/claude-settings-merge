@@ -290,6 +290,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
     {{- $_ := set $marketplaces $name (dict "source" (dict "source" "github" "repo" $repo)) -}}
   {{- end }}
   "extraKnownMarketplaces": {{ $marketplaces | mustToPrettyJson | indent 2 | trim }},
+{{- if .work }}
+  {{- /* Personal claude.ai connectors stay off work machines. Match by URL: connector
+         display names come from claude.ai and can change or gain a " (N)" suffix. */}}
+  "deniedMcpServers": [
+    { "serverUrl": "https://api.fastmail.com/*" },
+    { "serverUrl": "https://ai.todoist.net/*" },
+    { "serverUrl": "https://*.supabase.co/functions/v1/open-brain-mcp*" }
+  ],
+{{- end }}
   "autoUpdatesChannel": "latest",
   "verbose": true,
   "preferredNotifChannel": "auto",
