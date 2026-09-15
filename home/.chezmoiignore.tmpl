@@ -30,9 +30,9 @@ Library
 .local/share/fonts
 {{ end }}
 
-# .profile on all Linux; .bashrc is WSL-only (other Linux keeps the distro
-# default). macOS uses zsh.
-{{ if ne .chezmoi.os "linux" }}
+# .profile on non-ephemeral Linux, so minimal hosts keep the distro file;
+# .bashrc is WSL-only. macOS uses zsh.
+{{ if or (ne .chezmoi.os "linux") .ephemeral }}
 .profile
 {{ end }}
 {{ if not .is_wsl }}
