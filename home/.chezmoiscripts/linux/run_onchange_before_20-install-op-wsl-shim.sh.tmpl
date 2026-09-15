@@ -1,0 +1,17 @@
+{{- /* A before-script, not a managed file: chezmoi renders each template only
+       when it reaches that file, and .config/ templates that call op sort
+       before .local/bin/op. Before-scripts run first. */ -}}
+{{- if .is_wsl -}}
+#!/bin/bash
+set -euo pipefail
+
+# Write to a temp file and rename: bash reads a running script incrementally,
+# so overwriting ~/.local/bin/op in place can break an op call in progress.
+mkdir -p "$HOME/.local/bin"
+shim_tmp=$(mktemp "$HOME/.local/bin/.op.XXXXXX")
+cat > "$shim_tmp" <<'OP_WSL_SHIM'
+{{ include ".chezmoitemplates/op-wsl-shim" -}}
+OP_WSL_SHIM
+chmod 0755 "$shim_tmp"
+mv -f "$shim_tmp" "$HOME/.local/bin/op"
+{{ end -}}

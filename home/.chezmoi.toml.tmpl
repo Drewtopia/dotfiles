@@ -141,7 +141,9 @@
 {{-   end -}}
     PATH = '{{ $miseShims }};{{ join ";" $cleanPathParts }}'
 {{- else }}
-    PATH = "{{ $mise_dir }}/shims:{{ env "PATH" }}"
+{{/*  ~/.local/bin explicitly: install.sh runs init by full path, and a fresh Linux
+      login shell has no ~/.local/bin on PATH yet. It holds the WSL op shim. */}}
+    PATH = "{{ $mise_dir }}/shims:{{ .chezmoi.homeDir }}/.local/bin:{{ env "PATH" }}"
 {{- end }}
 
 [data]

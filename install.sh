@@ -6,7 +6,8 @@ set -e # -e: exit on error
 # if op is installed, identity is read from 1Password; if not, init
 # prompts for name + email and stores them in the local chezmoi.toml.
 # Either way, init succeeds without manual prereqs. The first apply installs
-# op (Homebrew cask on macOS, apt script on Linux) for downstream apply-time
+# op (Homebrew cask on macOS, apt script on Linux, op.exe shim script on WSL)
+# before the apply-time
 # templates that need it (zshrc, ssh keys, etc.).
 
 if [ ! "$(command -v chezmoi)" ]; then
