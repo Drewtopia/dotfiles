@@ -121,3 +121,16 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # only — installing the same skills from cursor/plugins via `npx skills` puts
 # bare duplicates (bro, unslop, no-comments, ...) beside the namespaced ones.
 "pstack@pstack-claude"                    = true
+
+# User-scope MCP servers, grouped by profile like the plugin tables.
+# Consumed by run_onchange_after_56-add-claude-mcp-servers.{sh,ps1}.tmpl, which
+# runs `claude mcp add -s user` for each server not configured yet. Add-only:
+# deleting an entry here does not remove it from ~/.claude.json.
+# Format: [mcp_servers.<profile>.<server-name>] with command, args, optional env.
+#
+# Every server starts one process per session, so keep work machines lean:
+# many concurrent sessions multiply each server's memory.
+
+[mcp_servers.personal.sequential-thinking]
+command = "npx"
+args    = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
