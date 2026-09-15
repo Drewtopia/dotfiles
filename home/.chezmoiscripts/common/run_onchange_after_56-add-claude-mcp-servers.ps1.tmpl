@@ -1,27 +1,12 @@
-{{- $active := dict "always" true "personal" .personal "work" .work "dev_computer" .dev_computer -}}
-{{- $servers := dict -}}
-{{- range $profile, $set := .mcp_servers -}}
-{{-   if get $active $profile -}}
-{{-     range $name, $server := $set }}{{ $_ := set $servers $name $server }}{{ end -}}
-{{-   end -}}
-{{- end -}}
+{{- $servers := includeTemplate "claude-mcp-servers" . | mustFromJson -}}
 {{- if $servers -}}
 # Add the user-scope MCP servers .chezmoidata/claude.toml declares for this
-# machine's profiles (Windows counterpart of the .sh sibling). A server already
-# configured under the same name is left as is.
+# machine's profiles. Names already in .claude.json are left as is.
+# servers-hash (retriggers run_onchange when the servers change): {{ $servers | mustToJson | sha256sum }}
 #
-# Arguments go through `claude mcp add ... -- <command> <args>` rather than
-# add-json: Windows PowerShell strips embedded double quotes from native
-# command arguments, which corrupts a JSON string.
-#
-# ASCII-only: chezmoi writes scripts as UTF-8 without BOM, and PowerShell
-# defaults to CP1252 parsing on Windows, which mangles multi-byte chars.
-#
-# Inlining the desired servers below makes run_onchange retrigger when
-# claude.toml changes:
-{{- range $name, $server := $servers }}
-#   {{ $name }} -> {{ $server | mustToJson }}
-{{- end }}
+# `claude mcp add ... -- <command> <args>`, not add-json: Windows PowerShell
+# strips embedded double quotes from native command arguments.
+# ASCII-only: PowerShell parses BOM-less scripts as CP1252.
 
 $ErrorActionPreference = "Stop"
 
@@ -30,11 +15,21 @@ if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
     exit 0
 }
 
+$configDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { $HOME }
+$configFile = Join-Path $configDir '.claude.json'
+$configured = @()
+if (Test-Path $configFile) {
+    try {
+        $configured = @((Get-Content $configFile -Raw | ConvertFrom-Json).mcpServers.PSObject.Properties.Name)
+    } catch {
+        Write-Host "[warn] could not parse $configFile; skipping MCP server sync" -ForegroundColor Yellow
+        exit 0
+    }
+}
 $failed = 0
 
 {{- range $name, $server := $servers }}
-& claude mcp get '{{ $name }}' *> $null
-if ($LASTEXITCODE -eq 0) {
+if ($configured -contains '{{ $name }}') {
     Write-Host '[skip] MCP server {{ $name }} already configured' -ForegroundColor DarkGray
 } else {
     & claude mcp add -s user '{{ $name }}'

@@ -126,7 +126,6 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # Consumed by run_onchange_after_56-add-claude-mcp-servers.{sh,ps1}.tmpl, which
 # runs `claude mcp add -s user` for each server not configured yet. Add-only:
 # deleting an entry here does not remove it from ~/.claude.json.
-# Profiles: always, personal, work, dev_computer.
 # Format: [mcp_servers.<profile>.<server-name>] with command, args, optional env.
 #
 # Every server starts one process per session, so keep work machines lean:
