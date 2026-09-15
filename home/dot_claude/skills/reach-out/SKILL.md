@@ -15,7 +15,7 @@ Ask the sessions nobody closed. A session that ran `/close` already left its sta
 - **Idle** rows: send the message.
 - **Busy** rows: send it with `notify_when_idle: true`, so the answer comes when that session finishes rather than queued behind work already underway.
 - **Remote Control, cloud, or Claude Desktop** rows: skip. Nothing reports back from those, so silence there tells you nothing.
-- A session with a SESSION_LOG entry from today matching its name or branch: skip. Its status is already written down, and a message costs it a turn.
+- An idle session whose newest SESSION_LOG entry is from today, matches its `- Session:` name or `- Branch:`, and has `- Color:` `green` or `pink`: skip. It closed out with nothing open, and a message costs it a turn. A busy row was resumed after its close, so message it.
 
 A stopped session has no `ListAgents` row and no message reaches it. Its status is its SESSION_LOG entry or its transcript (`/find-session`).
 

@@ -15,7 +15,9 @@ git rev-parse --show-toplevel && git branch --show-current
 git log -1 --format='%h %cr %s'
 ```
 
-Find the newest `~/.claude/memory/SESSION_LOG.md` entry for this work. Entries are `## <date> — <title>` blocks with an optional `Next:` line and a `- Project:` line holding the repo's top-level directory name — a worktree's own directory name, when the session ran in one. Match on `Project:` first, then prefer the entry whose title, `Next:` line, or artifact names this branch, its PR, or its issue.
+Find the newest `~/.claude/memory/SESSION_LOG.md` entry for this branch. Entries are `## <date> — <title>` blocks with an optional `Next:` line and metadata lines: `- Project:` (the checkout's directory name), `- Branch:`, `- Session:` (the `/rename` name) and `- Color:`.
+
+Match `- Branch:` exactly against the current branch. Older entries have no `Branch:` line, and their `Project:` names only the checkout — entries from many branches of one repo share it, some with hand-typed suffixes — so a `Project:` match alone is not a match. For an older entry, require its title, `Next:` line, or artifact to name this branch, its PR, or its issue.
 
 No matching entry → say so, and build "Saved" from this branch's `git log` alone.
 
