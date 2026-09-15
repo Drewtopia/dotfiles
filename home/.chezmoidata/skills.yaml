@@ -98,3 +98,11 @@ skill_repos:
     # the repo name, so it is pinned rather than taken with `"*"`.
     skills:
       - computer-use
+  - repo: shadcn/improve
+    # Read-only codebase audit that writes prioritized plans for other agents.
+    skills:
+      - improve
+  - repo: dmmulroy/anti-slop
+    # Installs and updates the vendored anti-slop Oxlint plugins.
+    skills:
+      - install-anti-slop

@@ -1,6 +1,6 @@
 ---
 name: close
-description: Close out a session — memory updates, tracker reconcile, commits split by purpose, merged-worktree tidy, SESSION_LOG.md, rename suggestion. Use for /close, "close the session", "wrap up", "end session".
+description: Close out a session — memory updates, tracker reconcile, commits split by purpose, merged-worktree tidy, SESSION_LOG.md, session-leftover inventory, rename suggestion, next-session prompt. Use for /close, "close the session", "wrap up", "end session".
 disable-model-invocation: true
 ---
 
@@ -117,7 +117,18 @@ If `SESSION_LOG.md` doesn't exist yet, the prepend creates it.
 
 ## Phase 3 — Close
 
-### 1. Print rename suggestion
+### 1. Inventory what the session left behind
+
+Runs after Phase 2 so its commits and cleanup show up. List everything this session created, changed, or started — branches (local and remote), worktrees, PRs, issues, comments it wrote, files outside the repo, scratch dirs, processes, containers. Check each one **live** (remote, tracker, filesystem, `docker ps`), never from memory, and sort it:
+
+- **Landed** — merged, closed, released, verified on the remote.
+- **In flight** — waiting on review, CI, a pipeline, or a person; name who or what.
+- **Debris** — a branch after its merge, a leftover worktree, a temp file or container, a stale comment this session wrote.
+- **Out of scope** — a finding that deserves its own tracker issue. Draft the title and one-paragraph body now, while the context is live; file it on confirm.
+
+Report the sorted list with one proposed action per item and act only on what Drew confirms. Decisions go through Phase 1 step 1, not here. Worktree removal goes to `clean-workspace`'s worktree step; branch deletion follows the `deletion-safety` rule.
+
+### 2. Print rename suggestion
 
 Print on its own line, prefixed `Rename:` so Drew can copy it directly into the session-name field:
 
@@ -127,10 +138,20 @@ Rename: [YYYY-MM-DD] <project-or-topic> — <what-was-done>
 
 `<what-was-done>` should be one short noun phrase, not a sentence (e.g. `built /close skill`, not `today I built the /close skill`).
 
-### 2. Print closing counter
+### 3. Print next-session prompt
+
+If anything is in flight or open, print on its own line, prefixed `Next:`, a prompt Drew can paste into a fresh session — the first action and the skill to call:
 
 ```
-<N> memory updates · <N> commits · <N> issues closed · worktree removed · SESSION_LOG updated
+Next: <skill or command> — <first action, naming the branch, PR, or issue>
+```
+
+Skip the line when nothing is left open.
+
+### 4. Print closing counter
+
+```
+<N> memory updates · <N> commits · <N> issues closed · <N> issues filed · worktree removed · SESSION_LOG updated
 ```
 
 If a step was skipped (e.g. no git repo, no merge to clean up), drop that segment from the line rather than printing `0`.

@@ -66,6 +66,14 @@ chezmoi = "latest"
 "aqua:ajeetdsouza/zoxide" = "latest"
 atuin = "latest"
 "aqua:carapace-sh/carapace-bin" = "latest"
+"aqua:jj-vcs/jj" = "latest"
+"aqua:sxyazi/yazi" = "latest"
+{{ if eq .chezmoi.os "darwin" -}}
+# NOTE: navi publishes no macOS binaries; aqua supports only linux and windows/amd64.
+"cargo:navi" = "latest"
+{{ else -}}
+"aqua:denisidoro/navi" = "latest"
+{{ end -}}
 
 # Preferred backends only: aqua (checksum-verified) or github. vfox/asdf are not
 # accepted for new tools. Rust CLIs use cargo only when they ship no prebuilt binaries.
