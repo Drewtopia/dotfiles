@@ -1,12 +1,12 @@
 ---
 name: close
-description: Close out a session — memory updates, tracker reconcile, commits split by purpose, merged-worktree tidy, SESSION_LOG.md, session-leftover inventory, rename suggestion, next-session prompt. Use for /close, "close the session", "wrap up", "end session".
+description: Close out a session — memory updates, tracker reconcile, commits split by purpose, merged-worktree tidy, SESSION_LOG.md, session-leftover inventory, rename and color-status commands, next-session prompt. Use for /close, "close the session", "wrap up", "end session".
 disable-model-invocation: true
 ---
 
 # /close — session closeout
 
-Three phases. Run them in order. End with a counter line, then a `/rename` command.
+Three phases. Run them in order. End with a counter line, then `/rename` and `/color` commands.
 
 Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. Phase 2's git work is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
@@ -116,15 +116,29 @@ Runs after Phase 2 so its commits and cleanup show up. List everything this sess
 
 Report the sorted list with one proposed action per item and act only on what Drew confirms. Decisions go through Phase 1 step 1, not here. Worktree removal goes to `clean-workspace`'s worktree step; branch deletion follows the `deletion-safety` rule.
 
-### 2. Compose the rename command
+### 2. Compose the rename and color commands
 
-Compose a `/rename` command naming the session by everything it did, not just its opening ask. Drew pastes it at the prompt; the agent cannot rename a session itself. It is printed as the report's final line, after the §5 counter, so it is not lost mid-report:
+Compose two commands from the §1 inventory. Drew pastes them at the prompt; the agent cannot run slash commands itself. They are printed as the report's last two lines, after the §5 counter, so they are not lost mid-report:
 
 ```
-/rename [YYYY-MM-DD] <project-or-topic> — <what-was-done>
+/rename <project>-<ticket-or-pr>-<topic>
+/color <status-color>
 ```
 
-`<what-was-done>` should be one short noun phrase, not a sentence (e.g. `built /close skill`, not `today I built the /close skill`). Lead with a ticket, PR, or branch when there is one — those are what Drew searches for.
+**Name** — kebab-case, lowercase, no date (the `/resume` picker shows recency). Name the session by everything it did, not just its opening ask. Lead with the project, then a ticket, PR, or branch number when there is one — those are what Drew searches for. Keep status words (`wip`, `done`) out of the name; the color carries status. Examples: `at-59806-seed-ledger-migration`, `dotfiles-gh-156-close-rename-line`.
+
+**Color** — the session's status, tinting its name in the agents view. Take the first row that applies:
+
+| Color | Status |
+|---|---|
+| `red` | broken or blocked on an unresolved failure |
+| `yellow` | waiting on Drew — a decision, manual step, merge, or apply |
+| `orange` | waiting on someone else — review, CI, QA |
+| `blue` | parked mid-work, to resume later |
+| `green` | done, kept — reference material or a likely follow-up |
+| `pink` | done and closed out — nothing in flight, safe to remove |
+
+Nothing open defaults to `pink`; use `green` only when the session holds context worth returning to or Drew asks to keep it. `purple` and `cyan` stay unassigned.
 
 ### 3. Print next-session prompt
 
@@ -158,7 +172,7 @@ Pass `--next` with the §3 line so the entry carries it; omit `--next` when §3 
 
 If a step was skipped (e.g. no git repo, no merge to clean up), drop that segment from the line rather than printing `0`.
 
-Then print the §2 `/rename` command as the last line of the report, with nothing after it.
+Then print the §2 `/rename` and `/color` commands as the last two lines of the report, each on its own line, with nothing after them.
 
 ## Self-check before reporting done
 
