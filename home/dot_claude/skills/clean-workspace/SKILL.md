@@ -1,6 +1,6 @@
 ---
 name: clean-workspace
-description: Fast local declutter — prune merged worktrees, clear finished Agent View cards, rename unnamed sessions, report the stale-session tail.
+description: Fast local declutter — prune merged worktrees, clear finished Agent View cards, report the stale-session tail. Use when the machine or agent view feels crowded.
 disable-model-invocation: true
 ---
 
@@ -34,14 +34,7 @@ auto-detected (`origin/HEAD`, else develop/main/master); override with `TRUNK=<b
    Never a running card (cross-check `daemon/roster.json`). On each successful removal, append
    `{id,title,branch,removedAt}` to `~/.claude/housekeeping/removed-log.jsonl` so
    `/find-session --removed` can recover it.
-3. **Rename unnamed sessions** — auto-titles (`automatedtesting-f3`) are unscannable in the resume
-   picker. `uv run ~/.claude/skills/clean-workspace/rename-sessions.py` (dry-run) shows proposed
-   branch-derived names for every dead, never-renamed session on a real feature branch; re-run with
-   `--apply` to write (backs up `~/.claude/sessions/` first). Live sessions and already-named ones are
-   left alone. The custom name lives in `~/.claude/sessions/<pid>.json` (`name`, no `nameSource`) — a
-   dead-pid file is safe to edit; a live one is not. Going forward, `/rename <name>` or `Ctrl+R` in
-   the picker names a session by hand.
-4. **Stale session tail** — report the count of transcripts older than the retention window
+3. **Stale session tail** — report the count of transcripts older than the retention window
    (`cleanupPeriodDays` — CC default unless set in settings.json). **Do not delete transcript files** — the native startup sweep expires them (and
    orphaned worktrees) safely; moving a running session's `.jsonl` strands it. Report only. See
    [SESSIONS.md](SESSIONS.md) for enumerating and classifying sessions.
@@ -51,4 +44,3 @@ auto-detected (`origin/HEAD`, else develop/main/master); override with `TRUNK=<b
 - Every removed worktree and deleted branch came from the done set, clean, and confirmed.
 - Every removed Agent View card was confirmed, was not running, and is logged to `removed-log.jsonl`.
 - Transcript files were reported, never deleted.
-- The rename pass ran dry-run first, and touched no live session.

@@ -262,11 +262,12 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
-        "matcher": "",
+        "matcher": "prompt_input_exit|logout|other",
         "hooks": [
           {
             "type": "command",
-            "command": "id=$(jq -r '.session_id // empty'); [ -n \"$id\" ] && \"$HOME/.local/bin/claude-log-session\" \"$id\" >/dev/null 2>&1; \"$HOME/.local/bin/claude-board\" --no-open >/dev/null 2>&1 || true"
+            "command": "id=$(jq -r '.session_id // empty'); [ -n \"$id\" ] && \"$HOME/.local/bin/claude-log-session\" \"$id\" >/dev/null 2>&1 || true",
+            "timeout": 5
           }
         ]
       }
@@ -358,6 +359,11 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # Strip it from live settings (add-only merge keeps it) and drop emptied entries.
   | .hooks.Stop = ((.hooks.Stop // [])
       | map(.hooks |= map(select((.command | contains("stop-end-of-turn.js")) | not)))
+      | map(select((.hooks | length) > 0)))
+  # Retire the unmatched SessionEnd log hook that also rebuilt claude-board: it
+  # fired on /clear and /resume too. Strip it (add-only merge keeps it).
+  | .hooks.SessionEnd = ((.hooks.SessionEnd // [])
+      | map(.hooks |= map(select((.command | contains("claude-board")) | not)))
       | map(select((.hooks | length) > 0)))
   # Retire the bash -c wrapper form of managed hooks: shell-form hooks already run
   # under sh -c (Git Bash on Windows), and the add-only merge would keep both forms.
