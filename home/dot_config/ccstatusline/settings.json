@@ -67,26 +67,6 @@
       {
         "id": "334f2185-a441-4308-b6a5-cc3f8d512be2",
         "type": "session-cost"
-      },
-      {
-        "id": "sb-sep",
-        "type": "separator"
-      },
-      {
-        "id": "session-board-triage",
-        "type": "custom-command",
-        "commandPath": "cat ~/.cache/claude/board-status.txt 2>/dev/null",
-        "timeout": 2000,
-        "preserveColors": false
-      }
-    ],
-    [
-      {
-        "id": "28299733-cb90-4088-8a36-edbd671864de",
-        "type": "custom-command",
-        "commandPath": "bun x -y ccusage statusline",
-        "timeout": 5000,
-        "preserveColors": true
       }
     ],
     [
