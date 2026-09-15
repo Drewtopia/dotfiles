@@ -1,32 +1,31 @@
 ---
 name: housekeeping
-description: Map over the cleanup and closeout skills — which one to reach for when the machine feels cluttered, the backlog has drifted, a session needs wrapping up, or a past session has gone missing. Use when the right cleanup skill isn't obvious, or the user asks what exists.
+description: Map of the session and cleanup skills, ordered by where you are in the work — coming back to a branch, a crowded agents view, ending a session, after a merge, a lost session, a drifted tracker. Use when the right skill isn't obvious, or the user asks what exists.
 ---
 
 # Housekeeping
 
-The map over the cleanup skills. You don't remember them all — start here.
+Which skill, by where you are in the work. This file routes; it does not run the work. Every skill below is user-invoked — name the right one and hand it over.
 
-Every skill below is user-invoked. Name the right one and hand it over; this file routes, it
-does not run the work.
+## The loop these serve
 
-| Reach for it when | Skill |
+One issue → `wtc <branch>` (worktree, tmux session, claude) → work, commit, `/clear`, repeat → PR → `/close` → merge → `wtr <branch>`. A session is scratch; the issue, the commits, the PR and the SESSION_LOG `Next:` line carry the work, so clearing after a commit loses nothing.
+
+## By stage
+
+| Where you are | Reach for |
 |---|---|
-| Back after days away — this branch, and what moved while you were gone | **`/catch-up`** — one repo: what changed, what is at risk, one next action |
-| Too many sessions open to know what to do next | **`/whats-next`** — one next action, plus what to do with the finished cards |
-| Two sessions may be standing on the same branch, directory, or file | **`/reconcile-sessions`** — names each collision and which session yields |
-| The cards are stale and you want the sessions to say it themselves | **`/reach-out`** — pings the live ones and reports what comes back |
-| The machine feels cluttered — merged worktrees, finished Agent View cards, unnamed sessions | **`/clean-workspace`** — fast, deterministic, run often |
-| Work has merged but its issues are still open | **`/reconcile-tracker`** — walks merged PRs to close what they closed |
-| The whole backlog has drifted — ghosts, inflated counts, planless tickets | **`/realign-tracker`** — sweeps every open issue; slower, run periodically |
-| A session is ending — memory, commits, session log | **`/close`** |
-| A past session is lost, or a card was cleared by mistake | **`/find-session <memory>`**, or **`/find-session --removed`** to recover a cleared card |
-| Docs have drifted from decisions — ADRs contradicting the code or each other | **`/audit-intent`** — project-local, install per repo; reports only |
+| Back in a worktree after a day or more away | **`/catch-up`** — its last `Next:` line, what moved since, whether it still holds |
+| The agents view is crowded and you can't tell what's open | **`/reach-out`** — the sessions nobody closed report a color and a `Next:` line |
+| Ending a session, finished or not | **`/close`** — quick by default; `/close full` after a merge or when work leaked outside the repo |
+| One branch merged | `wtr <branch>` removes its worktree and tmux session |
+| Finished cards and merged worktrees piling up | **`/clean-workspace`** — prunes merged worktrees, clears done cards on confirmation |
+| A past session is lost, or a card was cleared by mistake | **`/find-session <memory>`** searches transcript text; `claude --resume <name>` when you know its name |
+| Merged work on Azure-hosted code whose issues are still open | **`/reconcile-tracker`** — walks merged PRs to close what they closed |
+| The whole work backlog has drifted — ghosts, inflated counts, planless tickets | **`/realign-tracker`** — sweeps every open issue; slower, run periodically |
 
-The two tracker skills differ by **reach**, not by quality: `reconcile-tracker` starts from merged
-work and closes the issues behind it, `realign-tracker` starts from every open issue and checks it
-for drift. `close` reconciles only the branches of the session it is closing.
+Not every skill is installed on every machine — `/realign-tracker` lives only on the work machine. Check `ls ~/.claude/skills/<name>` before naming one.
 
-`whats-next` and `catch-up` differ by **anchor**: `whats-next` starts from the machine full of
-sessions and picks the one to walk into, `catch-up` starts from the repo you are already standing
-in and reports what moved under it.
+`/catch-up` and `/reach-out` differ by **anchor**: `/catch-up` starts from the branch you are standing in and the `Next:` line it saved; `/reach-out` starts from the sessions that never saved one.
+
+The two tracker skills differ by **reach**: `/reconcile-tracker` starts from merged work and closes the issues behind it, `/realign-tracker` starts from every open issue and checks it for drift. `/close` reconciles only the branches of the session it is closing.
