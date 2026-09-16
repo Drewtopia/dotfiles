@@ -33,7 +33,7 @@ Dirty tree → read the full diff (`git diff HEAD`): hunks, not filenames.
 
 Read back through the session once for what future work needs:
 
-- **Mistakes** — breakages or corrections not yet in the repo's `MISTAKES.md` → append them (what happened / root cause / consequence / prevention, newest first).
+- **Mistakes** — breakages or corrections not yet in the main checkout's `MISTAKES.md` → append them (what happened / root cause / consequence / prevention, newest first). Never a worktree's copy: it is gitignored and dies with the worktree. Target `"$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/MISTAKES.md"`.
 - **Decisions, insights, references** worth keeping → the memory file that owns them (table below).
 - **Open tasks** → the `Next:` line (step 3) or a tracker issue, not memory.
 
