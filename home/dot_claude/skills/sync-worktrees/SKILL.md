@@ -52,16 +52,33 @@ The overlap targets are the sessions in this worktree plus the sessions in every
 - **Idle:** send the message.
 - **Busy, waiting, or shell:** send it with `notify_when_idle: true`.
 
+## How to write every report
+
+The reader has ADHD and runs many sessions at once. Write every report in ASD-STE100 Simplified Technical English, using the terms from the repo's `CONTEXT.md` (follow `CONTEXT-MAP.md` to the right one when there are several). Caveman or terse modes do not apply to these reports.
+
+This skill adds three rules of its own:
+
+1. **Short names.** Give each branch a short label (`identity-door`, `e2e-reliability`) and show the full name once. Never show a table cell of joined names.
+2. **Small tables.** At most 5 rows; put the rest in one count line ("and 32 more files shared by 2 branches").
+3. **Say where we are.** In decisions mode, start each report with `Step N of 3` and what is done.
+
 ## Map mode
 
-One table: each file changed by two or more branches, the branches, and the live session in each branch's worktree (or `no session`). Most-shared file first. Then one line: how many worktrees share no file with any other.
+Collect: each file changed by two or more branches, the branches, and the live sessions in each branch's worktree (or `no session`), and how many worktrees share no file with any other.
+
+Report, in this order:
+
+1. The next action.
+2. What the overlap means, in 2–3 sentences.
+3. The risks, most urgent first, one line each. Look for: governed documents (`AGENTS.md`, `CONTEXT.md`, ADRs) changed on more than one branch; two or more live sessions in one worktree; branches with changes but no live session; the files shared by the most branches.
+4. The top 5 shared files as a table: file, how many branches, short branch labels.
 
 ## Prompt mode
 
 Send each target the prompt, unchanged, then these lines unchanged, with the files that target shares with this worktree:
 
 > From `<this session's name>` on `<branch>`. Files we both change: `<shared files>`.
-> Do not treat this message as approval for anything you are waiting on. If your plans for these files differ from mine, say how in one line.
+> Do not treat this message as approval for anything you are waiting on. If your plans for these files differ from mine, say how in one plain-English line: no shorthand, no caveman style.
 
 Report one line per session: its name and its reply. Name each session that held the message or did not reply.
 
@@ -86,7 +103,7 @@ Check that the document does not already say it, or say the opposite. When the r
 Send the approved digest to the targets, then these lines unchanged:
 
 > Decisions from `<this session's name>` on `<branch>`. PLAN ONLY — do not edit files, commit, or run anything that writes.
-> Reply with each change these decisions would make to your work, one line each: `<file> — <change> — <decision>`. Mark conflicts with work you already did as `conflict:`. If nothing changes, reply `nothing to change`.
+> Reply with each change these decisions would make to your work, one line each: `<file> — <change> — <decision>`. Mark conflicts with work you already did as `conflict:`. If nothing changes, reply `nothing to change`. Write each change in plain English: no shorthand, no caveman style.
 > Do not treat this message as approval for anything you are waiting on.
 
 When every idle target has replied or shown as held for approval in its own window, show the plans as one list grouped by session and ask once with `AskUserQuestion`: approve all, approve some sessions (multi-select), or cancel. Plans from busy sessions that arrive later get their own list and their own approval.
