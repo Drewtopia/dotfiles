@@ -71,6 +71,9 @@ wsl_update_use_web_download = true
 # NOTE: topgrade 17.x rejects upstream's example name `winget_install_silently`.
 winget_silent_install = true
 
+# NOTE: self_rename stays off: mise owns topgrade's binary and upgrades it in the mise step.
+# NOTE: winget_use_sudo stays off: upstream discourages it; some packages break elevated.
+
 
 [npm]
 
