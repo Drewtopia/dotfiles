@@ -346,6 +346,10 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # hookify has no rules anywhere but spawns python3 around every tool call;
   # a runtime `true` would otherwise outrank the managed `false`.
   | .enabledPlugins["hookify@claude-plugins-official"] = false
+  # Retired plugins a runtime `true` would otherwise keep enabled.
+  | .enabledPlugins["session-report@claude-plugins-official"] = false
+  | .enabledPlugins["humanizer@humanizer"] = false
+  | .enabledPlugins["andrej-karpathy-skills@karpathy-skills"] = false
   # Auto-memory stays off on every machine: declaring it in the managed floor
   # cannot force-disable a machine where Claude already enabled it (runtime wins),
   # so pin it here to re-assert false on every apply.

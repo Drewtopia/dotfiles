@@ -37,7 +37,7 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 "learning-output-style@claude-plugins-official"    = false
 "ralph-loop@claude-plugins-official"               = false
 "remember@claude-plugins-official"                 = true
-"session-report@claude-plugins-official"           = true
+"session-report@claude-plugins-official"           = false
 
 [plugins.personal]
 "superwhisper@superwhisper" = false
@@ -63,10 +63,10 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # outweighs the use, and it duplicates mattpocock-skills.
 "ecc@ecc"                                 = false
 "worktrunk@worktrunk"                     = true
-# NOTE: not via `npx skills`: its root .claude-plugin/ would register a
+# NOTE: re-add humanizer only as a plugin: via `npx skills` it registers a
 # marketplace-less "humanizer@skills-dir" that `claude plugin update` can't resolve.
-"humanizer@humanizer"                     = true
-"andrej-karpathy-skills@karpathy-skills"  = true
+"humanizer@humanizer"                     = false
+"andrej-karpathy-skills@karpathy-skills"  = false
 # Take pstack skills only from this plugin; `npx skills` from cursor/plugins
 # would add bare duplicates beside the namespaced ones.
 "pstack@pstack-claude"                    = true
@@ -75,6 +75,6 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # an entry does not remove it from ~/.claude.json. Each server runs one process
 # per session, so keep work machines lean.
 
-[mcp_servers.personal.sequential-thinking]
-command = "npx"
-args    = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+# NOTE: keep this header with no servers: claude-mcp-servers reads
+# `.mcp_servers` under missingkey=error, so an absent key fails every apply.
+[mcp_servers]
