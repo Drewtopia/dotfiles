@@ -147,9 +147,7 @@ function run(nowSec) {
 
 async function main() {
     const raw = await readStdin();
-    if (
-        isHookEnabled(HOOK_ID, { profiles: ['minimal', 'standard', 'strict'] })
-    ) {
+    if (isHookEnabled(HOOK_ID)) {
         try {
             const { output } = run(Math.floor(Date.now() / 1000));
             if (output) process.stdout.write(output);
