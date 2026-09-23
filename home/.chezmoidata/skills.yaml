@@ -47,17 +47,10 @@ skill_repos:
       # misc/
       - git-guardrails-claude-code
       - migrate-to-shoehorn
-      - scaffold-exercises
       # in-progress/
       - loop-me
       - setup-ts-deep-modules
-      - writing-fragments
-      - writing-beats
-      - writing-shape
       - claude-handoff
-  - repo: vercel-labs/skills
-    skills:
-      - find-skills
   - repo: github/awesome-copilot
     # awesome-copilot has hundreds of skills; pull only what we use.
     skills:
