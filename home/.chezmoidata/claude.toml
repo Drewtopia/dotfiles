@@ -66,9 +66,10 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 "explanatory-output-style@claude-plugins-official" = false
 "learning-output-style@claude-plugins-official"    = false
 "ralph-loop@claude-plugins-official"               = false
-# Session memory and usage reporting — about Claude Code itself, so every machine.
+# Session memory — about Claude Code itself, so every machine.
 "remember@claude-plugins-official"                 = true
-"session-report@claude-plugins-official"           = true
+# Retired Sep 2026 — never invoked. claude-settings-merge pins it off.
+"session-report@claude-plugins-official"           = false
 
 [plugins.personal]
 # Installed Aug 2026 and disabled since; the Superwhisper dictation app is personal-only.
@@ -110,13 +111,11 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # (orch-*, multi-*, gan-*) are ever actually wanted.
 "ecc@ecc"                                 = false
 "worktrunk@worktrunk"                     = true
-# Moved off the `npx skills` path Jul 2026: blader/humanizer ships a
-# .claude-plugin/ at repo root, so vendoring it into ~/.claude/skills/ made
-# Claude Code register a marketplace-less "humanizer@skills-dir" plugin that
-# `claude plugin update` cannot resolve — failing topgrade's claude_code step
-# on every run. Installed from its own marketplace instead.
-"humanizer@humanizer"                     = true
-"andrej-karpathy-skills@karpathy-skills"  = true
+# Both retired Sep 2026 — never invoked; pstack:unslop and karpathy-guidelines
+# cover them, and claude-settings-merge pins them off. Re-add humanizer only as a
+# plugin: via `npx skills` it registers an unresolvable "humanizer@skills-dir".
+"humanizer@humanizer"                     = false
+"andrej-karpathy-skills@karpathy-skills"  = false
 # Claude Code port of cursor/plugins' pstack. Take its skills from this plugin
 # only — installing the same skills from cursor/plugins via `npx skills` puts
 # bare duplicates (bro, unslop, no-comments, ...) beside the namespaced ones.
@@ -131,6 +130,6 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # Every server starts one process per session, so keep work machines lean:
 # many concurrent sessions multiply each server's memory.
 
-[mcp_servers.personal.sequential-thinking]
-command = "npx"
-args    = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+# Keep this header even with no servers: claude-mcp-servers reads
+# `.mcp_servers` under missingkey=error, so an absent key fails every apply.
+[mcp_servers]

@@ -45,9 +45,7 @@ skill_repos:
       - claude-code
     skills:
       # misc/
-      - git-guardrails-claude-code
       - migrate-to-shoehorn
-      - scaffold-exercises
       # in-progress/
       - loop-me
       - setup-ts-deep-modules
@@ -55,14 +53,6 @@ skill_repos:
       - writing-beats
       - writing-shape
       - claude-handoff
-  - repo: vercel-labs/skills
-    skills:
-      - find-skills
-  - repo: github/awesome-copilot
-    # awesome-copilot has hundreds of skills; pull only what we use.
-    skills:
-      - conventional-commit
-      - playwright-generate-test
   - repo: conventional-branch/conventional-branch
     # Teaches valid Conventional Branch names; pairs with commit-check
     # enforcement in dot_claude/hooks/bash-checks/gate-push-convention.js.
@@ -98,11 +88,3 @@ skill_repos:
     # the repo name, so it is pinned rather than taken with `"*"`.
     skills:
       - computer-use
-  - repo: shadcn/improve
-    # Read-only codebase audit that writes prioritized plans for other agents.
-    skills:
-      - improve
-  - repo: dmmulroy/anti-slop
-    # Installs and updates the vendored anti-slop Oxlint plugins.
-    skills:
-      - install-anti-slop
