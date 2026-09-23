@@ -1,14 +1,5 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * PostToolUse (Bash): commit checkpoint.
- *
- * After a command lands a fresh commit, tells the model that a finished commit
- * is the safe point for /clear: the work now lives on the branch, not in the
- * context window. Never blocks; always exits 0.
- *
- * Toggle: HOOKS_DISABLED=post:bash:commit-clear-nudge
- */
 
 const { readStdin, parseInput, getCommand } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
@@ -21,14 +12,12 @@ const GIT_COMMIT = /(?:^|[\s/"'(])git(?:\s+-[Cc]\s+\S+)*\s+commit(?=\s|$|["')])/
 
 const done = () => process.exit(0);
 
-/** True when some subcommand of `command` runs `git commit`. */
 function runsGitCommit(command) {
     return String(command || '')
         .split(/&&|\|\||[;|\n]/)
         .some(part => GIT_COMMIT.test(part.trim()));
 }
 
-/** Parses `%ct<TAB>%h<TAB>%s`; null unless the commit is within FRESH_SECONDS of now. */
 function freshCommit(logLine, nowSeconds) {
     const [epoch, sha, ...subject] = String(logLine || '').split('\t');
     const committed = Number(epoch);

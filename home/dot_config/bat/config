@@ -1,16 +1,8 @@
-# Theme (matches Catppuccin in tmux)
+# Matches the Catppuccin theme in tmux.
 --theme="Catppuccin Mocha"
-
-# Show line numbers + git changes + header
 --style="numbers,changes,header"
-
-# Use less as pager with mouse support
 --pager="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse"
-
-# Tab width
 --tabs=4
-
-# Syntax mappings
 --map-syntax "*.env:Bourne Again Shell (bash)"
 --map-syntax ".env.*:Bourne Again Shell (bash)"
 --map-syntax "*.tmpl:Go HTML Template"

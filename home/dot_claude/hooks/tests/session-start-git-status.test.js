@@ -1,5 +1,4 @@
 'use strict';
-/** Tests for session-start-git-status.js (port of the .sh). Run: node --test */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');

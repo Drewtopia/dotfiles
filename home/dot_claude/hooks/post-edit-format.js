@@ -1,13 +1,5 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * PostToolUse(Edit|Write): format the edited file by extension.
- * Faithful port of after-edit.sh — same extension → formatter mapping. Each
- * formatter is best-effort: a missing binary (ENOENT) is skipped, failures
- * never block. Always exits 0.
- *
- * Toggle: HOOKS_DISABLED=post:edit:format
- */
 
 const { spawnSync } = require('node:child_process');
 const { readStdin, parseInput } = require('./lib/hook-io');
@@ -29,7 +21,6 @@ const PRETTIER_EXT = new Set([
     'html',
 ]);
 
-/** Ordered formatters for a file, mirroring after-edit.sh's case block. */
 function formattersFor(filePath) {
     if (!filePath) return [];
     const ext = filePath.includes('.')
@@ -66,7 +57,7 @@ function run(input) {
         try {
             spawnSync(f.bin, f.args, { stdio: 'ignore' });
         } catch {
-            // Missing formatter or spawn failure — formatting must never block.
+            /* formatting never blocks */
         }
     }
     return { exitCode: 0 };

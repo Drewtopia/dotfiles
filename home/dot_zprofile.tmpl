@@ -1,18 +1,15 @@
-{{- /* macOS only: its /etc/zprofile runs path_helper after .zshenv. Debian and
-       Ubuntu (WSL included) ship an /etc/zsh/zprofile that runs nothing, so
-       .zshenv alone sets PATH there; Windows has no zsh. */ -}}
+{{- /* macOS only: Debian/Ubuntu's /etc/zsh/zprofile runs nothing, so .zshenv
+       alone sets PATH there. */ -}}
 {{- if eq .chezmoi.os "darwin" }}
-# Re-source .zshenv — macOS /etc/zprofile runs path_helper which reorders PATH,
-# pushing ~/.local/bin and /opt/homebrew/bin down. Re-sourcing restores priority.
+# /etc/zprofile's path_helper pushes ~/.local/bin and /opt/homebrew/bin down.
 [[ -f ~/.zshenv ]] && source ~/.zshenv
 
-# Homebrew environment (static — faster than eval "$(brew shellenv)")
+# Static: faster than eval "$(brew shellenv)".
 export HOMEBREW_PREFIX="/opt/homebrew"
 export HOMEBREW_CELLAR="/opt/homebrew/Cellar"
 export HOMEBREW_REPOSITORY="/opt/homebrew"
 export MANPATH="/opt/homebrew/share/man${MANPATH+:$MANPATH}:"
 export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
 
-# Obsidian CLI
 export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
 {{- end }}

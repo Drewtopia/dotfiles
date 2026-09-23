@@ -1,14 +1,4 @@
 'use strict';
-/**
- * PreToolUse(Bash) check: block destructive git commands.
- * Port of block-dangerous-git.sh.
- *
- * Blocks: force-push (any branch), reset --hard, clean -f, bulk checkout/restore
- * ".", branch -D / --delete --force, push to a protected branch (explicit
- * refspec OR bare push while on a protected branch).
- *
- * run(input) -> { exitCode: 0 } | { exitCode: 2, stderr }
- */
 
 const { getCommand } = require('../lib/hook-io');
 const { currentBranch } = require('../lib/git');
@@ -25,7 +15,6 @@ function run(input) {
 
     const isPush = /git\s+push/.test(cmd);
 
-    // Force-push (any branch)
     if (
         isPush &&
         /push.*(--force([^-]|$)|--force-with-lease|\s-f(\s|$))/.test(cmd)
@@ -33,7 +22,6 @@ function run(input) {
         return block(`force-push detected in '${cmd}'.`);
     }
 
-    // Destructive working-tree / history operations
     if (/git\s+reset(\s+.*)?\s+--hard/.test(cmd))
         return block(`git reset --hard in '${cmd}'.`);
     if (/git\s+clean(\s+.*)?\s+-[a-zA-Z]*f/.test(cmd))
@@ -42,7 +30,6 @@ function run(input) {
         return block(`bulk working-tree discard in '${cmd}'.`);
     }
 
-    // Force-delete branch
     if (/git\s+branch(\s+.*)?\s-D(\s|$)/.test(cmd)) {
         return block(`git branch -D (force delete) in '${cmd}'.`);
     }
@@ -50,9 +37,7 @@ function run(input) {
         return block(`force branch delete in '${cmd}'.`);
     }
 
-    // Push to a protected branch
     if (isPush) {
-        // Explicit refspec containing a protected name: ' main', 'HEAD:main', etc.
         if (new RegExp(`([\\s:/])(${PROTECTED})(\\s|$)`).test(cmd)) {
             return block(
                 `push targets a protected branch (${PROTECTED}) in '${cmd}'.`,
@@ -64,7 +49,7 @@ function run(input) {
         const tokens = pushTail
             .split(/\s+/)
             .filter(t => t && !t.startsWith('-'));
-        const refspec = tokens.slice(1); // drop the remote (first token)
+        const refspec = tokens.slice(1);
         if (refspec.length === 0) {
             const branch = currentBranch();
             if (branch && new RegExp(`^(${PROTECTED})$`).test(branch)) {

@@ -6,13 +6,6 @@ return {
         explorer = {
           hidden = true,
         },
-        -- files = {
-        --   hidden = true,
-        --   ignored = true,
-        --   -- exclude = {
-        --   -- "**/.git/*",
-        --   --},
-        -- },
         grep = {
           hidden = true,
           ignored = true,
@@ -20,9 +13,6 @@ return {
         picker = {
           hidden = true,
           ignored = true,
-          -- exclude = {
-          -- "**/.git/*",
-          --},
         },
       },
     },

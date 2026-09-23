@@ -1,10 +1,4 @@
 'use strict';
-/**
- * Unit tests for gate-push-convention.js. The branch decision is delegated to
- * commit-check (a subprocess), so tests inject a fake `check` plus `repoRoot`
- * and `currentBranch` to exercise the decision logic deterministically without
- * spawning anything.
- */
 
 const { test } = require('node:test');
 const assert = require('node:assert');

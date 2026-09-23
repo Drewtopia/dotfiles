@@ -1,4 +1,3 @@
-# fd global ignore (same patterns as .gitignore)
 .git/
 node_modules/
 .venv/

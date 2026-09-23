@@ -1,25 +1,18 @@
-# 015-vault.sh — credentials rendered from 1Password at `chezmoi apply` (mode 0600).
-# Pulled at build time, not runtime — shell startup needs no op session.
-#
-# Every item below is named the same in Private and Employee and keeps its
-# secret in a `token` field, so .opVault selects the machine class and no
-# export needs a .work branch.
-{{/* No op on PATH on a first apply: render nothing, and the next apply fills the
-     exports in. Once rendered, a missing op fails the apply rather than blanking
-     working secrets (e.g. chezmoi run from a shell without ~/.local/bin on PATH). */ -}}
+# Rendered from 1Password at apply time, so shell startup needs no op session.
+# Items share names and a `token` field across vaults; .opVault picks the vault.
+{{/* First apply without op renders nothing; once rendered, a missing op fails
+     the apply rather than blanking working secrets. */ -}}
 {{ $hasOp := lookPath "op" -}}
 {{ if and (not .ephemeral) (not $hasOp) (stat (joinPath .chezmoi.homeDir ".config" "shell" "015-vault.sh")) -}}
 {{ fail "015-vault.sh: op not found on PATH; refusing to overwrite rendered secrets" }}
 {{- end -}}
 {{ if and (not .ephemeral) $hasOp -}}
-{{/* chezmoi's own GitHub template functions read GITHUB_TOKEN and fall back to
-     60 unauthenticated requests/hour without it. Consequence: gh ranks
-     GITHUB_TOKEN above its keyring, so `gh auth login` stays shadowed here. */}}
+{{/* chezmoi's GitHub functions need it past 60 requests/hour. gh ranks
+     GITHUB_TOKEN above its keyring, so `gh auth login` stays shadowed. */}}
 export GITHUB_TOKEN={{ onepasswordRead (printf "op://%s/GitHub PAT/token" .opVault) | trim }}
 export MISE_GITHUB_TOKEN="$GITHUB_TOKEN"
 export GEMINI_API_KEY={{ onepasswordRead (printf "op://%s/Gemini API Key/token" .opVault) | trim }}
-{{- /* Read by the context7 MCP server, which the plugin launches as
-     `npx -y @upstash/context7-mcp` with no key argument — the env var is the
-     only lever, since the plugin's .mcp.json regenerates on every update. */}}
+{{- /* The context7 plugin passes no key argument and regenerates its .mcp.json
+     on update, so the env var is the only lever. */}}
 export CONTEXT7_API_KEY={{ onepasswordRead (printf "op://%s/Context7 API Key/token" .opVault) | trim }}
 {{ end -}}

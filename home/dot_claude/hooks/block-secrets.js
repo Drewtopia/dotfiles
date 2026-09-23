@@ -1,25 +1,14 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * PreToolUse(Read|Edit|Write + Bash|PowerShell) guard: block access to
- * sensitive files and literal provider-token shapes in shell commands.
- *
- * Lists hold files that carry secrets. Public keys, known_hosts, certificates,
- * plain config and source files stay readable. Change a list only together with its test.
- *
- * Wired standalone (not via pre-bash-dispatcher) because it spans PowerShell too.
- * Only HOOKS_DISABLED=pre:secrets:block turns it off.
- *
- * run(input) -> { exitCode: 0 } allow | { exitCode: 2, stderr } block
- */
+// PreToolUse(Read|Edit|Write|Bash|PowerShell): block sensitive files and literal
+// provider tokens in shell commands. Wired standalone, not via pre-bash-dispatcher,
+// because it spans PowerShell too.
 
 const path = require('path');
 const { readStdin, parseInput } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
 
 const HOOK_ID = 'pre:secrets:block';
-
-// --- file-level matching (Read|Edit|Write) ---------------------------------
 
 const SENSITIVE_FILENAMES = new Set([
     '.env',
@@ -82,9 +71,7 @@ const SOURCE_EXTENSIONS = new Set(['.js', '.cjs', '.mjs', '.ts', '.tsx', '.py', 
 // Committed templates that hold variable names only.
 const ENV_TEMPLATE = /^\.env\.(example|sample|template)$/;
 
-// --- provider-token shapes (Bash|PowerShell command scan) ------------------
-
-/** [provider, regex] — first match wins, prefix+length tuned for low noise. */
+// First match wins; prefix + length tuned for low noise.
 const SECRET_TOKEN_PATTERNS = [
     ['AWS access key', /\bAKIA[0-9A-Z]{16}\b/],
     ['GitHub token', /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b/],
@@ -95,9 +82,6 @@ const SECRET_TOKEN_PATTERNS = [
     ['Stripe key', /\bsk_(?:live|test)_[0-9a-zA-Z]{24,}\b/],
 ];
 
-// --- detectors --------------------------------------------------------------
-
-/** @returns {{sensitive: boolean, reason: string}} */
 function isSensitiveFile(filePath) {
     if (!filePath) return { sensitive: false, reason: '' };
 
@@ -136,7 +120,6 @@ function isSensitiveFile(filePath) {
     return { sensitive: false, reason: '' };
 }
 
-/** @returns {{matched: boolean, provider: string}} */
 function secretInCommand(command) {
     if (!command) return { matched: false, provider: '' };
     for (const [provider, pattern] of SECRET_TOKEN_PATTERNS) {
@@ -145,7 +128,6 @@ function secretInCommand(command) {
     return { matched: false, provider: '' };
 }
 
-/** Extract file path from tool input (Read|Edit|Write), with a command fallback. */
 function extractFilePath(data) {
     const toolInput = (data && data.tool_input) || {};
     for (const key of ['file_path', 'path', 'filename', 'file']) {
@@ -162,8 +144,6 @@ function extractFilePath(data) {
     }
     return '';
 }
-
-// --- messages (byte-equivalent to the .py) ---------------------------------
 
 const tokenMessage = (toolName, provider) =>
     `╔══════════════════════════════════════════════════════════════════╗
@@ -202,13 +182,6 @@ const fileMessage = (toolName, filePath, reason) =>
 ║ • Store secrets in a proper secrets manager
 ╚══════════════════════════════════════════════════════════════════╝`;
 
-/**
- * Pure logic. Bash/PowerShell get a token-shape scan first, then every tool
- * falls through to the file-path scan (which also sniffs sensitive filenames
- * out of a shell command).
- *
- * run(input) -> { exitCode: 0 } | { exitCode: 2, stderr }
- */
 function run(input) {
     const toolName = (input && input.tool_name) || 'unknown';
 
@@ -219,7 +192,6 @@ function run(input) {
         const { matched, provider } = secretInCommand(command);
         if (matched)
             return { exitCode: 2, stderr: tokenMessage(toolName, provider) };
-        // fall through to file-path scan — covers `cat .env` etc.
     }
 
     const filePath = extractFilePath(input);

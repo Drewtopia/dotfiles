@@ -1,6 +1,3 @@
-# navi configuration
-# Docs: https://github.com/denisidoro/navi/blob/master/docs/config_file.md
-
 finder:
   command: fzf
 

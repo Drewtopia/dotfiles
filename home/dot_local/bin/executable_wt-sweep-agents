@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# wt-sweep-agents — remove worktrees left behind by finished Claude subagents.
-#
-# Claude Code does not fire WorktreeRemove when an isolation="worktree" subagent
-# finishes, so each one leaves an agent-<id> worktree and branch behind. Run in a
-# repo: lists candidates by default, `-y` removes them through `wt remove` (so
-# pre-remove hooks run and unmerged branches are kept).
+# Removes agent-<id> worktrees: Claude Code fires no WorktreeRemove when an
+# isolated subagent finishes. Lists by default; `-y` removes via `wt remove`, so
+# pre-remove hooks run and unmerged branches are kept.
 set -euo pipefail
 
 remove=0

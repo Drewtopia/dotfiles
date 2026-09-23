@@ -1,13 +1,11 @@
 {{- $name := "" -}}
 {{- $dev_computer := false -}}
 
-{{/* set up 1Password vaults */}}
 {{- $opVault := "" -}}
 
-{{/* boolean feature tags */}}
 {{- $ephemeral := false -}}{{/* true if this machine is ephemeral, e.g. a cloud or VM instance */}}
-{{- $work := false -}}{{/* true if this machine is a work machine */}}
-{{- $is_wsl := false -}}{{/* true if this machine is a WSL machine */}}
+{{- $work := false -}}
+{{- $is_wsl := false -}}
 {{- $personal := false -}}{{/* true if this machine should have personal secrets */}}
 {{- "" -}}
 
@@ -33,7 +31,6 @@
 {{-   $hostname = output "scutil" "--get" "LocalHostName" | trim | lower -}}
 {{- end -}}
 
-{{/* Windows: Check for known personal hostnames, otherwise prompt or default to ephemeral */}}
 {{- if eq .chezmoi.os "windows" -}}
 {{-   $personalWindowsHosts := list "andrews-desktop" "drew-pd" -}}
 {{-   if has ($hostname | lower) $personalWindowsHosts -}}
@@ -82,23 +79,17 @@
 {{- $email := "" -}}
 {{- if $opVault -}}
 {{-   if lookPath "op" -}}
-{{/*   op installed: pull identity from the vault (preferred path) */}}
 {{-     $name = onepasswordRead (printf "op://%s/Identity/handle" $opVault) | trim -}}
 {{-     $email = onepasswordRead (printf "op://%s/Identity/email" $opVault) | trim -}}
 {{-   else -}}
-{{/*   Fresh-machine fallback: op not yet installed. Prompt and store in the
-       local chezmoi.toml (never committed to git). After this apply, op is
-       installed (Linux script, macOS cask, WSL shim), so subsequent
-       inits could use the vault path — but the cached prompt value sticks
-       because of promptStringOnce. Manually delete the entry to switch. */}}
+{{/*   Fresh machine without op. promptStringOnce caches the answer in the local
+       chezmoi.toml, so delete it there to switch to the vault later. */}}
 {{-     $name = promptStringOnce . "name" "Your full name (op CLI not detected; stored locally only)" -}}
 {{-     $email = promptStringOnce . "email" "Your email" -}}
 {{-   end -}}
 {{- end -}}
 
-{{/* Relocatable dev tools root — on work Windows, prompt for a whitelisted
-     top-level folder name so tool binaries live under an allowed path.
-     Leave blank to keep everything under $HOME as normal. */}}
+{{/* Work Windows may only run binaries under a whitelisted folder. */}}
 {{- $tools_root := .chezmoi.homeDir -}}
 {{- if and $work (eq .chezmoi.os "windows") -}}
 {{-   $dev_folder := promptStringOnce . "dev_folder" "Top-level folder name for relocated dev tools (resolves to C:/<this>/<username>; leave blank for $HOME)" -}}
@@ -106,10 +97,7 @@
 {{-     $tools_root = printf "C:/%s/%s" $dev_folder (last (splitList "\\" (.chezmoi.username | lower))) -}}
 {{-   end -}}
 {{- end -}}
-{{/* relocated: this machine relocates dev tools out of $HOME into a
-     whitelisted tools_root. Only ever true on work Windows (set above), so it
-     implies both work and windows. The single named condition every relocation
-     script and template gates on. */}}
+{{/* The one condition relocation scripts gate on; implies work and windows. */}}
 {{- $relocated := ne $tools_root .chezmoi.homeDir -}}
 {{- $dev_root := printf "%s/dev" $tools_root -}}
 
@@ -124,14 +112,9 @@
 {{ if eq .chezmoi.os "windows" -}}
 {{-   $miseShims := printf "%s/shims" $mise_dir | replace "/" "\\" -}}
 {{-   $cleanPathParts := list -}}
-{{/*  Drop EVERY mise shim dir (relocated `<root>\.mise\shims` and legacy
-      `%LOCALAPPDATA%\mise\shims`); the canonical one is prepended below. Two
-      mise shim dirs on PATH defeat mise's re-entry guard and fork-bomb
-      (jdx/mise dual-dir shim recursion).
-      CANONICAL RULE PARALLEL: this build-time (Go template) dedup is the twin
-      of the PowerShell Get-NormalizedPath fork-bomb guard in the
-      windows-relocation partial (run_onchange_before_05 + the pwsh profile).
-      Two runtimes, same rule; they cannot share code. Keep them in sync. */}}
+{{/*  Drop every mise shim dir; the canonical one is prepended. Two on PATH
+      defeat mise's re-entry guard and fork-bomb. NOTE: twin of the pwsh
+      Get-NormalizedPath guard in windows-relocation; keep them in sync. */}}
 {{-   range $part := splitList ";" (env "PATH") -}}
 {{-     $normalized := $part | replace "/" "\\" | trimSuffix "\\" -}}
 {{-     $lower := $normalized | lower -}}
@@ -209,11 +192,9 @@
 [cd]
     command = "pwsh"
 
-# interpreter uses powershell.exe (built-in 5.1) so scripts can bootstrap
-# pwsh before it exists on a fresh machine.
-# -NonInteractive: the child must not run as an interactive shell. Without
-# it, a Ctrl-C'd long-running script leaks its raw `PS>` prompt into the
-# parent terminal and corrupts PSReadLine input state (scrambled keystrokes).
+# powershell.exe 5.1 so scripts can bootstrap pwsh on a fresh machine.
+# -NonInteractive: a Ctrl-C'd script otherwise leaks its `PS>` prompt into the
+# parent terminal and scrambles PSReadLine input.
 [interpreters.ps1]
     command = "powershell.exe"
     args = ["-NoLogo", "-NoProfile", "-NonInteractive"]
