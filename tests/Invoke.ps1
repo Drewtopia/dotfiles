@@ -1,17 +1,6 @@
 #!/usr/bin/env pwsh
-# Pester test runner.
-#
-# On work-Windows (relocated) machines, endpoint security blocks loading
-# Pester.dll from the default user-profile module dir
-# (Documents\PowerShell\Modules), surfacing as "Should operator 'Be' is not
-# registered". A whitelisted copy lives under the relocation tools_root, and
-# the relocation env-var script exports its path as PESTER_MODULE_ROOT. Import
-# Pester by explicit path from there, because PSModulePath search resolves the
-# blocked profile copy first regardless of ordering.
-#
-# On personal machines PESTER_MODULE_ROOT is unset and Pester loads normally
-# from PSModulePath.
-#
+# Pester runner. Relocated machines block the profile copy of Pester.dll, which
+# PSModulePath finds first, so import Pester from PESTER_MODULE_ROOT when set.
 # Run:  pwsh -NoProfile -File ./tests/Invoke.ps1
 [CmdletBinding()]
 param(

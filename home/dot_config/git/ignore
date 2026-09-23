@@ -13,9 +13,7 @@
 # Environment
 .envrc
 
-# mise per-machine overrides. `mise.local.toml` is mise's own convention; the
-# env-qualified variants (mise.<env>.local.toml) carry per-machine local ports
-# and endpoints and must never be committed.
+# mise per-machine overrides.
 mise.local.toml
 mise.*.local.toml
 

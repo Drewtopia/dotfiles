@@ -1,15 +1,6 @@
 #!/usr/bin/env python3
-"""claude-tail — the point and latest activity of a Claude Code session.
-
-Prints the way a human skims a session to remember it: what it was for (the
-first real prompt), and where it got to (the last prompt and the last reply).
-Feeds `claude-log-session`'s SESSION_TAILS entries; also useful on its own.
-
-  claude-tail <session-id>       # digest for one session, resolved from ~/.claude/projects
-  claude-tail <path-to.jsonl>    # digest for a transcript file directly
-
-Output is three labelled lines (POINT / LAST-USER / LAST-ASSISTANT); missing
-fields are dropped. Read-only — it never writes to a session.
+"""claude-tail <session-id | path-to.jsonl> — a session's first real prompt, last
+prompt and last reply, as POINT / LAST-USER / LAST-ASSISTANT lines.
 """
 import glob
 import json

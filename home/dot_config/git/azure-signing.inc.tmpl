@@ -1,21 +1,14 @@
 {{- if and .work .is_wsl -}}
 {{- $localappdata := output "/mnt/c/Windows/System32/cmd.exe" "/c" "echo %LOCALAPPDATA%" | trim -}}
 {{- $localappdata = output "wslpath" "-u" $localappdata | trim -}}
-# Included ONLY by Azure DevOps repos, via the includeIf rules in
-# ~/.config/git/config. Sets the WORK identity (name/email from the Employee
-# 1Password vault) AND signs commits with the 1Password-held SSH key using the
-# Windows-side signer over WSL interop — no native Linux op required. The global
-# [user] in config.tmpl is the PERSONAL identity; this scopes work identity back
-# on for Azure repos only, so personal/public repos never carry the work email.
-# Signer path is 1Password's WSL build (app 8.11.18+). Resolved from the Windows
-# %LOCALAPPDATA% (via cmd.exe interop, translated with wslpath) so it follows a
-# relocated profile or non-C: drive instead of assuming C:\Users\<name>.
+# Included only by Azure DevOps repos: work identity plus signing via 1Password's
+# Windows-side signer. Signer path comes from %LOCALAPPDATA% so a relocated
+# profile or non-C: drive still resolves.
 [gpg]
 	format = ssh
 [gpg "ssh"]
 	program = "{{ joinPath $localappdata "Microsoft" "WindowsApps" "op-ssh-sign-wsl.exe" }}"
-	# Without this, git has nothing to check a signature against: every signed
-	# commit reads as "N" and --show-signature errors. Signing works either way.
+	# Without this every signed commit verifies as "N"; signing works either way.
 	allowedSignersFile = "{{ joinPath .chezmoi.homeDir ".config" "git" "allowed_signers" }}"
 [user]
 	name = {{ .name | quote }}

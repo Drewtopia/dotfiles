@@ -8,7 +8,6 @@
 .oh-my-zsh/templates/**
 .oh-my-zsh/custom/themes/powerlevel10k/**/*.zwc
 
-# Ignore non-macOS files.
 {{ if ne .chezmoi.os "darwin" }}
 .chezmoiscripts/darwin/**
 .config/aerospace
@@ -17,12 +16,10 @@
 Library
 {{ end }}
 
-# Ignore kanata on Linux only (works on macOS and Windows)
 {{ if eq .chezmoi.os "linux" }}
 .config/kanata
 {{ end }}
 
-# Ignore non-Linux files.
 {{ if ne .chezmoi.os "linux" }}
 .chezmoiscripts/linux/**
 .hushlogin
@@ -38,22 +35,16 @@ Library
 .bashrc
 {{ end }}
 
-# wezterm is a host GUI emulator that reaches into WSL via the WSL domain; it
-# never runs inside the guest, so don't litter ~/.wezterm.lua there. Native
-# Linux desktops can still run it, so this is WSL-only, not all Linux.
+# wezterm runs on the Windows host and reaches into WSL; native Linux may still use it.
 {{ if .is_wsl }}
 .wezterm.lua
 {{ end }}
 
-# az-CLI Azure DevOps token-mint helper is the headless fallback in the WSL2
-# credential chain (see dot_config/git/config.tmpl). Only work WSL2 needs it;
-# everywhere else (mac, personal WSL, Windows) uses GCM alone, so leave any
-# stray local copy unmanaged there.
+# Headless Azure DevOps credential fallback; only work WSL2 needs it, the rest use GCM.
 {{ if not (and .work .is_wsl) }}
 .git-azdo-helper.sh
 {{ end }}
 
-# Ignore non-Windows files.
 {{ if ne .chezmoi.os "windows" }}
 .chezmoiscripts/windows/**
 .chezmoiscripts/**/*.ps1
@@ -63,16 +54,13 @@ Library
 Documents
 AppData
 {{ else }}
-# Windows: Ignore Unix shell scripts
 .chezmoiscripts/**/*.sh
 .chezmoiscripts/**/*.sh.tmpl
-# Windows: Ignore Unix/Linux-specific files
 **/.DS_Store
 .bash_aliases
 .config/1Password
 .config/1Password/**
-# btop targets Linux/macOS/BSD only; btop4win is a separate fork with its own
-# config format, so this file would never be read here.
+# btop4win uses its own config format.
 .config/btop
 .config/cheatsheets
 .config/cheatsheets/**
@@ -84,13 +72,10 @@ AppData
 .config/shell
 .config/shell/**
 .config/shell-loader.sh
-# tmux: drop everything (e.g. a synced plugins/ dir) but keep the two
-# conf files — psmux reads tmux.conf via $PSMUX_CONFIG_FILE on Windows.
+# psmux reads tmux.conf via $PSMUX_CONFIG_FILE on Windows.
 .config/tmux/**
 !.config/tmux/tmux.conf
 !.config/tmux/tmux.reset.conf
-# herdr: drop runtime state (sockets, logs, session.json, .plugins.lock,
-# release-notes.json) but keep the one config file.
 .config/herdr/**
 !.config/herdr/config.toml
 .config/zsh
@@ -108,24 +93,20 @@ AppData
 
 README.md
 
-# Temp files
 .chezmoidata/
 
-# Neovim
 **/autoload/
 **/autoload/**/*
 **/plugged/
 **/plugged/**/*
 **/yankring_history*.txt
 
-# Lazyvim
 .config/nvim/lazy-lock.json
 
 
 # Claude
 {{- if and (eq .chezmoi.os "windows") .work }}
-# Work-Windows: Claude Code is not used on the Windows host, so chezmoi
-# manages nothing under ~/.claude here.
+# Claude Code is not used on the work Windows host.
 .claude
 .claude/**
 {{- else }}
@@ -135,24 +116,16 @@ README.md
 !.claude/hooks/
 !.claude/skills/
 {{-   if eq .chezmoi.os "windows" }}
-# settings.json stays ignored on Windows. chezmoi derives a modify_ entry's
-# target from its extension, so managing it needs [interpreters.json], which
-# makes chezmoi consume the `.json` and target `.claude/settings` instead.
-# run_onchange_after_57-sync-claude-settings.ps1 runs the same merge instead.
-#
-# Personal Windows: the skills installer creates community skills as NTFS
-# junctions under ~/.claude/skills, which chezmoi cannot read (irregular file
-# type). Ignore everything there except the chezmoi-managed skills.
+# settings.json stays ignored: a Windows modify_ .json needs [interpreters.json],
+# which retargets it to `.claude/settings`; run_onchange_after_57 merges instead.
+# Community skills are NTFS junctions chezmoi cannot read, so list only ours.
 .claude/skills/*
 {{-     range glob (joinPath .chezmoi.sourceDir "dot_claude/skills/*") }}
 !.claude/skills/{{ base . }}
 {{-     end }}
-# Personal Windows: chezmoi-managed symlink (requires Developer Mode).
+# Symlink; requires Developer Mode.
 !.claude/rules
 {{-   else }}
-# Mac/Linux: chezmoi-managed symlinks at .claude/memory and .claude/rules.
-# settings.json is managed here: the modify_ script runs from its shebang, so
-# no interpreter is registered and the target keeps its `.json` extension.
 !.claude/settings.json
 !.claude/memory
 !.claude/rules
@@ -161,6 +134,6 @@ README.md
 {{- end }}
 
 {{ if .relocated -}}
-# Relocated: .local/bin is a junction to tools_root — chezmoi can't manage junctions
+# Junction to tools_root; chezmoi can't manage junctions.
 .local/bin
 {{- end }}

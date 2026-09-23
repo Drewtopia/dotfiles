@@ -6,45 +6,27 @@ alias .4='cd ../../../../'
 alias .5='cd ../../../../../'
 alias .6='cd ../../../../../../'
 alias ~="cd ~"
-alias ax='chmod a+x'                   # system: make file executable
-alias path='echo -e ${PATH//:/\\n}'    # system: Echo all executable Paths
-alias fpath='echo -e ${FPATH//:/\\n}'  # system: Echo fpath
-alias untar='tar -zxvf'                # Extract tar.gz file
-alias mktar='tar -cvzf'                # Create a tar.gz file
-alias numfiles='echo $(ls -1 | wc -l)' # Count of non-hidden files in current dir
+alias ax='chmod a+x'
+alias path='echo -e ${PATH//:/\\n}'
+alias fpath='echo -e ${FPATH//:/\\n}'
+alias untar='tar -zxvf'
+alias mktar='tar -cvzf'
+alias numfiles='echo $(ls -1 | wc -l)'
 alias listpaths='echo $PATH | tr ":" "\n" | uniq -c | sort -nr'
 
 ####################### WORKTRUNK #######################
 {{- if lookPath "wt" }}
-# Every worktree gets a tmux session named after its branch, with claude already
-# running in it — created by the pre-start hook in ~/.config/worktrunk/config.toml.
-# Attaching is the normal case, so it gets the short name; the `d` suffix means
-# detached, i.e. leave me where I am.
-#
-# wtc keeps the semantics the old `wt switch --create --execute=claude` alias had
-# (create, then land in claude) — it just lands inside tmux now, so the session
-# survives detaching. It no longer passes --execute: the hook starts claude, and
-# doing both would give two.
-#
-# These must be functions, not aliases: `wt switch` takes
-# [OPTIONS] [BRANCH] [-- EXECUTE_ARGS], and an alias appends the branch at the end
-# — after `--`, where it would be passed to tmux instead of wt. A function puts
-# "$@" in the right slot. -x execs, handing the terminal over.
-
-# Switch to a worktree and attach to its session, e.g. wts feat
+# The worktrunk pre-start hook creates each worktree's tmux session with claude in it.
+# Functions, not aliases: an alias would append the branch after `--`, handing it to
+# tmux. No --execute=claude: the hook already starts it. `d` suffix = stay detached.
 wts() { wt switch          -x tmux "$@" -- attach -t '{{ "{{ branch | sanitize }}" }}'; }
-# New worktree, attach straight into its session with claude running
 wtc() { wt switch --create -x tmux "$@" -- attach -t '{{ "{{ branch | sanitize }}" }}'; }
 
-# Detached variants: cd into the worktree (or just create it) and stay put. The
-# session still exists in the background — attach later with `ta <branch>`.
 alias wtsd='wt switch'
 alias wtcd='wt switch --create'
-# Remove the current worktree + delete its branch
 alias wtr='wt remove'
-# List worktrees with status
 alias wtl='wt list'
-# Tail a worktrunk hook's log, e.g. wtlog user:post-start:server
+# e.g. wtlog user:post-start:server
 wtlog() { tail -f "$(wt config state logs get --hook="$1")"; }
 {{- end }}
 
@@ -57,38 +39,21 @@ alias cat=batcat
 
 ####################### LIST DIRECTORY CONTENTS #######################
 {{- if lookPath "eza" }}
-# List filenames on one line
 alias ls='eza --git --icons=auto'
-
-# List filenames with long format
 alias l='eza -l --classify=auto --icons=auto {{- if not (and (eq .chezmoi.os "linux") (eq .chezmoi.arch "arm64")) }} --git{{ end }}'
-
-# List all files
 alias ll='eza -lah --classify=auto --icons=auto {{- if not (and (eq .chezmoi.os "linux") (eq .chezmoi.arch "arm64")) }} --git{{ end }}'
-
-# List files by last modified
 alias llm='ll --sort=modified'
-
-# List files with attributes
 alias la='eza -lbhHigUmuSa --icons=auto {{- if not (and (eq .chezmoi.os "linux") (eq .chezmoi.arch "arm64")) }} --git{{ end }}'
-
-# List files with extended attributes
 alias lx='eza -lbhHigUmuSa@ --icons=auto {{- if not (and (eq .chezmoi.os "linux") (eq .chezmoi.arch "arm64")) }} --git{{ end }}'
-
-# List files in a tree view
 alias lt='eza --tree --level=2 --icons=auto'
-
-# List files in a tree view with long format
 alias llt='eza -lah --classify=always --tree --level=2 --icons=auto'
-
-# List files modified today
 alias ltt='eza -lah --classify=always --icons=auto | grep "$(date +"%d %b")"'
 {{- else if eq .chezmoi.os "darwin" }}
 alias ls="ls -G"
 alias ll='ls -FGlAhpv'
-alias ltt='ls -FlAhpv| grep "$(date +"%d %b")"' # List files modified this day
+alias ltt='ls -FlAhpv| grep "$(date +"%d %b")"'
 {{- else }}
 alias ls="ls --color=auto"
 alias ll='ls -FlAhpv --color=auto'
-alias ltt='ls -FlAhpv| grep "$(date +"%d %b")"' # List files modified today
+alias ltt='ls -FlAhpv| grep "$(date +"%d %b")"'
 {{- end }}

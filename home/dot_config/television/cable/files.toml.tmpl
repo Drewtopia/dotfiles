@@ -19,7 +19,6 @@ ctrl-up = "actions:goto_parent_dir"
 description = "Opens the selected entries with the default editor (falls back to vim)"
 command = "${EDITOR:-nvim} '{}'"
 shell = "{{ if eq .chezmoi.os "windows" }}powershell{{ else }}bash{{ end }}"
-# use `mode = "fork"` if you want to return to tv afterwards
 mode = "execute"
 
 [actions.goto_parent_dir]

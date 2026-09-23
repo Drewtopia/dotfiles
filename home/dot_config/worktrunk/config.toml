@@ -1,103 +1,52 @@
-# worktrunk USER config — renders to ~/.config/worktrunk/config.toml
-#
-# This is the global/user config (list display, global aliases, worktree-path
-# template, LLM-commit settings). NOT shared per-repo. Per-project hooks (dev
-# server, db, lint/test gates) belong in each repo's OWN .config/wt.toml,
-# committed inside that repo — not in dotfiles.
-#
-# NOT a chezmoi .tmpl: worktrunk uses {{ }} template syntax (e.g.
-# {{ branch | hash_port }}) that collides with chezmoi's. Plain file = chezmoi
-# copies it verbatim and worktrunk keeps its {{ }}.
-#
-# Template vars: {{ branch }} {{ args }} {{ env }} {{ default_branch }}
-#                {{ worktree_path }} {{ repo }} {{ target }}
-# Filters:       {{ branch | hash_port }}  {{ branch | sanitize }}
-
-# Place worktrees inside the repo under .claude/worktrees/<branch>, matching the
-# Claude Code EnterWorktree layout. .claude/ is globally gitignored
-# (~/.config/git/ignore), so nested worktrees never show up as untracked.
-# Default would be a sibling dir: {{ repo_path }}/../{{ repo }}.{{ branch | sanitize }}
+# NOT a chezmoi .tmpl: worktrunk's own {{ }} syntax collides with chezmoi's.
+# Per-project hooks belong in each repo's .config/wt.toml, not here.
+# .claude/ is globally gitignored, so nested worktrees never show as untracked.
 worktree-path = "{{ repo_path }}/.claude/worktrees/{{ branch | sanitize }}"
 
 [list]
-# Collect the two off-machine columns — CI status and LLM branch summaries — on
-# every `wt list` rather than only `wt list --full`. Both are gated on this one
-# flag, so without it the `summary` setting below renders no column at all.
+# `summary` renders no column unless `full` is on: both gate on this flag.
 full = true
-# LLM-generated one-line branch summaries in `wt list`.
 summary = true
-# Pin the `--format=json` output to schema 2 (structured repo/ci metadata). A
-# future worktrunk release flips the default from 1 to 2; setting it explicitly
-# keeps any `wt list --format=json` consumer stable across that change.
+# Pinned so `wt list --format=json` consumers survive the upstream default flip.
 json-schema = 2
 
-# Diff preview in the `wt switch` picker via delta (installed on all machines).
 [switch.picker]
 pager = "delta --paging=never"
 
-# Cold-start skip: never bulk-copy heavy gitignored dirs between worktrees.
-# Universal set — per-repo configs add their own; the two exclude lists combine.
+# Per-repo configs add their own excludes; the two lists combine.
 [step.copy-ignored]
 exclude = ["node_modules/", "dist/", ".turbo/"]
 
 [aliases]
-# Universally safe — works in any git repo, no language assumptions.
 since-main = "git log --oneline {{ default_branch }}..HEAD"
 
-# LLM commit/squash messages + the branch summaries enabled by [list] summary.
-# --safe-mode runs claude hermetically (no hooks/plugins/MCP/skills/CLAUDE.md),
-# so session hooks and project settings can't pollute the generated text;
+# --safe-mode keeps hooks/plugins/CLAUDE.md out of the generated text;
 # --setting-sources='user' keeps auth out of a project .claude/settings.json.
 [commit.generation]
 command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
 
-# tmux session per worktree — https://worktrunk.dev/tips-patterns/#tmux-session-per-worktree
-#
-# Lives in USER config, not a repo's .config/wt.toml: a multiplexer is a personal
-# preference, and a project hook would spawn tmux sessions for every developer
-# who creates a worktree in that repo.
-#
-# The name comes from the BRANCH, never the directory. Worktree dirs drift from
-# their branch — renames leave the old path behind, and Agent isolation="worktree"
-# creates agent-<id> paths — so a $PWD-derived name (e.g. the `th` alias) labels
-# sessions with something that looks meaningful and isn't.
-#
-# Starts claude in the pane, preserving what the `wtc` shortcut did before this
-# hook existed (`wt switch --create --execute=claude`). The difference is that it
-# now survives detaching, so worktrees left open keep a resident agent — `wtr`
-# firing pre-remove is what stops that accumulating.
-#
-# Skipped when a Claude session creates the worktree (EnterWorktree, Agent
-# isolation="worktree") or from Orca: Claude and Orca already own the agent
-# terminal, so a tmux claude would be an idle duplicate. Orca's setup script env
-# carries ORCA_ROOT_PATH but not ORCA_WORKTREE_ID, which only its terminals set.
+# Named from the BRANCH: worktree dirs drift from their branch (renames, agent-<id>).
+# Skipped under Claude or Orca, which already own the agent terminal; Orca's setup
+# env carries ORCA_ROOT_PATH but not ORCA_WORKTREE_ID, which only its terminals set.
 [pre-start]
 tmux = """
 if [ -n "${CLAUDECODE:-}" ] || [ -n "${ORCA_ROOT_PATH:-}" ] || [ -n "${ORCA_WORKTREE_ID:-}" ]; then exit 0; fi
 command -v tmux >/dev/null 2>&1 || exit 0
 S={{ branch | sanitize }}
-# tmux reads `.` in a target as the window.pane separator, so a dotted branch
-# makes has-session miss and new-session collide. sanitize_db also strips dots
-# but lowercases and hashes every name; this leaves dotless branches untouched.
+# tmux reads `.` in a target as the window.pane separator.
 S=$(printf '%s' "$S" | tr . -)
 W={{ worktree_path }}
-# `=` anchors an exact match; without it tmux resolves the name as a prefix.
-# `if` rather than `has-session && exit 0`: under `set -e` a bare failing
-# has-session leaves the statement non-zero, which would abort the create.
+# `=` anchors an exact match. `if`, not `&& exit 0`: a failing has-session
+# would abort the create under `set -e`.
 if tmux has-session -t "=$S" 2>/dev/null; then exit 0; fi
-# Capture the pane id: send-keys takes a target-pane, where the `=` exact-match
-# prefix valid for session targets is a syntax error ("can't find pane").
+# send-keys takes a pane target, where the `=` prefix is a syntax error.
 P=$(tmux new-session -d -P -F '#{pane_id}' -s "$S" -c "$W" -n "$S")
 tmux send-keys -t "$P" 'claude' Enter
 echo "tmux session '$S' — attach with: ta $S"
 """
 
-# Convergence guard — WARN (never block) when creating a worktree whose branch
-# shares a ticket number with an existing branch/PR, so a second parallel effort
-# on the same ticket surfaces at creation instead of colliding later (58436: two
-# PRs rewrote the same specs, one dropped the other's fix). Exits 0 in every path
-# so creation always proceeds; the `|| true` guards keep it from aborting the
-# create under set -e / pipefail when a grep finds nothing.
+# Warn-only: flag an existing branch sharing this branch's ticket number.
+# `|| true` keeps an empty grep from aborting the create under set -e/pipefail.
 collision-check = """
 B={{ branch }}
 T=$(printf '%s' "$B" | grep -oE '[0-9]{4,6}' | head -1 || true)
@@ -110,9 +59,7 @@ echo "   Build on one of those, or Ctrl-C to abort this new '$B' worktree. (Warn
 exit 0
 """
 
-# Nothing prompts cleanup after a merge, so report merged worktrees and branches
-# when new work starts. Report only — removal stays with /clean-workspace.
-# Skipped under Claude, where mid-task worktrees would only add noise.
+# Report only; removal stays with /clean-workspace. Skipped under Claude.
 merged-report = """
 if [ -n "${CLAUDECODE:-}" ]; then exit 0; fi
 R=$(wt step prune --dry-run 2>&1 || true)
@@ -122,8 +69,6 @@ echo "🧹 $N merged worktrees or branches can go — preview: wt step prune --d
 exit 0
 """
 
-# Tear the session down with its worktree. Without this, sessions outlive the
-# worktrees they were named for and accumulate like any other unreaped process.
 [pre-remove]
 tmux = """
 S={{ branch | sanitize }}

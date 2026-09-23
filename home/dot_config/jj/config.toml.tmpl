@@ -1,15 +1,11 @@
 {{- if .dev_computer -}}
-# Personal identity from static chezmoi data (.identity) — same reasoning as git
-# config.tmpl's [user]: on the work box .name/.email resolve to the work identity,
-# and jj has no per-remote includeIf to scope it, so using them as the default
-# would leak the work email into any repo. jj is used on personal repos; Azure
-# work is git.
+# Static .identity: jj has no per-remote includeIf, so the work box's .name/.email
+# would leak the work identity into every repo.
 [user]
 name = {{ .identity.name | quote }}
 email = {{ .identity.email | quote }}
 
 [ui]
-# Use delta for diffs and paging (same as git config)
 diff-formatter = ["delta", "--dark", "--line-numbers"]
 pager = ["delta"]
 paginate = "auto"
@@ -28,11 +24,9 @@ private-commits = "wip()"
 auto-track-bookmarks = "glob:*"
 
 [template-aliases]
-# Shorter change IDs in log output
 'format_short_change_id(id)' = 'id.shortest()'
 
 [aliases]
-# Common shortcuts
 l = ["log", "-r", "@-10::@"]
 s = ["status"]
 d = ["diff"]
@@ -43,23 +37,18 @@ sq = ["squash"]
 ci = ["commit", "--interactive"]
 si = ["squash", "--interactive"]
 
-# Operation log / undo
 opl = ["op", "log"]
 u = ["op", "undo"]
 
-# Git operations
 pull = ["git", "fetch"]
 push = ["git", "push"]
 
-# Start new work from develop
 start = ["new", "develop()"]
 feat = ["new", "develop()", "-m"]
 
-# Bookmark management
 tug = ["bookmark", "move", "--from", "closest_bookmark(@-)", "--to", "@-"]
 nb = ["bookmark", "create", "-r", "@-"]
 
-# View helpers
 ready = ["log", "-r", "ready()"]
 wip = ["log", "-r", "wip()"]
 stale = ["log", "-r", "stale()"]
@@ -71,14 +60,11 @@ local = ["log", "-r", "local()"]
 "develop()" = 'latest(remote_bookmarks(exact:"origin/develop"))'
 "mine" = 'author(exact:"{{ .email }}")'
 
-# Private/wip detection
 "wip()" = 'description(glob:"wip:*") | description(glob:"claude:*") | (empty() & mutable()) | description(exact:"")'
 "ready()" = "(mine & mutable()) ~ wip() ~ @"
 
-# For tug alias - find nearest bookmark
 "closest_bookmark(to)" = "heads(::to & bookmarks())"
 
-# Useful filters
 "stack()" = "ancestors(@, 2) & mutable()"
 "recent()" = 'committer_date(after:"1 month ago")'
 "local()" = "mine & mutable()"
