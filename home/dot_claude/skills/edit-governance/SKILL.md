@@ -38,6 +38,6 @@ Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governa
 
 ## Gotchas
 
-- The guard fails open on internal errors — a silent non-block is not permission; the rule still applies.
+- The guard denies on internal errors. A deny that says `errored` means the guard needs fixing, not bypassing.
 - `chezmoi apply` prompts on drifted files and dies without a TTY: apply per-file, and investigate any "has changed since chezmoi last wrote it" before `--force`.
 - Editing this skill or the guard hook is itself a governed edit — this skill applies to its own maintenance.
