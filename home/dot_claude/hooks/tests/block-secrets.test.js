@@ -180,3 +180,11 @@ test('empty / malformed input is allowed (fail-open parity)', () => {
         0,
     );
 });
+
+test('a crash blocks instead of allowing', () => {
+    const res = guard.runSafely({}, () => {
+        throw new Error('boom');
+    });
+    assert.equal(res.exitCode, 2);
+    assert.match(res.stderr, /block-secrets errored: boom/);
+});

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PreToolUse guard: denies Edit/Write on governance surfaces unless a
 // governance unlock marker (~/.claude/governance-unlock/, granted by the
-// /edit-governance skill) is under 2h old. Fails open on internal errors.
+// /edit-governance skill) is under 2h old. Denies on internal errors.
 // CLI: `--unlock` grants a 2h unlock (own timestamped marker); `--lock` ends
 // every unlock window on this machine — only use when no other governance
 // flow is live.
@@ -71,41 +71,44 @@ function unlock() {
     console.log(`governance unlock granted for 2h (${f})`);
 }
 
+/** @returns {string|null} deny reason, or null to allow */
+function decide(data, unlocked = markerFresh) {
+    const fp = (data.tool_input && data.tool_input.file_path) || '';
+    if (!fp || !GOVERNED.some(re => re.test(fp))) return null;
+    if (unlocked()) return null;
+    return (
+        `Governance surface: ${fp}\n` +
+        'Direct edits are forbidden. ' +
+        'Invoke /edit-governance — it scopes, edits, and reviews the change, ' +
+        'and grants a 2h unlock via `node ~/.claude/hooks/edit-governance-guard.cjs --unlock`.'
+    );
+}
+
+// Only exit 2 or a deny decision blocks; a crash would let the edit through.
+function denyOnError(fn) {
+    try {
+        return fn();
+    } catch (err) {
+        return `edit-governance-guard errored: ${err && err.message}`;
+    }
+}
+
 function main() {
     if (process.argv.includes('--unlock')) return unlock();
     if (process.argv.includes('--lock')) return lock();
-    let input = '';
-    try {
-        input = fs.readFileSync(0, 'utf8');
-    } catch {
-        return;
-    }
-    let data = {};
-    try {
-        data = JSON.parse(input);
-    } catch {
-        return;
-    }
-    const fp = (data.tool_input && data.tool_input.file_path) || '';
-    if (!fp || !GOVERNED.some(re => re.test(fp))) return;
-    if (markerFresh()) return;
+    const reason = denyOnError(() => decide(JSON.parse(fs.readFileSync(0, 'utf8'))));
+    if (!reason) return;
     process.stdout.write(
         JSON.stringify({
             hookSpecificOutput: {
                 hookEventName: 'PreToolUse',
                 permissionDecision: 'deny',
-                permissionDecisionReason:
-                    `Governance surface: ${fp}\n` +
-                    'Direct edits are forbidden. ' +
-                    'Invoke /edit-governance — it scopes, edits, and reviews the change, ' +
-                    'and grants a 2h unlock via `node ~/.claude/hooks/edit-governance-guard.cjs --unlock`.',
+                permissionDecisionReason: reason,
             },
         }),
     );
 }
 
-try {
-    main();
-} catch {
-    /* fail open */
-}
+if (require.main === module) main();
+
+module.exports = { decide, denyOnError };

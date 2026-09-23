@@ -232,6 +232,15 @@ function run(input) {
     return { exitCode: 0 };
 }
 
+// Only exit 2 blocks; a crash would let the call through.
+function runSafely(input, check = run) {
+    try {
+        return check(input);
+    } catch (err) {
+        return { exitCode: 2, stderr: `block-secrets errored: ${err && err.message}` };
+    }
+}
+
 async function main() {
     const raw = await readStdin();
     const input = parseInput(raw);
@@ -241,17 +250,7 @@ async function main() {
         process.exit(0);
     }
 
-    let res;
-    try {
-        res = run(input);
-    } catch (err) {
-        // Match the .py: a crashing guard fails open (exit 0) rather than
-        // wedging every tool call. Surface the error for visibility.
-        process.stderr.write(`Hook error: ${err && err.message}\n`);
-        process.stdout.write(raw);
-        process.exit(0);
-    }
-
+    const res = runSafely(input);
     if (res && res.exitCode === 2) {
         process.stderr.write(res.stderr + '\n');
         process.exit(2);
@@ -260,10 +259,15 @@ async function main() {
     process.exit(0);
 }
 
-if (require.main === module) main();
+if (require.main === module)
+    main().catch(err => {
+        process.stderr.write(`block-secrets errored: ${err && err.message}\n`);
+        process.exit(2);
+    });
 
 module.exports = {
     run,
+    runSafely,
     isSensitiveFile,
     secretInCommand,
     extractFilePath,

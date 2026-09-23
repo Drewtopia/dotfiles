@@ -14,7 +14,7 @@ Explicit invocation only (`/edit-governance`; `disable-model-invocation: true`).
 
 ## The guard (`~/.claude/hooks/edit-governance-guard.cjs`)
 
-PreToolUse hook on `Edit|Write|MultiEdit`, wired in `~/.claude/settings.json`. Denies edits whose `file_path` matches a governance pattern (CI/workflow files, `SKILL.md`, `.claude/`+`dot_claude/` rules/hooks/skills/settings, the vault, `CLAUDE.md`/`AGENTS.md`, `docs/adr/`, `CONTEXT*.md`) unless an unlock is active. Fails open on internal errors — a silent non-block is not permission.
+PreToolUse hook on `Edit|Write`, wired in `~/.claude/settings.json`. Denies edits whose `file_path` matches a governance pattern (CI/workflow files, `SKILL.md`, `.claude/`+`dot_claude/` rules/hooks/skills/settings, the vault, `CLAUDE.md`/`AGENTS.md`, `docs/adr/`, `CONTEXT*.md`) unless an unlock is active. Denies on internal errors.
 
 **Unlock / lock:** `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` / `--lock`
 
