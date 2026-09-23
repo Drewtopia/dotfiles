@@ -1,9 +1,4 @@
 'use strict';
-/**
- * Tests for block-secrets.js.
- * Every SECRET_TOKEN_PATTERN provider and each file-block path is exercised.
- * Run: node --test
- */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');

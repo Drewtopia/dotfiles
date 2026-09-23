@@ -1,5 +1,4 @@
 'use strict';
-/** Tests for pre-bash-dispatcher.js runChecks(). Run: node --test */
 
 const { test } = require('node:test');
 const assert = require('node:assert');

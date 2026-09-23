@@ -1,24 +1,10 @@
 'use strict';
-/**
- * PreToolUse(Bash) check: block destructive shell commands.
- *
- * Direct port of block-dangerous-commands.sh — patterns kept byte-for-byte
- * equivalent to the original grep -E / grep -iE rules (POSIX ERE -> JS RegExp:
- * [[:space:]] -> \s, literal / $ { } escaped). Do NOT "tighten" these patterns
- * without a matching test; a dropped \s is a hole a destructive command walks
- * through.
- *
- * run(input) -> { exitCode: 0 } allow | { exitCode: 2, stderr } block
- */
 
 const { getCommand } = require('../lib/hook-io');
 
 const RM_FLAGS = '(-[a-zA-Z]*r[a-zA-Z]*f|--recursive\\s+--force|-rf|-fr)';
 
-/**
- * Ordered rules. First match wins. `msg(cmd)` returns the exact stderr text the
- * original .sh emitted (emoji + Command line + tips preserved).
- */
+// First match wins.
 const RULES = [
     {
         id: 'rm-rf-sensitive-path',
@@ -82,7 +68,6 @@ const RULES = [
         msg: cmd =>
             `⚠️ BLOCKED: Reading .env file via ${cmd}\nTip: Use environment variables instead of reading .env directly`,
     },
-    // --- PowerShell-native forms (case-insensitive) ---
     {
         id: 'ps-remove-item-recurse-force',
         re: /Remove-Item.*-Recurse.*-Force|Remove-Item.*-Force.*-Recurse/i,

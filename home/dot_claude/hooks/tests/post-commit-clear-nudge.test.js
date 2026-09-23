@@ -1,5 +1,4 @@
 'use strict';
-/** Safety net for post-commit-clear-nudge.js — pure runsGitCommit()/freshCommit()/noticeFor(). */
 
 const { test } = require('node:test');
 const assert = require('node:assert');

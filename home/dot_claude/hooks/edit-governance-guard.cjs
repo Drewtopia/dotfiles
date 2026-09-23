@@ -1,10 +1,6 @@
 #!/usr/bin/env node
-// PreToolUse guard: denies Edit/Write on governance surfaces unless a
-// governance unlock marker (~/.claude/governance-unlock/, granted by the
-// /edit-governance skill) is under 2h old. Denies on internal errors.
-// CLI: `--unlock` grants a 2h unlock (own timestamped marker); `--lock` ends
-// every unlock window on this machine — only use when no other governance
-// flow is live.
+// PreToolUse(Edit|Write): deny governance surfaces unless an unlock marker is under 2h old.
+// `--unlock` adds a marker; `--lock` removes every marker, ending all sessions' unlocks.
 'use strict';
 const fs = require('fs');
 const os = require('os');
@@ -56,8 +52,7 @@ function lock() {
 
 function unlock() {
     fs.mkdirSync(MARKER_DIR, { recursive: true });
-    // Timestamped per-invocation marker: concurrent flows each hold their own,
-    // and expiry is by TTL — prune only stale markers here, never live ones.
+    // One marker per unlock so concurrent flows keep their own; prune only stale ones.
     try {
         for (const old of fs.readdirSync(MARKER_DIR)) {
             const p = path.join(MARKER_DIR, old);
@@ -71,7 +66,6 @@ function unlock() {
     console.log(`governance unlock granted for 2h (${f})`);
 }
 
-/** @returns {string|null} deny reason, or null to allow */
 function decide(data, unlocked = markerFresh) {
     const fp = (data.tool_input && data.tool_input.file_path) || '';
     if (!fp || !GOVERNED.some(re => re.test(fp))) return null;

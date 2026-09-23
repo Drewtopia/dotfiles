@@ -1,15 +1,7 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * Consolidated PreToolUse(Bash) dispatcher.
- *
- * Reads stdin once, parses once, then runs each enabled check's run(input) in
- * order. The first check returning { exitCode: 2 } blocks the command (its
- * stderr is fed back to the agent). A check that throws also blocks.
- *
- * Toggle any check without editing settings.json:
- *   HOOKS_DISABLED=pre:bash:block-dangerous-commands
- */
+// PreToolUse(Bash): runs each enabled check in order; the first exit 2 blocks,
+// and a check that throws also blocks.
 
 const { readStdin, parseInput } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
