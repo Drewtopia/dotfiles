@@ -108,7 +108,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
