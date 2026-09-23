@@ -1,33 +1,25 @@
-# XDG Base Directory Specification (single source of truth)
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 
-# Prevent PATH duplicates (zsh built-in)
 typeset -U path fpath manpath
 typeset +x FPATH
 
-# Core paths — remove-then-prepend to survive macOS path_helper reordering
-# path_helper runs in /etc/zprofile and pushes system paths ahead of ours.
-# .zprofile re-sources this file; the ${path:#pattern} removal ensures our
-# paths land at the front even on second source.
+# Remove-then-prepend: /etc/zprofile's path_helper pushes system paths ahead, and
+# .zprofile re-sources this file to put ours back in front.
 path=("$HOME/.local/bin" ${path:#$HOME/.local/bin})
 
 {{- if eq .chezmoi.os "darwin" }}
 path=("/opt/homebrew/bin" ${path:#/opt/homebrew/bin})
 {{- end }}
 
-# mise shims — on PATH for ALL shells, including non-interactive ones
-# (topgrade, cron, `zsh -c`) that never source .zshrc. Interactive shells
-# additionally run `mise activate` in shell/010-mise.sh; typeset -U above
-# dedupes the overlap. Without this, mise tools are "command not found" in
-# any non-interactive context.
+# Shims for non-interactive shells (topgrade, cron, `zsh -c`) that never source
+# .zshrc; interactive shells also run `mise activate`.
 {{- if .dev_computer }}
 path=("{{ .directories.mise_dir }}/shims" ${path:#{{ .directories.mise_dir }}/shims})
 {{- end }}
 
-# XDG-aware application configurations
 alias wget="wget --hsts-file='${XDG_DATA_HOME}/wget-hsts'"
 export ANDROID_HOME="$XDG_DATA_HOME/android"
 export ANSIBLE_HOME="${XDG_DATA_HOME}/ansible"
@@ -44,8 +36,7 @@ export PYTHON_HISTORY="${XDG_STATE_HOME}/python_history"
 export RUSTUP_HOME="${XDG_DATA_HOME}/rustup"
 export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
 
-# Core environment. Set here (not .zshrc) so non-interactive shells — scripts,
-# git hooks, `ssh host cmd` — see the same values as an interactive terminal.
+# Here, not .zshrc, so non-interactive shells see the same values.
 for _editor in nvim vim vi; do
     if command -v "$_editor" >/dev/null 2>&1; then
         export EDITOR="$_editor"
@@ -60,17 +51,16 @@ export LC_ALL=en_US.UTF-8
 export RIPGREP_CONFIG_PATH=$XDG_CONFIG_HOME/ripgrep/config
 
 {{- if eq .chezmoi.os "darwin" }}
-# 1Password SSH Agent (skip when SSH'd — biometric unavailable)
+# Skipped over SSH, where biometric unlock is unavailable.
 if [[ -z "$SSH_CONNECTION" ]]; then
     export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 fi
 
-# Prevent brew from reinstalling tools that mise owns
+# Tools mise owns.
 export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-lint jless jq lazygit ripgrep yt-dlp age atuin carapace fzf zoxide gitleaks topgrade tokei yq navi neovim python go pipx lsd powerlevel10k direnv"
 
 # superwhisper CLI reads settings from ~/superwhisper, not its ~/Documents default
 export SUPERWHISPER_SETTINGS="$HOME/superwhisper/settings/settings.json"
 {{- end }}
 
-# Local overrides (machine-specific env vars, not tracked by chezmoi)
 [[ -f "${HOME}/.zshenv.local" ]] && source "${HOME}/.zshenv.local"

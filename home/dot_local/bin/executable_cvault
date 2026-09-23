@@ -1,23 +1,9 @@
 #!/bin/bash
-# cvault — Claude memory vault management CLI
-# Mirrors chezmoi's verb structure for ~/.claude-vault/
-#
-# Subcommands:
-#   cvault status    — ahead/behind/uncommitted summary; flags rebase-in-progress
-#   cvault diff [..] — pass-through to `git diff` (accepts any args)
-#   cvault apply     — commit + push local changes (no-op if clean)
-#   cvault update    — git pull --rebase --autostash from origin
-#   cvault sync      — update, then apply (full bidirectional sync)
-#   cvault merge     — resolve conflicted files via `git mergetool`, then continue rebase
-#
-# Auto-sync hooks (~/.claude/hooks/memory-{pull,push}.sh) handle the
-# ambient case. cvault is for explicit "do it now" usage.
+# cvault — Claude memory vault CLI, mirroring chezmoi's verbs. See `cvault help`.
 
 set -e
 
-# Auto-detect vault location:
-#   Mac/Linux/personal-Windows: ~/.claude-vault/ (symlinked into ~/.claude/memory)
-#   Work Windows (no Developer Mode): ~/.claude/memory/ (direct clone, no symlink)
+# Work Windows has no Developer Mode for the symlink, so the vault is cloned in place.
 if [ -d "$HOME/.claude-vault/.git" ]; then
     VAULT_DIR="$HOME/.claude-vault"
 elif [ -d "$HOME/.claude/memory/.git" ]; then
@@ -30,14 +16,12 @@ else
     exit 1
 fi
 
-# True if a rebase or merge is mid-flight in the vault repo.
 in_progress() {
     [ -d "$VAULT_DIR/.git/rebase-merge" ] \
         || [ -d "$VAULT_DIR/.git/rebase-apply" ] \
         || [ -f "$VAULT_DIR/.git/MERGE_HEAD" ]
 }
 
-# Files with unresolved conflict markers, one per line.
 conflicted_files() {
     git -C "$VAULT_DIR" diff --name-only --diff-filter=U
 }
@@ -79,7 +63,6 @@ cmd_status() {
         echo "$working_tree" | sed 's/^/    /'
     fi
     echo
-    # Flag any backup dirs that need migration
     local baks
     baks=$(ls -d "$HOME/.claude/memory.bak."* 2>/dev/null || true)
     if [ -n "$baks" ]; then
@@ -122,7 +105,6 @@ cmd_apply() {
     echo "✓ Applied"
 }
 
-# Number of entries in the stash, 0 when empty.
 stash_count() {
     git -C "$VAULT_DIR" stash list | wc -l | tr -d ' '
 }
@@ -130,9 +112,8 @@ stash_count() {
 cmd_update() {
     cd "$VAULT_DIR"
     echo "→ Pulling..."
-    # `git pull --rebase --autostash` exits 0 even when the autostash fails to
-    # reapply — the conflict is reported as a warning. set -e will not catch
-    # it, so compare the stash depth across the pull instead.
+    # The pull exits 0 even when the autostash fails to reapply, so compare the
+    # stash depth across it.
     local before after
     before=$(stash_count)
     git pull --rebase --autostash
@@ -147,8 +128,7 @@ cmd_update() {
 }
 
 cmd_sync() {
-    # A failed pull must never fall through to apply — that is how conflict
-    # markers get committed and pushed.
+    # A failed pull falling through to apply would push conflict markers.
     cmd_update || return 1
     cmd_apply
 }
@@ -164,7 +144,7 @@ cmd_merge() {
     if [ -n "$conflicted" ]; then
         echo "→ launching \`git mergetool\` for:"
         echo "$conflicted" | sed 's/^/    /'
-        # Don't let mergetool's exit code (non-zero if any file unresolved) kill the script.
+        # mergetool exits non-zero while any file is unresolved.
         git mergetool || true
         conflicted=$(conflicted_files)
     fi

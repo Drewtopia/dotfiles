@@ -1,17 +1,12 @@
 {{- if and (eq .chezmoi.os "windows") .dev_computer -}}
 # PowerShell Profile - Dev Tools (sourced from OneDrive profile)
 
-# Shared relocation/PATH helpers (Get-NormalizedPath). Pure PowerShell partial,
-# the same module the Windows setup scripts include via {{ "{{ template ..." }}.
+# Get-NormalizedPath and the other shared relocation helpers.
 {{ template "windows-relocation" . }}
 
-# --- PATH helpers ---
-
 {{ if .relocated -}}
-# Re-assert relocated env vars from User scope. Windows doesn't refresh
-# already-running processes on SetEnvironmentVariable, so terminals
-# opened before chezmoi setup ran would miss the values. Source of
-# truth is run_onchange_before_05-set-env-vars.ps1.tmpl.
+# Running processes miss SetEnvironmentVariable changes, so re-read the values
+# run_onchange_before_05-set-env-vars wrote to User scope.
 foreach ($var in 'XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_STATE_HOME','MISE_DATA_DIR','SCOOP','PNPM_HOME') {
     $userValue = [Environment]::GetEnvironmentVariable($var, 'User')
     if ($userValue -and (Get-Item -Path "Env:$var" -ErrorAction SilentlyContinue).Value -ne $userValue) {
@@ -20,12 +15,8 @@ foreach ($var in 'XDG_CACHE_HOME','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_STATE_H
 }
 
 {{ end -}}
-# Heal the session PATH with the same canonical rule that builds the User
-# registry PATH (run_onchange_before_05-set-env-vars.ps1.tmpl): WinGet Links
-# (where mise.exe lives) first, then mise shims, then the existing entries with
-# the mise stale-shim fork-bomb guard and case-insensitive dedup applied.
-# Terminals opened before that apply ran self-heal here. Get-NormalizedPath
-# comes from the windows-relocation partial included at the top of this profile.
+# Heal the session PATH with the rule set-env-vars applies to the User PATH, so
+# terminals opened before that apply still get it.
 $wingetLinks = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
 $miseShims   = "{{ .directories.mise_dir }}/shims"
 $prepend     = @($wingetLinks, $miseShims)
@@ -37,21 +28,13 @@ $winLibsBin = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\BrechtSanders.WinLibs
 $canonicalMiseShims = ($miseShims -replace '/', '\').TrimEnd('\')
 $env:PATH = (Get-NormalizedPath -Prepend $prepend -Entries ($env:PATH -split ';') -AppendIfExists $winLibsBin -CanonicalMiseShims $canonicalMiseShims) -join ';'
 
-# Activate mise. Most mise-managed tools on Windows install to
-# .local\share\mise\installs\<name>\... paths that only `mise activate` adds to
-# PATH; the shims directory isn't populated by default here. Must run BEFORE
-# the tool inits below (carapace/atuin/tv/etc), or those inits can't find their
-# binaries and silently skip.
+# mise activate must run before the tool inits below, or they can't find their binaries.
 if (Get-Command mise -ErrorAction SilentlyContinue) {
     (&mise activate pwsh) | Out-String | Invoke-Expression
 }
 
-# Ensure PSReadLine is loaded before tool inits that bind keys (atuin, tv, carapace).
-# pwsh auto-loads PSReadLine lazily for the REPL, but that can happen AFTER profile
-# execution — which makes atuin/tv init bail with "Atuin requires the PSReadLine module".
+# pwsh loads PSReadLine lazily after the profile; atuin/tv init bail without it.
 Import-Module PSReadLine -ErrorAction SilentlyContinue
-
-# --- Prompt + visual extras (all Windows dev machines) ---
 
 # oh-my-posh: theme name from .chezmoidata/constants.toml ([pwsh].posh_theme).
 if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
@@ -62,25 +45,17 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
     oh-my-posh init pwsh --config $ompTheme | Invoke-Expression
 }
 
-# Terminal-Icons: file/folder glyphs in Get-ChildItem / ls output. Installed
-# via run_onchange_after_60-install-pwsh-modules.ps1.tmpl.
 if (Get-Module -ListAvailable -Name Terminal-Icons) {
     Import-Module Terminal-Icons
 }
 
-# PSReadLine inline predictions: greyed-out autosuggestions from history.
-# Use plain History (not HistoryAndPlugin) — Plugin requires a registered
-# predictor module (CompletionPredictor, Az.Tools.Predictor, etc.); without
-# one, its internal state stays null and atuin's later GetHistoryItems()
-# call null-derefs.
-# Wrapped in try/catch because PSReadLine throws if the host doesn't
-# support virtual terminal processing (e.g. when pwsh is invoked with
-# redirected stdout by chezmoi, CI, or scripts that capture output).
+# History, not HistoryAndPlugin: without a registered predictor module the plugin
+# state stays null and atuin's GetHistoryItems() null-derefs. PSReadLine throws
+# on non-VT hosts (redirected stdout), hence the try.
 try {
     Set-PSReadLineOption -PredictionSource History -ErrorAction Stop
     Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction Stop
 } catch {
-    # Non-VT shell - predictions unavailable, skip silently.
 }
 
 # zsh-style key bindings for word deletion + completion menu + history search.
@@ -88,7 +63,6 @@ Set-PSReadLineKeyHandler -Key Ctrl+Backspace -Function BackwardKillWord
 Set-PSReadLineKeyHandler -Key Ctrl+Spacebar  -Function MenuComplete
 Set-PSReadLineKeyHandler -Key F7             -Function HistorySearchBackward
 
-# Carapace - multi-shell completion engine
 if (Get-Command carapace -ErrorAction SilentlyContinue) {
     $env:CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense'
     Set-PSReadLineOption -Colors @{ "Selection" = "`e[7m" }
@@ -96,11 +70,8 @@ if (Get-Command carapace -ErrorAction SilentlyContinue) {
     carapace _carapace | Out-String | Invoke-Expression
 }
 
-# Zoxide - smarter cd command. Resolve the real install binary, not the mise
-# shim: zoxide has both a shim and a direct binary on PATH and the shim wins
-# resolution. Each shim invocation re-execs mise, so initialising through it
-# triples the cold-start spawn cost (shim -> mise -> zoxide). Sibling aqua
-# tools (carapace/tv/atuin) already resolve direct.
+# Init zoxide from its real binary, not the mise shim: every shim call re-execs
+# mise, tripling cold-start cost.
 $zoxideAll = Get-Command zoxide -CommandType Application -All -ErrorAction SilentlyContinue
 $zoxideExe = $zoxideAll | Where-Object { $_.Source -notlike '*shims*' } | Select-Object -First 1
 if (-not $zoxideExe) { $zoxideExe = $zoxideAll | Select-Object -First 1 }
@@ -108,38 +79,26 @@ if ($zoxideExe) {
     (& $zoxideExe.Source init powershell) | Out-String | Invoke-Expression
 }
 
-# Television - smart fuzzy finder with context-aware channels.
-# Init runs BEFORE atuin: tv's pwsh init unconditionally binds Ctrl+R to
-# Invoke-TvShellHistory (ignoring shell_integration.keybindings in its config),
-# so atuin's Ctrl+R handler needs to bind last to win. Ctrl+T still goes to tv.
+# tv binds Ctrl+R unconditionally, so init it before atuin and let atuin's Ctrl+R win.
 if (Get-Command tv -ErrorAction SilentlyContinue) {
     (& tv init power-shell) | Out-String | Invoke-Expression
 }
 
-# Atuin - shell history. Must init AFTER tv so Ctrl+R binding wins.
 if (Get-Command atuin -ErrorAction SilentlyContinue) {
     (& atuin init powershell) | Out-String | Invoke-Expression
 }
 
-# pay-respects - command correction (thefuck replacement)
 if (Get-Command pay-respects -ErrorAction SilentlyContinue) {
     pay-respects pwsh --alias f | Out-String | Invoke-Expression
 }
 
-# fnox - secrets manager with shell integration.
-# Requires fnox >= 1.21.0 for pwsh support.
+# fnox >= 1.21.0 is required for pwsh support.
 if (Get-Command fnox -ErrorAction SilentlyContinue) {
     (&fnox activate pwsh) | Out-String | Invoke-Expression
 }
 
-# Kanata toggles - manual on/off (used primarily on work machines where
-# auto-start is intentionally disabled to avoid Jump Desktop double-remap).
-# Personal machines also get these as a convenience alongside the
-# Startup folder shortcut.
-# Probe the known scoop shim path directly rather than Get-Command: a
-# Get-Command miss triggers a full PATH scan (~400ms) across the large mise
-# shims and install dirs. kanata is installed via scoop (see
-# run_onchange_after_50-setup-kanata.ps1.tmpl).
+# Manual kanata toggles (work machines don't auto-start it). Test-Path, not
+# Get-Command: a Get-Command miss scans the whole PATH (~400ms).
 if (Test-Path "$env:SCOOP\shims\kanata.exe") {
     $script:KanataConfigPath = "$env:USERPROFILE\.config\kanata\kanata.kbd"
 
@@ -192,10 +151,8 @@ if (Test-Path "$env:SCOOP\shims\kanata.exe") {
     }
 }
 
-# psmux - tmux on native Windows. Points psmux at the same conf file used
-# on mac/Linux/WSL; chezmoi renders the Windows variant with plugins/TPM
-# stripped. Helper functions mirror the `t`/`tn`/`tk`/... family from
-# home/dot_config/shell/025-tmux.sh.tmpl so muscle memory carries over.
+# psmux reads the same tmux.conf (rendered without plugins on Windows); the
+# t/tn/tk... helpers mirror dot_config/shell/025-tmux.sh.tmpl.
 $env:PSMUX_CONFIG_FILE = Join-Path $HOME ".config/tmux/tmux.conf"
 
 if (Get-Command psmux -ErrorAction SilentlyContinue) {

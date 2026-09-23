@@ -1,7 +1,6 @@
 HashKnownHosts no
 
-# Untracked, machine-local overrides (per-machine usernames, one-off hosts).
-# ssh silently ignores it when absent and merges its Host blocks with those below.
+# Untracked machine-local overrides; ssh ignores it when absent.
 Include config.override
 
 Host *
@@ -22,8 +21,7 @@ Host github.com
 
 {{- if .personal }}
 
-# Home lab. Names resolve via AdGuard (.home) — no IPs in git. Per-machine
-# usernames that shouldn't be published live in the untracked config.override.
+# Names resolve via AdGuard (.home); unpublished usernames live in config.override.
 Host drew-pd
   HostName drew-pd.home
 
@@ -37,11 +35,8 @@ Host homeassistant
 
 {{- if eq .chezmoi.os "darwin" }}
 
-# Work laptop, reachable from the mac on the home LAN. It's one machine with two
-# NICs — dock (work-eth.home) and wifi (work-wifi.home) — so `work` and work-wsl
-# probe eth first and fall back to wifi. HostKeyAlias pins one key so roaming
-# between NICs doesn't trip known_hosts. `User` lives in config.override so the
-# work login stays out of a public repo.
+# One work laptop with two NICs: probe dock eth, then wifi. HostKeyAlias pins one
+# key across NICs; `User` lives in config.override to keep it out of this repo.
 Host work
   HostKeyAlias work
   RemoteCommand pwsh
@@ -61,7 +56,6 @@ Host ssh.dev.azure.com
   IdentityFile ~/.ssh/id_rsa
 
 {{- if .is_wsl }}
-# Short alias for work WSL2 machine
 Host work-wsl
   HostName {{ .hostname }}
   User {{ .chezmoi.username }}
