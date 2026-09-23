@@ -104,10 +104,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           {
             "type": "command",
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\""
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-worktree-convention.js\""
           }
         ]
       }
@@ -119,15 +115,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           {
             "type": "command",
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-edit-format.js\""
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-derived-artifact.js\""
           }
         ]
       },
@@ -155,15 +142,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
     ],
     "SessionStart": [
 {{- if ne .chezmoi.os "windows" }}
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -name '*.sh' ! -executable -exec chmod +x {} + 2>/dev/null; find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -name '*.py' ! -executable -exec chmod +x {} + 2>/dev/null; true"
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
@@ -213,50 +191,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           {
             "type": "command",
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/cwd-changed-worktree-check.js\""
-          }
-        ]
-      }
-    ],
-    "PermissionDenied": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/permission-denied-audit.js\""
-          }
-        ]
-      }
-    ],
-    "StopFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-failure-log.js\""
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/user-prompt-drift-check.js\""
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-compact-snapshot.js\""
           }
         ]
       }
@@ -375,6 +309,16 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   | .hooks.SessionEnd = ((.hooks.SessionEnd // [])
       | map(.hooks |= map(select((.command | contains("claude-board")) | not)))
       | map(select((.hooks | length) > 0)))
+  # Retire removed hooks: strip their commands and drop emptied entries and events.
+  | .hooks = ((.hooks // {}) | with_entries(.value |= (
+      map(.hooks |= map(select((.command // "") as $c | any(
+            "warn-worktree-convention.js", "warn-derived-artifact.js",
+            "permission-denied-audit.js", "stop-failure-log.js",
+            "user-prompt-drift-check.js", "pre-compact-snapshot.js",
+            "-name '\''*.sh'\'' ! -executable";
+            . as $r | $c | contains($r)) | not)))
+      | map(select((.hooks | length) > 0))))
+      | with_entries(select((.value | length) > 0)))
   # Retire the bash -c wrapper form of managed hooks: shell-form hooks already run
   # under sh -c (Git Bash on Windows), and the add-only merge would keep both forms.
   | .hooks = ((.hooks // {}) | with_entries(.value |= (
