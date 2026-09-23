@@ -4,14 +4,11 @@
  * PreToolUse(Read|Edit|Write + Bash|PowerShell) guard: block access to
  * sensitive files and literal provider-token shapes in shell commands.
  *
- * Faithful port of block-secrets.py — SENSITIVE_* sets and SECRET_TOKEN_PATTERNS
- * kept value-for-value, box-drawing messages byte-equivalent. Parity tests guard
- * every pattern. A dropped filename here is a secret that leaks, so do NOT prune
- * the lists without a matching test.
+ * Lists hold files that carry secrets. Public keys, known_hosts, certificates,
+ * plain config and source files stay readable. Change a list only together with its test.
  *
  * Wired standalone (not via pre-bash-dispatcher) because it spans PowerShell too.
- * Security guard: enabled in every profile — only an explicit HOOKS_DISABLED
- * entry (pre:secrets:block) turns it off.
+ * Only HOOKS_DISABLED=pre:secrets:block turns it off.
  *
  * run(input) -> { exitCode: 0 } allow | { exitCode: 2, stderr } block
  */
@@ -44,23 +41,17 @@ const SENSITIVE_FILENAMES = new Set([
     'service-account.json',
     'service_account.json',
     'id_rsa',
-    'id_rsa.pub',
     'id_ed25519',
-    'id_ed25519.pub',
     'id_ecdsa',
     'id_dsa',
-    'known_hosts',
-    'authorized_keys',
     '.npmrc',
     '.pypirc',
     '.yarnrc',
     '.docker/config.json',
     '.aws/credentials',
-    '.aws/config',
     'gcloud/credentials.db',
     '.azure/credentials',
     '.git-credentials',
-    '.gitconfig',
     '.git/config',
     '.pgpass',
     '.my.cnf',
@@ -74,8 +65,6 @@ const SENSITIVE_EXTENSIONS = new Set([
     '.pfx',
     '.jks',
     '.keystore',
-    '.crt',
-    '.cer',
 ]);
 
 const SENSITIVE_PATH_PATTERNS = [
@@ -86,6 +75,12 @@ const SENSITIVE_PATH_PATTERNS = [
     '.env.',
     '/secrets/',
 ];
+
+// Source files named for secrets (e.g. this hook) hold code, not secrets.
+const SOURCE_EXTENSIONS = new Set(['.js', '.cjs', '.mjs', '.ts', '.tsx', '.py', '.sh', '.md']);
+
+// Committed templates that hold variable names only.
+const ENV_TEMPLATE = /^\.env\.(example|sample|template)$/;
 
 // --- provider-token shapes (Bash|PowerShell command scan) ------------------
 
@@ -109,10 +104,16 @@ function isSensitiveFile(filePath) {
     const fileName = path.basename(filePath);
     const fileLower = String(filePath).toLowerCase();
 
-    if (SENSITIVE_FILENAMES.has(fileName)) {
+    // Names with a slash (.git/config) match as path endings.
+    const known = [...SENSITIVE_FILENAMES].find(name =>
+        name.includes('/')
+            ? filePath === name || String(filePath).endsWith('/' + name)
+            : name === fileName,
+    );
+    if (known) {
         return {
             sensitive: true,
-            reason: `'${fileName}' is a known sensitive file`,
+            reason: `'${known}' is a known sensitive file`,
         };
     }
     const suffix = path.extname(filePath).toLowerCase();
@@ -122,7 +123,9 @@ function isSensitiveFile(filePath) {
             reason: `'${suffix}' files may contain private keys or certificates`,
         };
     }
+    if (ENV_TEMPLATE.test(fileName)) return { sensitive: false, reason: '' };
     for (const pattern of SENSITIVE_PATH_PATTERNS) {
+        if (pattern === 'secret' && SOURCE_EXTENSIONS.has(suffix)) continue;
         if (fileLower.includes(pattern)) {
             return {
                 sensitive: true,

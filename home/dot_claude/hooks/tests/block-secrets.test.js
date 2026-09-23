@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Parity tests for block-secrets.js (port of block-secrets.py).
+ * Tests for block-secrets.js.
  * Every SECRET_TOKEN_PATTERN provider and each file-block path is exercised.
  * Run: node --test
  */
@@ -41,7 +41,7 @@ test('blocks known sensitive filenames', () => {
 });
 
 test('blocks sensitive extensions', () => {
-    for (const ext of ['.pem', '.key', '.p12', '.crt']) {
+    for (const ext of ['.pem', '.key', '.p12', '.pfx']) {
         const res = guard.run(fileInput('Edit', `certs/server${ext}`));
         assert.equal(res.exitCode, 2, `${ext} should block`);
         assert.match(res.stderr, /private keys or certificates/);
@@ -50,11 +50,8 @@ test('blocks sensitive extensions', () => {
 
 test('blocks sensitive path substrings', () => {
     const cases = [
-        ['app/my-secret-config.ts', 'secret'],
         ['lib/credential-store.ts', 'credential'],
         ['keys/private_key.txt', 'private_key'],
-        // '/secrets/' is unreachable as a distinct reason — 'secret' (earlier in
-        // the list) always matches first. Parity with the .py list order.
         ['config/secrets/db.yaml', 'secret'],
         ['env/.env.production-notes', '.env.'],
     ];
@@ -70,8 +67,48 @@ test('blocks sensitive path substrings', () => {
     }
 });
 
-test('.env.example is blocked via .env. pattern (py parity quirk)', () => {
-    assert.equal(guard.run(fileInput('Read', 'docs/.env.example')).exitCode, 2);
+test('secret-named data files still block', () => {
+    for (const p of [
+        'Downloads/client_secret_123.apps.googleusercontent.com.json',
+        'app/.secret',
+        'k8s/db-secret.yaml',
+        'keys/jwt-secret.txt',
+    ]) {
+        assert.equal(guard.run(fileInput('Read', p)).exitCode, 2, p);
+    }
+});
+
+test('multi-part names match as path endings', () => {
+    for (const p of [
+        'repo/.git/config',
+        '/Users/x/.aws/credentials',
+        '/Users/x/.docker/config.json',
+    ]) {
+        const res = guard.run(fileInput('Read', p));
+        assert.equal(res.exitCode, 2, p);
+        assert.match(res.stderr, /known sensitive file/);
+    }
+});
+
+test('env templates stay readable', () => {
+    for (const name of ['.env.example', '.env.sample', '.env.template']) {
+        assert.equal(guard.run(fileInput('Read', `docs/${name}`)).exitCode, 0, name);
+    }
+});
+
+test('public keys, known hosts, certificates and git config stay readable', () => {
+    for (const p of [
+        '~/.ssh/id_rsa.pub',
+        '~/.ssh/id_ed25519.pub',
+        '~/.ssh/known_hosts',
+        '~/.ssh/authorized_keys',
+        '~/.gitconfig',
+        'certs/server.crt',
+        'certs/ca.cer',
+        'hooks/block-secrets.js',
+    ]) {
+        assert.equal(guard.run(fileInput('Read', p)).exitCode, 0, p);
+    }
 });
 
 test('blocks every provider token shape in a command', () => {
