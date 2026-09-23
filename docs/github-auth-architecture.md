@@ -1,225 +1,68 @@
-# GitHub Authentication & 1Password Architecture
+# GitHub auth architecture (Reference)
 
-> **Date:** 2026-03-26
-> **Purpose:** Document how GitHub auth, SSH keys, and 1Password secrets work across machines.
-> **Companion:** See `mise-migration-plan.md` for tool installation, `chezmoi-patterns-guide.md` for patterns.
+How git, `gh`, SSH and 1Password secrets are wired across machines. Sources: `home/.chezmoi.toml.tmpl`, `home/dot_config/git/config.tmpl`, `home/dot_ssh/`, `home/dot_config/shell/private_015-vault.sh.tmpl`.
 
-## Overview
+## Machine classes
 
-Three machines, two 1Password vaults, multiple auth mechanisms:
+`home/.chezmoi.toml.tmpl` sets one 1Password vault per machine as `.opVault`:
 
-| Machine | OS | Vault | `work` | `personal` |
-|---------|-----|-------|--------|-----------|
-| Andrews MacBook Pro | macOS | Private | false | true |
-| Work PC | Windows + WSL2 | Employee | true | false |
-| Personal desktop | Windows | Private | false | true |
+| Class | How it is detected | `.opVault` |
+|---|---|---|
+| Personal | Known hostname (the Mac, two personal Windows hosts), or "personal" at the prompt | `Private` |
+| Work | "not personal" at the prompt | `Employee` |
+| Ephemeral | Codespaces, dev containers, root/ubuntu/vagrant/vscode users, no TTY, or "ephemeral" at the prompt | empty, no secrets |
 
-## Authentication Mechanisms
+Every item below exists under the same name in both vaults, with its secret in the same field, so templates read `op://<.opVault>/...` and do not branch on `.work`.
 
-### 1. SSH Keys (git push/pull over SSH)
+## Identity
 
-**How it works:** 1Password SSH Agent provides keys. The agent runs on the host OS and serves keys to `ssh` when git operations need them.
+- Global git `[user]` is the personal identity on every machine, from static data in `home/.chezmoidata/constants.toml` (`[identity]`), not from 1Password.
+- `.name` and `.email` come from the vault item `Identity` (`handle`, `email`). They are only used for the work identity, which `home/dot_config/git/azure-signing.inc.tmpl` applies to Azure DevOps remotes on work WSL.
 
-**Current setup:** SSH keys are pulled from 1Password during `chezmoi apply` and written to `~/.ssh/`:
+## SSH keys
 
-```
-dot_ssh/id_ed25519.pub.tmpl      → op://Employee/SSH Key/public key    (work)
-                                  → op://Private/SSH Key/public key     (personal)
-dot_ssh/private_id_ed25519.tmpl  → op://Employee/SSH Key/private key   (work)
-                                  → op://Private/SSH Key/private key    (personal)
-dot_ssh/id_rsa.pub.tmpl          → op://Employee/SSH Key - RSA/...     (work, for Azure DevOps)
-                                  → op://Private/SSH Key - RSA/...      (personal)
-```
+- `chezmoi apply` writes keys from 1Password to `~/.ssh/` when `op` is on PATH: `SSH Key` (ed25519, `id_ed25519`) and `SSH Key - RSA` (`id_rsa`, for Azure DevOps). One key per vault; all machines of a class share it.
+- The 1Password SSH agent offers `SSH Key`, `SSH Key - RSA` and `GitHub CLI` from `.opVault` (`home/.chezmoitemplates/1password-agent.toml`). On macOS `~/.ssh/config` and `SSH_AUTH_SOCK` point at the 1Password agent socket.
+- `~/.ssh/config`: `IdentitiesOnly yes` with `id_ed25519`; `github.com` goes to `ssh.github.com:443` because port 22 is blocked on the corporate network; on work machines `ssh.dev.azure.com` uses `id_rsa`.
+- Work WSL uses native Linux `ssh` with the keys in `~/.ssh`, not Windows `ssh.exe`.
 
-**Status:** Working correctly. Uses `$opVault`-style branching (work/personal conditional).
+## Tokens in the shell
 
-**One key per vault identity** — all machines with access to a vault share the same key. No per-machine keys needed.
+`home/dot_config/shell/private_015-vault.sh.tmpl` renders to `~/.config/shell/015-vault.sh` (mode 0600) at apply time, so shell startup needs no `op` session. On non-ephemeral machines it exports:
 
-### 2. `gh` CLI Auth (GitHub API via CLI)
+| Variable | 1Password item | Used by |
+|---|---|---|
+| `GITHUB_TOKEN`, `MISE_GITHUB_TOKEN` | `GitHub PAT` / `token` | `gh`, mise, chezmoi's GitHub template functions |
+| `GEMINI_API_KEY` | `Gemini API Key` / `token` | Gemini tools |
+| `CONTEXT7_API_KEY` | `Context7 API Key` / `token` | context7 MCP server |
 
-**How it works:** `gh auth login` stores an OAuth token in `~/.config/gh/hosts.yml`. This is per-machine, per-user.
+- On a first apply with no `op` on PATH the file renders empty and the next apply fills it. Once it exists, a missing `op` fails the apply instead of blanking the secrets.
+- `GITHUB_TOKEN` outranks the `gh` keyring, so `gh auth login` has no effect where this file is sourced.
+- macOS also renders `~/.config/homebrew/brew.env` with `HOMEBREW_GITHUB_API_TOKEN` from the same `GitHub PAT` item.
 
-**Current setup:** Manual `gh auth login` on each machine. Not managed by chezmoi.
+## chezmoi GitHub API calls
 
-**Used for:**
-- `gh pr create`, `gh issue view`, etc.
-- `gh auth token` → provides `GITHUB_TOKEN` for mise install scripts (see migration plan Phase 3)
-- `git credential helper` via `gh auth git-credential` (line 125-131 of `git/config.tmpl`)
+`gitHubLatestReleaseAssetURL` and `gitHubLatestRelease` in `home/.chezmoiexternal.toml.tmpl` (cue on Ubuntu, Maple Mono fonts on Linux and Windows, powerlevel10k) call the GitHub API. chezmoi authenticates with `GITHUB_TOKEN` from the environment; without it the limit is 60 requests an hour. `[github]` in the config sets only `refreshPeriod = "12h"`; there is no `accessToken`.
 
-**Status:** Works. `lookPath "gh"` dynamically resolves the binary path on each `chezmoi apply`.
+## Git credential helpers
 
-### 3. GitHub Personal Access Tokens (PATs)
+Helpers chain in file order and git uses the first one that returns credentials. An empty `helper =` clears the helpers read before it.
 
-**How it works:** Fine-grained tokens created at github.com/settings/tokens. Stored in 1Password, referenced in templates.
+| Platform | github.com, gist.github.com | dev.azure.com | Other HTTPS |
+|---|---|---|---|
+| macOS | `gh auth git-credential` | `manager` (Git Credential Manager) | `osxkeychain` |
+| Native Windows | `gh auth git-credential` | `manager` | `manager` |
+| Work WSL | `gh auth git-credential` | Windows GCM `.exe` via interop, then `~/.git-azdo-helper.sh` | Windows GCM `.exe` |
+| Personal WSL, Linux | `gh auth git-credential` | none | none |
 
-**Current setup (dot_zshrc.tmpl lines 135-141):**
+- The `gh` path is resolved at apply time with `lookPath "gh"`, falling back to the mise shim. The `gh` block must stay below every global `[credential]` helper; placed earlier, GitHub logins still reach GCM or osxkeychain, and on WSL the GCM store call hangs when interop is down.
+- All Azure DevOps platforms set `useHttpPath = true` and `azreposCredentialType = oauth`. GCM needs `useHttpPath` to find the organization, including from WSL.
+- On personal machines, `https://github.com/Drewtopia/` is rewritten to SSH (`url.insteadOf`), and commits are signed with `~/.ssh/id_ed25519.pub` (`gpg.format = ssh`).
+- Machine-only entries go in the untracked `~/.config/git/config.local`, included last.
 
-```go
-{{- if not .ephemeral }}
-export GITHUB_TOKEN={{ onepasswordRead (printf "op://%s/GitHub PAT/token" .opVault) | trim }}
-{{- end }}
-{{- if and (not .ephemeral) (not .work) }}
-export GEMINI_API_KEY={{ onepasswordRead "op://Private/Gemini API Key/token" | trim }}
-{{- else if .work }}
-export GEMINI_API_KEY={{ onepasswordRead "op://Employee/Gemini API Key/password" | trim }}
-{{- end }}
-```
+## Work WSL and Azure DevOps
 
-**Gaps identified:**
-
-| Token | Personal machines | Work machines | Gap |
-|-------|------------------|---------------|-----|
-| `GITHUB_TOKEN` | Private vault | Employee vault | Requires a `GitHub PAT` item with a `token` field in both vaults |
-| `GEMINI_API_KEY` | Private vault (`/token`) | Employee vault (`/password`) | Works but field name inconsistent |
-
-### 4. chezmoi `[github] accessToken` (optional)
-
-**How it works:** chezmoi uses this for authenticated GitHub API calls when resolving `gitHubLatestReleaseAssetURL` in `.chezmoiexternal.toml.tmpl`. Without it, unauthenticated rate limit is 60 requests/hour.
-
-**Current setup:** Not configured (was briefly added then removed — see Session Notes below).
-
-**When you'd need it:** Only if `chezmoi apply` hits GitHub rate limits from many externals using `gitHubLatestReleaseAssetURL`. Currently only `cue` (Ubuntu) and the Maple Mono font archives (non-ephemeral Linux and Windows) use this, so rate limits are unlikely.
-
-**If added, should look like:**
-```toml
-[github]
-    refreshPeriod = "12h"
-{{- if not $ephemeral }}
-    accessToken = {{ onepasswordRead (printf "op://%s/GitHub PAT - chezmoi/token" $opVault) | trim | quote }}
-{{- end }}
-```
-
-This uses `$opVault` to read from the correct vault per machine. Requires a 1Password item named "GitHub PAT - chezmoi" with a "token" field in both Private and Employee vaults.
-
-## Git Credential Flow
-
-How `git push` authenticates on each platform:
-
-### macOS (personal)
-```
-git push → SSH (1Password SSH Agent) → op://Private/SSH Key
-           OR
-           HTTPS → osxkeychain credential helper
-           HTTPS to github.com → gh auth git-credential
-           HTTPS to dev.azure.com → Git Credential Manager (Microsoft OAuth, cached in osxkeychain)
-```
-
-### Windows (work)
-```
-git push → SSH (1Password SSH Agent) → op://Employee/SSH Key
-           OR
-           HTTPS to github.com → gh auth git-credential
-```
-
-### WSL2 (work)
-```
-git push → SSH (needs own key or 1Password interop)
-           HTTPS to github.com → gh auth git-credential (native gh via mise)
-           HTTPS to dev.azure.com → GCM.exe via interop  (PRIMARY: cached AAD
-                                    token from Windows Credential Manager)
-                                    ↓ falls through only if GCM yields no token
-                                    az-CLI mint helper (HEADLESS FALLBACK)
-```
-
-**`git/config.tmpl` credential setup:**
-
-```
-# All platforms with gh installed (line 125-131):
-[credential "https://github.com"]
-    helper = !"<gh binary path>" auth git-credential
-
-# macOS only:
-[credential]
-    helper = osxkeychain
-    azreposCredentialType = oauth
-[credential "https://dev.azure.com"]
-    helper = manager        # Git Credential Manager (cask: git-credential-manager)
-    useHttpPath = true
-
-# WSL2 work only — GCM primary + az-CLI mint fallback (chained):
-[credential]
-    helper = /mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe   # PRIMARY
-[credential "https://dev.azure.com"]
-    helper = ~/.git-azdo-helper.sh        # FALLBACK (managed; gated work+WSL)
-    # useHttpPath/azreposCredentialType come from the shared $azure block above
-```
-
-**WSL2 Azure DevOps credential chain (verified 2026-06-15):**
-
-- **GCM *does* auth Azure from WSL2** — contrary to an earlier (now removed)
-  belief that it couldn't. The catch is `useHttpPath = true`: it feeds GCM the
-  org path so GCM can resolve the org and return the cached AAD token from
-  Windows Credential Manager. Without it, GCM errors with "Cannot determine the
-  organization name." This is the only Azure-specific config GCM needs (it's the
-  exact requirement in [MS Learn: Git on WSL](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-git)).
-- **Why a fallback at all:** GCM serves a *cached* token headlessly, but on
-  expiry it needs an interactive Windows sign-in dialog. A headless session
-  (e.g. `ssh work-wsl` from the Mac) can't render that dialog, so the push
-  stalls. `~/.git-azdo-helper.sh` mints a fresh AAD token non-interactively from
-  the cached `az` CLI session, closing that gap. Its `--resource` GUID
-  (`499b84ac-…`) is the **public** Azure DevOps first-party app id, not a secret.
-- **FOOTGUN — never `helper =` (empty reset) before the az-mint helper.** A
-  reset clears the *inherited global GCM helper* from the Azure chain, leaving
-  az-mint as the *only* helper. That's the bug that once forced az-only auth and
-  read as "can't push via GCM." The fallback must be appended **after** the
-  global GCM line (file order = chain order; git uses the first helper that
-  returns creds), with **no reset**.
-- The mint script lives untracked at `~/.git-azdo-helper.sh` historically; it is
-  now chezmoi-managed (`executable_dot_git-azdo-helper.sh`, gated to work+WSL in
-  `.chezmoiignore.tmpl`). Per-machine `config.local` no longer overrides Azure
-  auth — the template owns the chain.
-
-The `gh auth git-credential` path is resolved dynamically via `lookPath "gh"` at `chezmoi apply` time. When gh moves from scoop to mise, the path updates automatically on next apply.
-
-## Action Items
-
-### Quick Wins (fix now)
-
-1. **Verify `GitHub PAT` exists in both vaults** — `.zshrc.tmpl` now exports `GITHUB_TOKEN` from `op://<vault>/GitHub PAT/token` on every non-ephemeral machine.
-
-2. **Standardize 1Password field names** — Gemini uses `token` in Private but `password` in Employee. Pick one.
-
-### Consider Later
-
-3. **Add chezmoi `[github] accessToken`** — only needed if rate-limited during `chezmoi apply`. Use `$opVault` pattern.
-
-4. **WSL2 SSH strategy** — with interop ON (`appendWindowsPath=false`), two options:
-   - Use 1Password SSH Agent on Windows side via `SSH_AUTH_SOCK` pointing to Windows pipe (requires interop)
-   - Install native `op` on WSL and use 1Password SSH Agent there (independent of interop)
-
-5. **Consolidate GitHub PATs** — currently there are multiple PATs across vaults:
-   - `GitHub PAT` (Private/Employee) → `GITHUB_TOKEN`
-   - `Homebrew GitHub API Token` (Private) → `HOMEBREW_GITHUB_API_TOKEN`
-
-   These could potentially be one PAT shape with read-only public repo scope, stored consistently in both vaults.
-
-## Session Notes
-
-### 2026-03-26: accessToken incident
-
-A `[github] accessToken` line was added to `.chezmoi.toml.tmpl` in commit `cebff08` that:
-- Hardcoded `op://Private/...` instead of using `$opVault`
-- Referenced an item name ("GitHub Metadata Read-Only Access Token") that didn't exist
-- Wasn't gated on work/personal — ran for all non-ephemeral machines
-
-This caused `chezmoi init --prompt` to fail on the work machine. The line was removed in the same session. If re-added, must use the `$opVault` pattern shown above.
-
-## 1Password Reference Map
-
-Complete inventory of all 1Password references in chezmoi templates:
-
-| File | Vault | Item | Field | Condition |
-|------|-------|------|-------|-----------|
-| `dot_ssh/id_ed25519.pub.tmpl` | Employee | SSH Key | public key | work |
-| `dot_ssh/id_ed25519.pub.tmpl` | Private | SSH Key | public key | personal |
-| `dot_ssh/private_id_ed25519.tmpl` | Employee | SSH Key | private key | work |
-| `dot_ssh/private_id_ed25519.tmpl` | Private | SSH Key | private key | personal |
-| `dot_ssh/id_rsa.pub.tmpl` | Employee | SSH Key - RSA | public key | work |
-| `dot_ssh/id_rsa.pub.tmpl` | Private | SSH Key - RSA | public key | personal |
-| `dot_ssh/private_id_rsa.tmpl` | Employee | SSH Key - RSA | private key | work |
-| `dot_ssh/private_id_rsa.tmpl` | Private | SSH Key - RSA | private key | personal |
-| `dot_zshrc.tmpl` | Private | GitHub Metadata Read-Only Access Token | token | not ephemeral, not work |
-| `dot_zshrc.tmpl` | Private | GitHub mise PAT | token | not ephemeral, not work |
-| `dot_zshrc.tmpl` | Private | Gemini API Key | token | not ephemeral, not work |
-| `dot_zshrc.tmpl` | Employee | Gemini API Key | password | work |
-| `brew.env.tmpl` | Private | Homebrew GitHub API Token | token | personal |
+- GCM is the primary helper and returns the cached AAD token from Windows Credential Manager.
+- `~/.git-azdo-helper.sh` (`home/executable_dot_git-azdo-helper.sh`, deployed only on work WSL) is the fallback. It mints a token from the cached `az` session without a sign-in dialog, which covers headless sessions such as SSH from the Mac when the GCM token has expired. Its `--resource` GUID is the public Azure DevOps app ID, not a secret.
+- Never put `helper =` before the az helper. That clears the inherited GCM helper and leaves the az helper as the only one.
+- Azure DevOps repos include `~/.config/git/azure-signing.inc`, which sets the work identity and signs commits with the 1Password SSH key through `op-ssh-sign-wsl.exe` over interop. Other repos keep the personal identity and stay unsigned.
