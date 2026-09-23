@@ -233,10 +233,7 @@ async function main() {
     const raw = await readStdin();
     const input = parseInput(raw);
 
-    // Security guard: runs in every profile; only HOOKS_DISABLED can silence it.
-    if (
-        !isHookEnabled(HOOK_ID, { profiles: ['minimal', 'standard', 'strict'] })
-    ) {
+    if (!isHookEnabled(HOOK_ID)) {
         process.stdout.write(raw);
         process.exit(0);
     }
