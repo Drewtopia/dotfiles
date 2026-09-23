@@ -107,3 +107,25 @@
 # Symlink only, NOT the ~/.agents/skills payload: skills.yaml still installs the
 # repo for Codex, Cursor and GitHub Copilot, which read that store directly.
 .claude/skills/humanizer
+
+# Removed from chezmoi source; remove the deployed copies too.
+.claude/hooks/user-prompt-drift-check.js
+.claude/hooks/warn-derived-artifact.js
+.claude/hooks/warn-worktree-convention.js
+.claude/hooks/collision-warn.cjs
+.claude/hooks/collision-map-build.cjs
+.claude/hooks/session-registry.cjs
+.claude/hooks/warn-edit-on-protected.js
+.claude/hooks/memory-pull.sh
+.claude/hooks/memory-push.sh
+.claude/hooks/permission-denied-audit.js
+.claude/hooks/stop-failure-log.js
+.claude/hooks/pre-compact-snapshot.js
+.claude/hooks/lib/hook-log.js
+.claude/hooks/tests/warn-derived-artifact.test.js
+.claude/hooks/tests/warn-worktree-convention.test.js
+.claude/hooks/tests/session-registry.test.js
+.claude/hooks/tests/warn-edit-on-protected.test.js
+.claude/hooks/tests/permission-denied-audit.test.js
+.claude/hooks/tests/stop-failure-log.test.js
+.claude/hooks/tests/pre-compact-snapshot.test.js
