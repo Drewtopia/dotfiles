@@ -1,5 +1,4 @@
 'use strict';
-/** Port safety net for block-dangerous-git.js. */
 
 const { test } = require('node:test');
 const assert = require('node:assert');

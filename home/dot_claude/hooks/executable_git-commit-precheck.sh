@@ -1,22 +1,6 @@
 #!/usr/bin/env bash
-# =============================================================================
-# PreToolUse Hook: Git Commit Pre-Check
-# =============================================================================
-#
-# Counters CC harness injecting `-c core.hooksPath=/dev/null` into commits.
-# When CC tries to `git commit`, this hook runs the repo's own pre-commit
-# checks (lefthook if configured, gitleaks as fallback) against staged files.
-# Block = exit 2 with stderr feedback so CC fixes violations and retries.
-#
-# Order of strategies:
-#   1. lefthook    if lefthook.yml (or .lefthook.yml) present and binary found
-#   2. gitleaks    fallback secret-scan of staged diff (always runs if found)
-#   3. no-op       if neither available, allow (graceful degrade)
-#
-# Exit codes:
-#   0 = allow command
-#   2 = block command (stderr fed back to Claude)
-# =============================================================================
+# PreToolUse: the harness commits with core.hooksPath=/dev/null, so run the repo's
+# lefthook pre-commit (if configured) and a gitleaks scan (if installed) on staged files.
 
 set -uo pipefail
 
@@ -24,21 +8,12 @@ INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 [[ -z "$COMMAND" ]] && exit 0
 
-# Detect `git commit` (allowing `-c key=val` flags between git and commit).
-# Examples matched:
-#   git commit -m "..."
-#   git -c core.hooksPath=/dev/null commit -m "..."
-#   ... && git commit --amend
 if ! echo "$COMMAND" | grep -qE '(^|[^a-zA-Z])git( -c [^ ]+)* commit( |$)'; then
     exit 0
 fi
 
-# The command may target a repo other than the session's cwd, as in
-# `cd ~/dotfiles && git commit ...`. This hook runs in the session's cwd, so
-# resolving the repo from here would check the wrong one -- gating a commit on
-# a different repo's lefthook config and staged files. Follow the command's own
-# cd first. No eval: the command text is untrusted, so `~` is expanded by
-# parameter substitution rather than by a shell.
+# Follow the command's own `cd` so the right repo is checked. No eval: the command
+# text is untrusted, so `~` is expanded by parameter substitution.
 CD_TARGET=$(printf '%s' "$COMMAND" \
     | grep -oE '(^|&&|;)[[:space:]]*cd[[:space:]]+[^&;|]+' \
     | tail -1 | sed -E 's/^.*cd[[:space:]]+//; s/[[:space:]]+$//')
@@ -58,9 +33,6 @@ STAGED_COUNT=$(git diff --cached --name-only --diff-filter=ACMR | wc -l)
 FAILED=0
 RAN_SOMETHING=0
 
-# -----------------------------------------------------------------------------
-# Strategy 1: lefthook
-# -----------------------------------------------------------------------------
 LEFTHOOK_CONFIG=""
 for cfg in lefthook.yml .lefthook.yml lefthook.yaml .lefthook.yaml; do
     if [[ -f "$REPO_ROOT/$cfg" ]]; then
@@ -90,9 +62,6 @@ if [[ -n "$LEFTHOOK_CONFIG" ]]; then
     fi
 fi
 
-# -----------------------------------------------------------------------------
-# Strategy 2: gitleaks (always runs if available -- defense-in-depth)
-# -----------------------------------------------------------------------------
 if command -v gitleaks >/dev/null 2>&1; then
     RAN_SOMETHING=1
     if ! gitleaks git --staged --redact --no-banner . 2>&1 >&2; then
@@ -103,9 +72,6 @@ if command -v gitleaks >/dev/null 2>&1; then
     fi
 fi
 
-# -----------------------------------------------------------------------------
-# Result
-# -----------------------------------------------------------------------------
 if [[ "$FAILED" -eq 1 ]]; then
     exit 2
 fi

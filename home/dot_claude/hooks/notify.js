@@ -1,13 +1,5 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * Notification: desktop alert when Claude needs attention.
- * Faithful port of notify.sh — content extract + 100-char truncate, then an
- * OS-dispatched notification (macOS osascript / Linux notify-send / WSL toast /
- * terminal bell fallback). Always exits 0.
- *
- * Toggle: HOOKS_DISABLED=notification:desktop-notify
- */
 
 const fs = require('node:fs');
 const { spawnSync } = require('node:child_process');
@@ -18,7 +10,6 @@ const HOOK_ID = 'notification:desktop-notify';
 const TITLE = 'Claude Code';
 const MAX_LEN = 100;
 
-/** Extract notification text, defaulting + truncating exactly as notify.sh did. */
 function parseContent(input) {
     let content = (input && input.content) || 'Claude needs your attention';
     content = String(content);
@@ -56,7 +47,6 @@ function notify(message) {
         return;
     }
 
-    // Linux with notify-send
     const ns = spawnSync(
         'notify-send',
         [TITLE, message, '-u', 'normal', '-t', '5000'],
@@ -66,7 +56,6 @@ function notify(message) {
     );
     if (!ns.error) return;
 
-    // Windows / WSL toast
     if (isWSL()) {
         const ps = `
             [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
@@ -84,7 +73,6 @@ function notify(message) {
         return;
     }
 
-    // Fallback: terminal bell
     process.stdout.write('');
 }
 

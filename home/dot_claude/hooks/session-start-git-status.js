@@ -1,13 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * SessionStart: git workflow warnings (non-blocking; printed to stdout, which
- * Claude Code appends to session context).
- * Faithful port of session-start-git-status.sh — branch age, commits-ahead,
- * dirty tree, behind-upstream, stale worktrees. Always exits 0.
- *
- * Toggle: HOOKS_DISABLED=session:start:git-status
- */
+// SessionStart: git workflow warnings on stdout, which joins session context.
 
 const { readStdin } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
@@ -17,12 +10,6 @@ const HOOK_ID = 'session:start:git-status';
 const DEFAULTS = { branchAge: 3, ahead: 20, worktreeAge: 7 };
 const PROTECTED = new Set(['main', 'develop', 'master']);
 
-/**
- * Pure: assemble warning lines from collected repo state.
- * @param {{branch:string, integ:string, branchAgeDays:(number|null),
- *   commitsAhead:(number|null), dirtyCount:number, behind:number,
- *   staleWorktrees:string[]}} s
- */
 function buildWarnings(s, t = DEFAULTS) {
     const w = [];
     if (s.integ && !PROTECTED.has(s.branch)) {
@@ -54,7 +41,6 @@ const intOr = (raw, fallback = 0) => {
     return Number.isFinite(n) ? n : fallback;
 };
 
-/** First existing integration branch, or '' if none. */
 function findIntegration() {
     for (const b of ['develop', 'main', 'master']) {
         if (git(['rev-parse', '--verify', b])) return b;

@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 # Prepend one entry to ~/.claude/memory/SESSION_LOG.md (vault-synced, cross-device).
-# Derives date, machine, project and branch itself so they cannot drift — a
-# hand-typed hostname is how the log ended up with two spellings of one machine.
-# Refuses on a missing title/summary/artifact or an unknown color: a placeholder
-# entry is drift with extra steps.
+# Derives date, machine, project and branch itself so they cannot drift.
 #   session-log-prepend.sh --title T --summary S --artifact A
 #                          [--next N] [--name SESSION] [--color C] [--log PATH]
 set -euo pipefail

@@ -11,7 +11,7 @@ root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 main=$(git -C "$root" worktree list --porcelain 2>/dev/null |
   awk '/^worktree /{print substr($0, 10); exit}')
 [ -n "${main:-}" ] || exit 0
-[ "$root" = "$main" ] && exit 0 # primary checkout, nothing to top up
+[ "$root" = "$main" ] && exit 0
 
 git -C "$main" status --ignored --porcelain 2>/dev/null |
   awk '/^!! /{p = substr($0, 4); if (p ~ /(^|\/)CLAUDE\.md$/) print p}' |

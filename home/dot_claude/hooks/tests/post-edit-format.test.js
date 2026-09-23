@@ -1,5 +1,4 @@
 'use strict';
-/** Tests for post-edit-format.js (port of after-edit.sh). Run: node --test */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');

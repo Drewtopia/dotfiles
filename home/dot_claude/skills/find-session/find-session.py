@@ -72,7 +72,6 @@ def main():
     terms = args.terms
     if not terms:
         ap.error("at least one search term is required (or use --removed)")
-    # per-file: {term: count}
     hits = {}
     for d in slug_dirs(all_projects):
         for term in terms:
@@ -84,7 +83,7 @@ def main():
         print("no matching sessions — try broader terms"); return
     def score(fp):
         d = hits[fp]
-        return (len(d), sum(d.values()), os.path.getmtime(fp))  # distinct terms, total, recency
+        return (len(d), sum(d.values()), os.path.getmtime(fp))
     ranked = sorted(hits, key=score, reverse=True)[:15]
     n_all = sum(1 for fp in hits if len(hits[fp]) == len(terms))
     print(f"{len(hits)} sessions match ≥1 term; {n_all} match all {len(terms)}. Top {len(ranked)}:\n")

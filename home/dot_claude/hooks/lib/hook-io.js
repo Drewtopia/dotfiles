@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Stdin + tool-input helpers shared by hook dispatchers and checks.
- * Read once, parse once, pass the parsed object to each check.
- */
 
 const MAX_STDIN = 1024 * 1024;
 
