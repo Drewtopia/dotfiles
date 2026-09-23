@@ -1,11 +1,7 @@
-# Global commit-check policy. The push gate
-# (dot_claude/hooks/bash-checks/gate-push-convention.js) points commit-check at
-# this file via `--config` when a repo has no cchk.toml of its own; a repo-local
-# config always wins. https://commit-check.github.io
+# Global policy: the push gate passes this via --config when a repo has no cchk.toml.
 [branch]
-# https://conventionalbranch.org, widened to the Conventional Commit type set
-# (+ wip) so everyday branches aren't rejected by the strict 7-type default.
-# `agent` covers the AFK orchestrator's branches (agent/issue-<n>-*, agent/prd-<n>-*).
+# Widened to the Conventional Commit types (+ wip) so everyday branches pass;
+# `agent` covers the AFK orchestrator's agent/issue-<n>-* branches.
 conventional_branch = true
 allow_branch_types = [
   "feature", "feat", "bugfix", "fix", "hotfix", "release", "chore",

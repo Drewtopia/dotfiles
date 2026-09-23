@@ -1,27 +1,7 @@
 'use strict';
-/**
- * PreToolUse(Bash) check: block `git commit` while HEAD is on a protected
- * (integration) branch. Stops agents committing straight to develop/main
- * instead of cutting a feature branch.
- *
- * Only a command segment that *starts* with git counts, so a commit named
- * inside an argument (`echo "run git commit later"`, a test fixture, a message
- * body) is text, not an invocation. Wrappers that execute their argument
- * (`bash -c`, `eval`, `xargs`) are unwrapped and rescanned, so hiding a commit
- * one level in does not evade the gate.
- *
- * Allows `-c key=val` flags between git and commit (matches the harness
- * `git -c core.hooksPath=/dev/null commit` injection). A `git -C <path> commit`
- * (different repo) is allowed — the caller named another repo explicitly.
- * A preceding `cd <path>` in the same command resolves the branch there, since
- * that, not the hook's own working directory, is where the commit lands.
- *
- * Defers (allows) when the branch can't be resolved — detached HEAD or non-repo
- * — better to allow than to wedge a commit.
- *
- * run(input, deps?) -> { exitCode: 0 } | { exitCode: 2, stderr }
- * deps.currentBranch lets tests inject a branch without a live repo.
- */
+// Only a segment that starts with git counts, so a commit named inside an argument
+// is text. `git -C <path> commit` names another repo explicitly and is allowed;
+// an unresolvable branch allows rather than wedging the commit.
 
 const { getCommand } = require('../lib/hook-io');
 const { currentBranch } = require('../lib/git');
@@ -30,7 +10,6 @@ const PROTECTED = /^(main|master|develop)$/;
 const SEGMENT = /(?:&&|\|\||;|\||\n)/;
 const GIT_COMMIT = /^git((?: -[cC] [^ ]+)*) commit(?: |$)/;
 const CD = /^cd\s+(?:--\s+)?(['"]?)([^'"]+)\1\s*$/;
-// Wrappers that run their argument as a command, so a commit hides one level in.
 const WRAPPER = /^(?:eval|xargs(?:\s+-\S+)*|(?:ba|z)?sh\s+-c)\s+([\s\S]+)$/;
 
 const unquote = s => s.replace(/^(['"])([\s\S]*)\1$/, '$2');

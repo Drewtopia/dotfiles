@@ -1,26 +1,9 @@
-# Agent skills installed via the `npx skills` CLI.
-# Consumed by run_onchange_after_60-install-skills.sh.tmpl — when this
-# file changes, the install script re-runs.
-#
-# Each entry:
-#   repo    GitHub repo (owner/name)
-#   skills  skill names to install; `"*"` installs everything in the repo
-#   agents  optional — agent ids to install for (`skills add --agent`). Omit
-#           to let the CLI install to every agent it detects on the machine.
-#
-# Every skill's payload lands in the shared ~/.agents/skills store regardless.
-# Codex, Cursor and GitHub Copilot read that store directly, so naming them
-# creates no per-agent directory; Claude is the odd one out and gets symlinks
-# under ~/.claude/skills. Naming an agent that isn't installed is therefore
-# harmless — for the store-readers it is a no-op.
-#
-# Replaces the static $mattSkills list previously held in
-# .chezmoiexternal.toml.tmpl, which went stale on upstream refactors.
+# Installed by run_onchange_after_60-install-skills via `npx skills`. `agents`
+# omitted = every detected agent. Payloads always land in ~/.agents/skills,
+# which Codex/Cursor/Copilot read directly; only Claude gets symlinks.
 skill_repos:
   - repo: mattpocock/skills
-    # Non-Claude agents have no plugin equivalent, so they take the whole
-    # repo. `"*"` means upstream renames and additions need no reconciling
-    # here — the trade-off is that unstable in-progress/ skills land too.
+    # Non-Claude agents have no plugin equivalent, so they take the whole repo.
     agents:
       - codex
       - cursor
@@ -28,19 +11,8 @@ skill_repos:
     skills:
       - "*"
   - repo: mattpocock/skills
-    # Claude gets its copies from the `mattpocock-skills@mattpocock` plugin
-    # (see .chezmoidata/claude.toml), so this path must not symlink what
-    # plugin.json enumerates into ~/.claude/skills — a second copy would
-    # shadow the plugin's namespaced `mattpocock-skills:tdd` with a bare one.
-    # The entry above still puts those payloads in ~/.agents/skills; Claude
-    # simply never links to them.
-    #
-    # Only misc/ and in-progress/ remain: plugin.json omits them, and
-    # `npx skills add -l` hides them, but --skill installs them by name.
-    #
-    # in-progress/ is unstable upstream — expect renames and breakage.
-    # Upstream also carries implement-spec, retro and setup-pre-commit on
-    # this path; they are deliberately not installed for Claude.
+    # Only skills the mattpocock-skills plugin omits: a bare copy of a plugin
+    # skill would shadow the namespaced one. in-progress/ is unstable upstream.
     agents:
       - claude-code
     skills:
@@ -52,19 +24,13 @@ skill_repos:
       - setup-ts-deep-modules
       - claude-handoff
   - repo: github/awesome-copilot
-    # awesome-copilot has hundreds of skills; pull only what we use.
     skills:
       - conventional-commit
       - playwright-generate-test
   - repo: conventional-branch/conventional-branch
-    # Teaches valid Conventional Branch names; pairs with commit-check
-    # enforcement in dot_claude/hooks/bash-checks/gate-push-convention.js.
     skills:
       - conventional-branch
   - repo: anivar/zod-skill
-    # Zod v4 specifically (baseline zod ^4.3.0), SKILL.md at the repo root.
-    # pproenca/dot-skills also ships a working zod skill under .curated —
-    # broader at 43 rules, but not v4-scoped, and a 154-skill collection.
     skills:
       - zod
   - repo: currents-dev/playwright-best-practices-skill
@@ -74,8 +40,7 @@ skill_repos:
     skills:
       - playwright-cli
   - repo: blader/humanizer
-    # Claude takes this from humanizer@humanizer (see .chezmoidata/claude.toml).
-    # The other agents read ~/.agents/skills directly and have no plugin path.
+    # Claude takes this from the humanizer@humanizer plugin.
     agents:
       - codex
       - cursor
@@ -83,19 +48,14 @@ skill_repos:
     skills:
       - humanizer
   - repo: microsoftdocs/agent-skills
-    # Azure Repos expert skill; replaces the lost project-vendored azure-repos.
     skills:
       - azure-repos
   - repo: stablyai/orca
-    # OS/window-level control for local app windows. Skill name does not match
-    # the repo name, so it is pinned rather than taken with `"*"`.
     skills:
       - computer-use
   - repo: shadcn/improve
-    # Read-only codebase audit that writes prioritized plans for other agents.
     skills:
       - improve
   - repo: dmmulroy/anti-slop
-    # Installs and updates the vendored anti-slop Oxlint plugins.
     skills:
       - install-anti-slop

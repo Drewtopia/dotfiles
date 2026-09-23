@@ -1,13 +1,8 @@
 #requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
-# Tests for the windows-relocation template partial. The partial is pure
-# PowerShell (no chezmoi template syntax) so it dot-sources directly.
 # Run: pwsh -NoProfile -File ./tests/Invoke.ps1
-# (the runner imports Pester from the whitelisted PESTER_MODULE_ROOT on
-# relocated machines; see tests/Invoke.ps1)
 
-# The partial is extensionless (chezmoi .chezmoitemplates convention), and
-# PowerShell's dot-source operator only loads .ps1 files - so load it as a
-# scriptblock to define its functions in this scope.
+# The partial is extensionless and dot-source loads only .ps1 files, so load it
+# as a scriptblock to define its functions in this scope.
 BeforeAll {
     $partial = Join-Path $PSScriptRoot '..' 'home' '.chezmoitemplates' 'windows-relocation'
     . ([scriptblock]::Create((Get-Content -Raw -LiteralPath $partial)))

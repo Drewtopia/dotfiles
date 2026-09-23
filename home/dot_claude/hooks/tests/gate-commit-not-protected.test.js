@@ -1,5 +1,4 @@
 'use strict';
-/** Safety net for gate-commit-not-protected.js — branch injected via deps. */
 
 const { test } = require('node:test');
 const assert = require('node:assert');

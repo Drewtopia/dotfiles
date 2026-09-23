@@ -1,7 +1,5 @@
 {{- if eq .osid "linux-ubuntu" }}
 
-{{- /* CLI + shell tools, neovim included, moved to mise. Only cue stays as an external. */ -}}
-
 [".local/bin/cue"]
     type = "archive-file"
     url = {{ gitHubLatestReleaseAssetURL "cue-lang/cue" (printf "cue_v*_%s_%s.tar.gz" .chezmoi.os .chezmoi.arch) | quote }}
@@ -11,10 +9,8 @@
 {{- end }}
 
 {{- if not .ephemeral }}
-{{- /* Per-OS font drop directory. Windows user-scope fonts go under
-       %LOCALAPPDATA%\Microsoft\Windows\Fonts\ — files there still need
-       HKCU registration to be visible to apps; that's handled by
-       run_onchange_after_*-register-windows-fonts.ps1.tmpl. */ -}}
+{{- /* Windows fonts here still need HKCU registration: see
+       run_onchange_after_40-register-windows-fonts.ps1.tmpl. */ -}}
 {{-   $fontDir := "" }}
 {{-   if eq .chezmoi.os "darwin" }}
 {{-     $fontDir = "Library/Fonts" }}
@@ -24,8 +20,7 @@
 {{-     $fontDir = "AppData/Local/Microsoft/Windows/Fonts" }}
 {{-   end }}
 
-{{- /* MesloLGS — Linux + macOS. Windows uses scoop nerd-fonts bucket
-       (Meslo-NF) which auto-registers. */ -}}
+{{- /* Windows gets Meslo from scoop (Meslo-NF). */ -}}
 {{-   if and (ne $fontDir "") (ne .chezmoi.os "windows") }}
 {{-   range (list
         "MesloLGS NF Regular.ttf"
@@ -39,9 +34,7 @@
 {{-   end }}
 {{-   end }}
 
-{{- /* CaskaydiaCove (patched Cascadia Code) — Linux only. macOS uses
-       font-caskaydia-cove-nerd-font cask; Windows uses CascadiaCode-NF
-       via scoop nerd-fonts bucket. */ -}}
+{{- /* macOS gets CaskaydiaCove from a cask, Windows from scoop. */ -}}
 {{-   if eq .chezmoi.os "linux" }}
 
 [".local/share/fonts/CaskaydiaCove"]
@@ -52,10 +45,7 @@
     include = ["*.ttf", "*.otf"]
 {{-   end }}
 
-{{- /* Maple Mono — Linux + Windows. macOS uses font-maple-mono* casks.
-       Asset names verified via gh api: NL variant is "MapleMonoNL"
-       (no hyphen between Mono and NL). On Windows, the registration
-       script picks these up after extraction. */ -}}
+{{- /* macOS gets Maple Mono from font-maple-mono* casks. */ -}}
 {{-   if and (ne $fontDir "") (ne .chezmoi.os "darwin") }}
 
 ["{{ $fontDir }}/MapleMono"]
@@ -94,8 +84,6 @@
         "*/themes",
     ]
 
-# Essential Zsh plugins via .chezmoiexternal (simpler than Zinit for basic plugins)
-
 [".oh-my-zsh/custom/plugins/zsh-active-cheatsheet"]
     type = "archive"
     url = "https://github.com/norsemangrey/zsh-active-cheatsheet/archive/master.tar.gz"
@@ -128,29 +116,14 @@
     url = "https://github.com/tmux-plugins/tmux-sensible.git"
     refreshPeriod = "168h"
 
-# Zsh Plugin Manager
 [".local/share/zinit/zinit.git"]
     type = "git-repo"
     url = "https://github.com/zdharma-continuum/zinit.git"
     refreshPeriod = "168h"
 
-# Claude Code hooks and the commit-messages/security-audit skills formerly
-# pulled from claude-code-mastery are gone: the hooks are maintained in-repo
-# under dot_claude/hooks/ (node suite wired via settings.json) and the skills
-# are reconciled via the npx skills CLI below.
-
-# mattpocock/skills now reconciled via .chezmoidata/skills.yaml +
-# run_onchange_after_60-install-skills.sh.tmpl (npx skills CLI). The
-# old static list here went stale every time Pocock refactored upstream.
-
 {{- if or .personal (and .work (ne .chezmoi.os "windows")) }}
-# Memory + agent vault (private repo). Cloned wherever Claude Code runs:
-# personal machines, and work non-Windows. Not on work Windows, where Claude
-# Code isn't used. Inside .claude/, memory and rules are symlinks pointing
-# here (rendered by dot_claude/symlink_{memory,rules}.tmpl).
-#
-# refreshPeriod = weekly ff-only pull. Local commits that diverged from origin
-# surface as fetch failures instead of force-merging.
+# Cloned wherever Claude Code runs; ~/.claude/{memory,rules} symlink here.
+# --ff-only: diverged local commits surface as fetch failures, never a merge.
 [".claude-vault"]
     type = "git-repo"
     url = "git@github.com:Drewtopia/claude-vault.git"
@@ -161,7 +134,6 @@
         args = ["--ff-only"]
 {{- end }}
 
-# Tool themes (Catppuccin Mocha)
 [".config/eza/theme.yml"]
     type = "file"
     url = "https://raw.githubusercontent.com/eza-community/eza-themes/main/themes/catppuccin-mocha.yml"

@@ -1,18 +1,13 @@
-# Early exit for non-interactive shells
 [[ -o interactive ]] || return
 
-# Enable profiling (controlled by ZPROF environment variable)
 [[ -n "$ZPROF" ]] && zmodload zsh/zprof
 
 export ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block, everything else may go below.
+# p10k instant prompt: anything that may prompt for console input must go above.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# Path to your oh-my-zsh installation.
 export ZSH=$HOME/.oh-my-zsh
 
 ZSH_THEME="powerlevel10k/powerlevel10k"
@@ -27,36 +22,24 @@ ZSH_DISABLE_COMPFIX=true
 # oh-my-zsh plugins come from the zinit snippets below, not ~/.oh-my-zsh/plugins.
 plugins=()
 
-# Initialize Zinit for performance-critical plugins
 ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
 source "$ZINIT_HOME/zinit.zsh"
 
-# Note: zsh-active-cheatsheet via .chezmoiexternal
-# Note: zsh-autosuggestions removed (redundant with atuin + fzf-tab)
-# Note: zsh-completions removed (carapace replaces it)
-
-# Tmux plugin config (must be set before plugin loads)
+# Must be set before the plugin loads.
 export ZSH_TMUX_FIXTERM=false
 
-# Load Oh My Zsh plugins via Zinit snippets
 {{- range .zshPlugins }}
 zinit snippet OMZP::{{ . }}
 {{- end }}
 
-# Load Oh My Zsh framework (minimal - no plugins)
-# This loads compinit which is required before carapace
+# Runs compinit, which carapace (in shell/020-shell-tools.sh) needs first.
 source $ZSH/oh-my-zsh.sh
 
-# carapace completions initialized in shell/020-shell-tools.sh (after mise activates)
-
-# Replay Zinit completions after Oh My Zsh loads
 zinit cdreplay -q
 
 # fzf-tab must load after compinit (run by oh-my-zsh.sh above) and before
 # anything that wraps widgets.
 zinit light Aloxaf/fzf-tab
-
-# User configuration
 
 PROMPT="%{$fg[white]%}%n@%{$fg[green]%}%m%{$reset_color%} ${PROMPT}"
 
@@ -64,34 +47,23 @@ setopt autocd
 setopt histignorespace
 setopt rm_star_silent
 
-# Common aliases - configured in shell/050-common-aliases.sh
 alias zshconfig='"$EDITOR" ~/.zshrc'
 alias zshrc="source ~/.zshrc"
 
-# Core env vars are exported from .zshenv so non-interactive shells inherit them.
-
-# Source remaining shell configurations
-# Load all shell configurations via shell-loader
 source "${XDG_CONFIG_HOME}/shell-loader.sh"
 
-# worktrunk (wt) shell integration. `command wt` calls the binary, not the wt
-# shell function the integration defines (so `wt switch` can cd the parent shell).
+# `command wt`: bypass the wt shell function the integration defines.
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 
-# Local overrides (machine-specific shell config, not tracked by chezmoi)
 [[ -f "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
 [[ -f "${HOME}/.dotfiles.local" ]] && source "${HOME}/.dotfiles.local"
 
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # zsh-syntax-highlighting's install docs require it last: on zsh < 5.9 it wraps
 # only the widgets defined before it.
 zinit light zsh-users/zsh-syntax-highlighting
 
-# PATH deduplication is handled automatically by typeset -aU path at the top
-
-# Display profiling results
 [[ -n "$ZPROF" ]] && zprof || true
 
 {{- /* vim: set filetype=zsh: */}}

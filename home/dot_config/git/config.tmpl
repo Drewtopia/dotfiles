@@ -1,10 +1,6 @@
-# Personal identity is the GLOBAL default on EVERY machine — including the work
-# box, whose .name/.email resolve to the Employee 1Password vault (the work
-# identity) and would otherwise be stamped onto commits pushed to public personal
-# repos (this repo is public). Sourced from static chezmoi data (.identity, in
-# .chezmoidata/constants.toml), not the vault, so it holds even where the personal
-# vault is unreachable. Work identity is applied ONLY to Azure DevOps repos, via
-# the azure-signing.inc include (see the includeIf rules below).
+# Personal identity is the global default on every machine, work box included, so
+# the work identity never lands on public repos. Static data, not the vault; work
+# identity applies only to Azure DevOps repos via azure-signing.inc.
 [user]
 	name = {{ .identity.name }}
 	email = {{ .identity.email }}
@@ -65,9 +61,6 @@
 	editor = nvim
 {{- end }}
 	whitespace = trailing-space,space-before-tab
-	# Line-ending policy for repos without their own .gitattributes:
-	# Windows → true  (LF in repo, CRLF in working tree)
-	# macOS/Linux → input  (LF everywhere, but accept repos with CRLF)
 	autocrlf = {{ if eq .chezmoi.os "windows" }}true{{ else }}input{{ end }}
 {{- if lookPath "delta" }}
 	pager = delta
@@ -105,8 +98,6 @@
 	prompt = false
 {{- if .dev_computer }}
 [mergetool "nvimdiff"]
-	# 4-pane: LOCAL | BASE | REMOTE on top, MERGED below.
-	# Matches the chezmoi merge config's `nvim -d` style.
 	layout = "LOCAL,BASE,REMOTE / MERGED"
 {{- end }}
 [pager]
@@ -136,14 +127,11 @@
 [trim]
 	bases = main,gh-pages
 
-{{- /* Azure DevOps applies on: macOS (work-on-personal), native Windows, and
-       work WSL. NOT personal WSL (azure is work-only there). */ -}}
+{{- /* Not personal WSL: azure is work-only there. */ -}}
 {{- $azure := or (eq .chezmoi.os "darwin") (and (eq .chezmoi.os "windows") (not .is_wsl)) (and .work .is_wsl) }}
 {{ if $azure -}}
-# Azure DevOps (all platforms that use it): GCM via Microsoft OAuth. useHttpPath
-# scopes tokens per-org. The helper itself is set per-platform below — on macOS
-# the general helper is osxkeychain, so `manager` is scoped to azure here; on
-# Windows/WSL a global GCM helper is set that azure inherits.
+# useHttpPath scopes tokens per-org. On macOS the general helper is osxkeychain,
+# so `manager` is scoped to azure here; Windows/WSL inherit a global GCM helper.
 [credential "https://dev.azure.com"]
 	useHttpPath = true
 	azreposCredentialType = oauth
@@ -165,8 +153,7 @@
 [gpg]
 	format = ssh
 [gpg "ssh"]
-	# joinPath returns backslashes on Windows, which git parses as escape
-	# sequences in a config value and rejects — every git command then fails.
+	# Windows backslashes parse as escapes in a config value and break every git command.
 	allowedSignersFile = "{{ joinPath .chezmoi.homeDir ".config" "git" "allowed_signers" | replace .chezmoi.pathSeparator "/" }}"
 [user]
 	signingkey = ~/.ssh/id_ed25519.pub
@@ -175,25 +162,15 @@
 {{- end }}
 
 {{- if and .work .is_wsl }}
-# NOTE: git SSH transport uses native Linux ssh with the keys chezmoi writes to
-# ~/.ssh. Routing it through Windows ssh.exe failed every push and pull whenever
-# WSL interop dropped (UtilAcceptVsock accept4 failed 110).
-# Windows Git Credential Manager via interop (full path). Azure-specific settings
-# live in the shared dev.azure.com block above.
+# NOTE: SSH transport stays on native Linux ssh; Windows ssh.exe fails every push
+# whenever WSL interop drops.
 [credential]
 	helper = /mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe
-# Azure-scoped headless fallback. When GCM returns no cached token and cannot
-# show its Windows sign-in dialog (e.g. headless ssh-from-mac with an expired
-# token), git falls through to this az-CLI mint helper, which mints a fresh AAD
-# token non-interactively from the cached `az` session. Listed AFTER the GCM
-# helper above so GCM stays primary — git uses the first helper that returns
-# credentials. NO `helper =` reset here: a reset would wipe GCM from the Azure
-# chain (the bug that forced az-only auth before its 2026-06-15 retirement).
-# Script is managed at ~/.git-azdo-helper.sh (work-WSL only; see .chezmoiignore).
+# Headless fallback when GCM cannot show its sign-in dialog: mints an AAD token
+# from the cached `az` session. After GCM so GCM stays primary; no `helper =`
+# reset, which would wipe GCM from the Azure chain.
 [credential "https://dev.azure.com"]
 	helper = {{ .chezmoi.homeDir }}/.git-azdo-helper.sh
-# Sign commits ONLY in Azure DevOps repos (1Password SSH key via Windows signer).
-# Other repos stay unsigned. Matched on the repo's remote URL (git 2.36+).
 [includeIf "hasconfig:remote.*.url:https://dev.azure.com/**"]
 	path = ~/.config/git/azure-signing.inc
 [includeIf "hasconfig:remote.*.url:git@ssh.dev.azure.com:**"]
@@ -201,19 +178,13 @@
 {{- end }}
 
 {{- if and (eq .chezmoi.os "windows") (not .is_wsl) }}
-# Native Windows Git Credential Manager. Git-for-Windows sets
-# `credential.helper = manager` in system config, so the empty `helper =` reset
-# prevents chaining system + user entries (double GCM call per request).
-# `manager` is the GfW alias for GCM — avoids hardcoding the full GCM path and
-# survives GCM moving (scoop / GfW update). Covers non-github https remotes;
-# github.com is handled by the gh-CLI block below. Azure-specific settings live
-# in the shared dev.azure.com block above.
+# Git-for-Windows sets `helper = manager` in system config; the empty reset stops
+# a double GCM call per request.
 [credential]
 	helper =
 	helper = manager
 {{- end }}
 
-{{- /* Find gh: try lookPath first, fall back to mise shim */ -}}
 {{- $ghPath := lookPath "gh" }}
 {{- if not $ghPath }}
 {{-   $shimPath := joinPath .directories.mise_dir "shims" "gh" }}
@@ -236,49 +207,34 @@
 
 {{- if lookPath "delta" }}
 [delta]
-	# Use n and N to move between diff sections
 	navigate = true
-	# Enable syntax highlighting
 	syntax-theme = Monokai Extended
-	# Show line numbers
 	line-numbers = true
-	# Side-by-side view for large screens
 	side-by-side = true
-	# Disable line-wrap: works around delta panic in paint.rs:957
-	# ("superimposing style sections") triggered by syntax-highlighted
-	# wrapped lines in side-by-side mode. Upstream dandavison/delta #1839, #1726.
+	# Wrapped side-by-side lines panic delta (dandavison/delta#1839, #1726).
 	wrap-max-lines = 0
-	# File modification indicators
 	file-style = bold yellow ul
 	file-decoration-style = none
-	# Hunk headers
 	hunk-header-decoration-style = blue box
 	hunk-header-file-style = red
 	hunk-header-line-number-style = "#067a00"
 	hunk-header-style = file line-number syntax
-	# Line number styling
 	line-numbers-left-style = cyan
 	line-numbers-right-style = cyan
 	line-numbers-minus-style = 124
 	line-numbers-plus-style = 28
-	# Plus/minus line styling
 	minus-style = syntax "#450a15"
 	minus-emph-style = syntax "#600818"
 	plus-style = syntax "#0e2f0e"
 	plus-emph-style = syntax "#174517"
-	# Whitespace handling
 	whitespace-error-style = 22 reverse
-	# Zero width for cleaner output
 	line-numbers-zero-style = "#444444"
 
 [interactive]
 	diffFilter = delta --color-only
 {{- end }}
 
-# Local overrides: machine- or work-specific entries (extra safe.directory
-# paths, work-only credential helpers) live in ~/.config/git/config.local
-# so they stay out of the public chezmoi repo. Git silently ignores the
-# include if the file is absent.
+# Machine- or work-specific entries stay out of this public repo.
 [include]
 	path = ~/.config/git/config.local
 

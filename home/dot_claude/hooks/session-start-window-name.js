@@ -1,16 +1,7 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * SessionStart: name the tmux window <branch>·<id4> in a git worktree (matching
- * the worktrunk session name), or cc:<dir>·<id4> outside git. The <id4> suffix —
- * first 4 alphanumerics of session_id — keeps concurrent Claude sessions on the
- * same branch/dir distinct. No-op outside tmux; the rename never blocks.
- *
- * Replaces the former inline `tmux rename-window cc:$(basename $PWD)` command,
- * which could not read session_id (it lives in the hook's stdin payload).
- *
- * Toggle: HOOKS_DISABLED=session:start:window-name
- */
+// SessionStart: name the tmux window <branch>·<id4>, or cc:<dir>·<id4> without a branch.
+// <id4> (from session_id) keeps concurrent sessions on one branch distinct.
 
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
@@ -19,8 +10,6 @@ const { isHookEnabled } = require('./lib/hook-flags');
 
 const HOOK_ID = 'session:start:window-name';
 
-/** Pure: tmux window name for a cwd, session id, and optional git branch. In a
- *  worktree the branch names the window; outside git it falls back to cc:<dir>. */
 function windowName(dir, sessionId, branch) {
     const id = String(sessionId || '')
         .replace(/[^a-zA-Z0-9]/g, '')
@@ -31,7 +20,6 @@ function windowName(dir, sessionId, branch) {
     return `cc:${base}${suffix}`;
 }
 
-/** Current branch of `dir`, or '' when not in a git worktree or HEAD is detached. */
 function gitBranch(dir) {
     try {
         return execFileSync('git', ['-C', dir || '.', 'symbolic-ref', '--quiet', '--short', 'HEAD'], {
@@ -46,7 +34,7 @@ function renameWindow(name) {
     try {
         execFileSync('tmux', ['rename-window', name], { stdio: 'ignore' });
     } catch {
-        /* not in tmux / tmux missing -> no-op */
+        /* not in tmux, or tmux missing */
     }
 }
 

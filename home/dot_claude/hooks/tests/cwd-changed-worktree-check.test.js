@@ -1,5 +1,4 @@
 'use strict';
-/** Safety net for cwd-changed-worktree-check.js — pure warningFor(). */
 
 const { test } = require('node:test');
 const assert = require('node:assert');

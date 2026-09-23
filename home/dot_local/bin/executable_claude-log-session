@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
-"""claude-log-session <id> — append a raw one-line trace of a session to
-~/.claude/memory/SESSION_TAILS.md, so a session that ends without /close still
-leaves a record. Deterministic (no LLM), idempotent per session id. Meant to be
-called from a SessionEnd hook. Curated closeouts still go to SESSION_LOG.md via
-/close; this is the safety net for the ones you never close.
-
-  claude-log-session <session-id>
-
-Set CLAUDE_SESSION_TAILS to write somewhere else (used by tests).
+"""claude-log-session <session-id> — append a one-line trace of a session to
+~/.claude/memory/SESSION_TAILS.md (or $CLAUDE_SESSION_TAILS), idempotent per id,
+so a session that ends without /close still leaves a record.
 """
 import datetime
 import os

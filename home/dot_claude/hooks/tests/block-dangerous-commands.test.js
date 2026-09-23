@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Safety net for the bash->JS port. Run: node --test hooks/tests/
- * Every DANGEROUS command MUST block (exit 2); every SAFE command MUST pass (0).
- */
 
 const { test } = require('node:test');
 const assert = require('node:assert');

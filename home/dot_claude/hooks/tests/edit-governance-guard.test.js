@@ -1,5 +1,4 @@
 'use strict';
-/** Tests for edit-governance-guard.cjs. Run: node --test */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
