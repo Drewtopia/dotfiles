@@ -123,7 +123,7 @@ The normal closeout case is a WIP/unmerged branch — skip this. Only when the b
 
 ### Plan sweep
 
-Implementation plans and completed design docs do not survive task closure (documentation-policy lifecycle). List `.claude/tasks/*.md` and any design docs belonging to work closed this session. For each: fold durable outcomes into CHANGELOG/ADR/execution summary first, then propose deletion and confirm per file. Plans for still-open work stay untouched.
+Implementation plans and completed design docs do not survive task closure (Docs section of the `style` rule). List `.claude/tasks/*.md` and any design docs belonging to work closed this session. For each: fold durable outcomes into CHANGELOG/ADR/execution summary first, then propose deletion and confirm per file. Plans for still-open work stay untouched.
 
 ### Leftovers inventory
 

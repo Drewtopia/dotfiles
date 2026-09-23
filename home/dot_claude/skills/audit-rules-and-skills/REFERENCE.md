@@ -83,7 +83,7 @@ Two consequences that invert naive line-count auditing:
 ## Examples to model
 
 - `~/.claude/skills/audit-skill-repos/SKILL.md` — frontmatter is `name` + `description` only, description opens with "Use when…", no preamble. Terse-skill model.
-- `~/.claude/rules/comment-discipline.md` — three short paragraphs, one concern each. Behavior-shaping rule model.
+- `~/.claude/rules/style.md` — short paragraphs, one concern each. Behavior-shaping rule model.
 
 Exemplars rot. Confirm each is on disk and, for plugin-provided ones, that the plugin is still enabled in `home/.chezmoidata/claude.toml`.
 
