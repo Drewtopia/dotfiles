@@ -18,11 +18,10 @@ PreToolUse hook on `Edit|Write|MultiEdit`, wired in `~/.claude/settings.json`. D
 
 **Unlock / lock:** `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` / `--lock`
 
-- `--unlock` writes its own timestamped marker (`~/.claude/governance-unlock/active-<epoch>`, 2-hour TTL) so concurrent flows don't clobber each other, prunes only expired markers, and best-effort stamps `governanceUnlockUntil` into every live session entry of the convergence session registry (`<git-common-dir>/sessions/*.json` — owned by `session-registry.cjs`; parsed tolerantly, additive field only; registry v2 preserves the field across heartbeats).
+- `--unlock` writes its own timestamped marker (`~/.claude/governance-unlock/active-<epoch>`, 2-hour TTL) so concurrent flows don't clobber each other, and prunes only expired markers.
 - `--lock` removes every marker on the machine — only use when no other governance flow is live; an un-locked window expires on its own at 2h.
-- The registry check consults both the edited file's repo and the cwd repo, so governed files outside any repo (`~/.claude/hooks/*`) can be vouched for by the session's cwd-repo record.
 
-**Known limit:** Bash sessions expose no session id, so the marker unlock is machine-global for its 2-hour window, not per-session. The registry stamp exists so registry-aware tooling can tighten this later.
+**Known limit:** the marker unlock is machine-global for its 2-hour window, not per-session.
 
 ## Files
 
