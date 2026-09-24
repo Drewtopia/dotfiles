@@ -31,7 +31,9 @@ function run(input) {
     }
 
     if (/git\s+branch(\s+.*)?\s-D(\s|$)/.test(cmd)) {
-        return block(`git branch -D (force delete) in '${cmd}'.`);
+        return block(
+            `git branch -D (force delete) in '${cmd}'. Use 'wt remove <branch>': it deletes a branch whose changes are merged, even under new SHAs, and runs the worktree hooks.`,
+        );
     }
     if (/git\s+branch.*(--delete\s+--force|--force\s+--delete)/.test(cmd)) {
         return block(`force branch delete in '${cmd}'.`);
