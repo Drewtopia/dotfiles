@@ -1,7 +1,6 @@
 # NOT a chezmoi .tmpl: worktrunk's own {{ }} syntax collides with chezmoi's.
 # Per-project hooks belong in each repo's .config/wt.toml, not here.
-# .claude/ is globally gitignored, so nested worktrees never show as untracked.
-worktree-path = "{{ repo_path }}/.claude/worktrees/{{ branch | sanitize }}"
+worktree-path = "~/dev/worktrees/{{ remote_repo }}/{{ branch | sanitize }}"
 
 [list]
 # `summary` renders no column unless `full` is on: both gate on this flag.
