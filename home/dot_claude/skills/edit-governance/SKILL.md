@@ -16,7 +16,7 @@ Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governa
    - Vault (`~/.claude-vault/rules|memory`, symlinked from `~/.claude/rules` and `~/.claude/memory`): edit vault paths.
    - Repo-local (`.claude/rules`, `.claude/skills`, `docs/adr/`, CI files): edit in the repo working tree.
 3. Both the vault and the chezmoi repo protect `main` — create a work branch in its own worktree first (`wt -C <repo> switch --create <type>/<slug> --no-cd`), edit and commit there, then `git -C <repo> merge --ff-only <type>/<slug>`, push, and `wt -C <repo> remove <type>/<slug>`. Never bypass those hooks.
-4. Grant the unlock: `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` (2h; writes its own timestamped marker). When the batch is fully done, end the window with `--lock` — but `--lock` removes EVERY marker on the machine, so skip it if another session's governance flow is live (check for a fresh sibling marker in `~/.claude/governance-unlock/`). An un-locked window simply expires at 2h. The unlock is machine-global either way — do not leave governance edits half-done for another session to trip over.
+4. The unlock is already granted: the user typing `/edit-governance` unlocked this session only, for 2h. No agent can grant it; a session without it stops and asks the user to run `/edit-governance`. Every other session stays blocked on Edit/Write and on common shell writes (`>`, `tee`, `cp`, `mv`, `rm`, `sed -i`). Interpreter writes (`python -c`, `node -e`) are not caught, so never use them on a governance surface.
 
 ## Phase 2 — Edit
 

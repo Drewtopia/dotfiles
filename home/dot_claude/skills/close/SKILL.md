@@ -150,5 +150,4 @@ Drop any segment whose step didn't run rather than printing `0`. Then the `/rena
 
 - Every new memory file has a one-line pointer in `memory.md`.
 - Counter line reflects actual counts, not aspirational ones.
-- If this session unlocked governance: `~/.claude/governance-unlock/` is empty or stale.
 - If the session touched vault or chezmoi source: both repos clean and pushed.

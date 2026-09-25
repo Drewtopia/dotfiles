@@ -2,7 +2,15 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { decide, denyOnError } = require('../edit-governance-guard.cjs');
+const fs = require('node:fs');
+const {
+    decide,
+    denyOnError,
+    grantOnExpansion,
+    isGoverned,
+    markerPath,
+    unlocked,
+} = require('../edit-governance-guard.cjs');
 
 const edit = file_path => ({ tool_input: { file_path } });
 
@@ -38,6 +46,40 @@ test('allows a governance path with a fresh unlock', () => {
         decide(edit('/repo/.claude/skills/x/SKILL.md'), () => true),
         null,
     );
+});
+
+test('passes the calling session to the unlock check', () => {
+    const seen = [];
+    decide(
+        { session_id: 'abc', tool_input: { file_path: '/repo/AGENTS.md' } },
+        sid => (seen.push(sid), false),
+    );
+    assert.deepEqual(seen, ['abc']);
+});
+
+test('governs the settings merge template and the unlock markers', () => {
+    assert.ok(isGoverned('/c/home/.chezmoitemplates/claude-settings-merge'));
+    assert.ok(isGoverned('/home/u/.claude/governance-unlock/session-abc'));
+    assert.ok(!isGoverned('/repo/src/claude.ts'));
+});
+
+test('rejects a session id that could escape the marker dir', () => {
+    assert.equal(markerPath('../x'), null);
+    assert.equal(markerPath(undefined), null);
+    assert.equal(grantOnExpansion({ session_id: '../x', command_name: 'edit-governance' }), false);
+});
+
+test('only an unlocking command grants, and only its own session', () => {
+    const sid = `test-${process.pid}-${Date.now()}`;
+    try {
+        assert.equal(grantOnExpansion({ session_id: sid, command_name: 'close' }), false);
+        assert.equal(unlocked(sid), false);
+        assert.equal(grantOnExpansion({ session_id: sid, command_name: 'edit-governance' }), true);
+        assert.equal(unlocked(sid), true);
+        assert.equal(unlocked(`${sid}-other`), false);
+    } finally {
+        fs.rmSync(markerPath(sid), { force: true });
+    }
 });
 
 test('a crash denies instead of allowing', () => {
