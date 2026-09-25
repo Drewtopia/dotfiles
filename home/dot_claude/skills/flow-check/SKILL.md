@@ -11,7 +11,7 @@ The conversation is the input. The tracker, git and the PR host are checked only
 Stages and the skill for each: `~/.claude/plugins/marketplaces/mattpocock/skills/engineering/ask-matt/SKILL.md`.
 
 1. List every **item** in this conversation: each decision made, question left open, piece of work done or promised, and term coined. Done when every user request and every agent proposal maps to an item.
-2. For each item, find where it is **captured**: tracker issue, PR, commit on a pushed branch, ADR, or `CONTEXT.md` entry. Write `uncaptured` only after the lookup ran; find PRs by source branch. Tracker commands: the project's `docs/agents/issue-tracker.md`.
+2. For each item, find where it is **captured**: tracker issue, PR, pushed commit, ADR, or `CONTEXT.md` entry, in whichever repo or tracker the item belongs to, not only this project's. Write `uncaptured` only after the lookup ran; find PRs by source branch. Tracker commands: the project's `docs/agents/issue-tracker.md`.
 3. Group uncaptured items by **thread**. Answer with one table per thread: item, stage. Work that exists only on this machine goes first. Then one line of captured items with where each lives, then ask: "Push local-only work?"
 4. On yes, push each local-only branch. Nothing else runs.
 5. For each uncaptured thread, name what it needs and the command to type, by ask-matt's main flow:
