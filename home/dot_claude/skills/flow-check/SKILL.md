@@ -1,23 +1,22 @@
 ---
 name: flow-check
-description: Places each thread of work in this conversation on the idea-to-ship flow and names the one skill to run next. Use when resuming a long or older session.
+description: Finds what this session decided, left open, or built that has no durable home yet, and where each belongs on the idea-to-ship flow. Use before ending or clearing a long session, or when resuming one.
 disable-model-invocation: true
 ---
 
 # Flow check
 
-The stages come from the main flow in `~/.claude/plugins/marketplaces/mattpocock/skills/engineering/ask-matt/SKILL.md`. Read it first; it is the source of truth for stage order and which skill serves each stage.
+The conversation is the input. The tracker, git and the PR host are checked only for items the conversation raised.
 
-1. Name every **thread** of work in this conversation. Done when each user request maps to a thread.
-2. For each thread, fill one row with **evidence** per stage, read live from the tracker, git and the PR host:
-   - grill: decisions settled, questions still open
-   - domain: terms used here but missing from `CONTEXT.md`; decisions with no ADR
-   - spec: PRD issue number and state
-   - tickets: sub-issues open and closed, blocking edges
-   - implement: branch and PR per ticket, merged or not, reviewed or not
+Stages and the skill for each: `~/.claude/plugins/marketplaces/mattpocock/skills/engineering/ask-matt/SKILL.md`.
 
-   Done when every cell holds an ID, a link, or `none`.
-3. Name the **frontier**: tickets whose blockers are closed, plus any gap that stops a stage (an open question, a ticket with commits but no PR, a missing blocking edge).
-4. Answer with the table, then one line: `Next: /<skill> <target>`.
-
-Tracker and PR-host commands come from the project's `docs/agents/issue-tracker.md`.
+1. List every **item** in this conversation: each decision made, question left open, piece of work done or promised, and term coined. Done when every user request and every agent proposal maps to an item.
+2. For each item, find where it is **captured**: tracker issue, PR, commit, ADR, or `CONTEXT.md` entry. Write `uncaptured` only after the lookup ran. Tracker commands: the project's `docs/agents/issue-tracker.md`.
+3. For each uncaptured item, name its home and the skill that puts it there:
+   - open question: `/grilling` now, or an issue
+   - settled decision with lasting reach: ADR via `/domain-modeling`
+   - new term: `CONTEXT.md` via `/domain-modeling`
+   - work bigger than one session: `/to-spec`, then `/to-tickets`
+   - one piece of work: an issue, or `/implement` now
+   - nothing lasting: `drop`
+4. Answer with one table: item, stage, captured in (or `uncaptured`), proposed home. Uncaptured rows first. Then one line: `Next: /<skill> <target>`.
