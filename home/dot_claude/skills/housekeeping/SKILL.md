@@ -34,6 +34,7 @@ az repos pr list --creator <you> --status active      # Azure Repos, current pro
 |---|---|
 | Back in a worktree after a day or more away | **`/catch-up`** — its last `Next:` line, what moved since, whether it still holds |
 | The agents view is crowded and you can't tell what's open | **`/reach-out`** — the sessions nobody closed report a color and a `Next:` line |
+| About to clear or compact a long session | **`/flow-check`** — captures what the session decided, left open or built onto the tracker, then routes each thread through ask-matt |
 | Ending a session, finished or not | **`/close`** — quick by default; `/close full` after a merge or when work leaked outside the repo |
 | One branch merged | `wtr <branch>` removes its worktree and tmux session |
 | Finished cards and merged worktrees piling up | **`/clean-workspace`** — prunes merged worktrees, clears done cards on confirmation |
