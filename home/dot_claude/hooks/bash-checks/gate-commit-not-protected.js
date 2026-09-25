@@ -62,7 +62,7 @@ function run(input, deps = {}) {
             '',
             'Cut a feature branch first, then commit there:',
             '  git switch -c <type>/<slug>        # carries the staged changes',
-            '  wt switch --create <type>/<slug>   # new work, repo has .config/wt.toml',
+            '  wt switch --create <type>/<slug>   # new work',
             '',
             `If committing on '${branch}' is truly intentional, run it yourself`,
             'with the ! prefix (runs in your session, bypassing this guard):',
