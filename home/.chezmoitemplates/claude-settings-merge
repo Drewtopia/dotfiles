@@ -115,6 +115,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\""
           }
         ]
+      },
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -e .tool_input.path >/dev/null || { echo 'EnterWorktree without path makes a raw git worktree and skips the wt hooks. Run wt switch --create <branch> --no-cd, then EnterWorktree with path.' >&2; exit 2; }"
+          }
+        ]
       }
     ],
     "UserPromptExpansion": [
