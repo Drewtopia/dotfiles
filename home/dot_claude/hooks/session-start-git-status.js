@@ -26,8 +26,13 @@ function buildWarnings(s, t = DEFAULTS) {
     }
     if (s.dirtyCount > 0)
         w.push(`Working tree has ${s.dirtyCount} uncommitted change(s).`);
-    if (s.behind > 0)
+    if (s.behind > 0 && s.upstream) {
+        w.push(
+            `Branch is ${s.behind} commit(s) behind ${s.upstream}: until you pull, read code state from ${s.upstream} (git show ${s.upstream}:<path>, git grep <pattern> ${s.upstream}), not the working tree.`,
+        );
+    } else if (s.behind > 0) {
         w.push(`Branch is ${s.behind} commit(s) behind upstream.`);
+    }
     if (s.staleWorktrees && s.staleWorktrees.length) {
         w.push(
             `Stale worktrees (>${t.worktreeAge}d): ${s.staleWorktrees.join(' ')}`,
@@ -76,7 +81,8 @@ function collectState(nowSec, t = DEFAULTS) {
         .filter(Boolean).length;
 
     let behind = 0;
-    if (git(['rev-parse', '--abbrev-ref', '@{u}'])) {
+    const upstream = git(['rev-parse', '--abbrev-ref', '@{u}']);
+    if (upstream) {
         behind = intOr(git(['rev-list', '--count', 'HEAD..@{u}']), 0);
     }
 
@@ -104,6 +110,7 @@ function collectState(nowSec, t = DEFAULTS) {
         commitsAhead,
         dirtyCount,
         behind,
+        upstream,
         staleWorktrees,
     };
 }

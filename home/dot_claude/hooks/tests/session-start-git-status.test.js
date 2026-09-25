@@ -58,6 +58,12 @@ test('dirty / behind / stale worktrees each add a line', () => {
     assert.match(w[2], /Stale worktrees \(>7d\): \/wt\/a \(9d\)/);
 });
 
+test('behind names the upstream to read code state from', () => {
+    const w = sg.buildWarnings({ ...base, behind: 11, upstream: 'origin/develop' });
+    assert.match(w[0], /11 commit\(s\) behind origin\/develop/);
+    assert.match(w[0], /git show origin\/develop:<path>/);
+});
+
 test('missing integration branch skips age/ahead but keeps dirty', () => {
     const w = sg.buildWarnings({
         ...base,
