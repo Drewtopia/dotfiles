@@ -22,6 +22,10 @@ const DANGEROUS = [
     'git push origin main',
     'git push origin develop',
     'git push origin HEAD:master',
+    'git worktree add ../x -b feat/x',
+    'git -C /repo worktree add .claude/worktrees/x origin/develop',
+    'git worktree remove --force .claude/worktrees/x',
+    'git worktree remove -f x',
 ];
 
 // Allowed regardless of current branch (explicit feature refspec, non-git, etc.)
@@ -34,6 +38,10 @@ const SAFE = [
     'git branch -d merged',
     'ls -la',
     'git reset HEAD file.ts',
+    'git switch -c feat/carry-changes',
+    'git worktree list',
+    'git worktree remove x',
+    'git checkout -b feat/x',
 ];
 
 for (const cmd of DANGEROUS) {

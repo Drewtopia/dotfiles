@@ -11,7 +11,7 @@ const block = reason => ({
 
 function run(input) {
     const cmd = getCommand(input);
-    if (!cmd) return { exitCode: 0 };
+    if (!cmd.includes('git')) return { exitCode: 0 };
 
     const isPush = /git\s+push/.test(cmd);
 
@@ -37,6 +37,15 @@ function run(input) {
     }
     if (/git\s+branch.*(--delete\s+--force|--force\s+--delete)/.test(cmd)) {
         return block(`force branch delete in '${cmd}'.`);
+    }
+
+    if (/\bgit\b[^;&|]*\sworktree\s+add(\s|$)/.test(cmd)) {
+        return block(
+            `raw worktree create in '${cmd}'. Use 'wt switch --create <branch>': it runs the worktree hooks (deps, gitignored env files, mise trust).`,
+        );
+    }
+    if (/\bgit\b[^;&|]*\sworktree\s+remove\b[^;&|]*\s(--force|-f)(\s|$)/.test(cmd)) {
+        return block(`forced worktree removal in '${cmd}'. Use 'wt remove <branch>'.`);
     }
 
     if (isPush) {
