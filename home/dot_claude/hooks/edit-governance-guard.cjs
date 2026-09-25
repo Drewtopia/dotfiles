@@ -18,7 +18,7 @@ const GOVERNED = [
     /\/SKILL\.md$/,
     /\/(dot_claude|\.claude)\/(rules|hooks|skills|commands)\//,
     /\/(dot_claude|\.claude)\/[^/]*settings[^/]*\.json(\.tmpl)?$/,
-    /\/\.claude-vault\/rules\//,
+    /\/\.?claude-vault\/(?:[^/]+\/)?rules\//,
     /\/(CLAUDE|AGENTS)(\.local)?\.md$/,
     /\/docs\/adr\//,
     /\/CONTEXT(-MAP)?\.md$/,
