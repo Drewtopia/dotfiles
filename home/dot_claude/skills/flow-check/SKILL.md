@@ -19,4 +19,4 @@ Stages and the skill for each: `~/.claude/plugins/marketplaces/mattpocock/skills
    - a term or a lasting decision: `/grill-with-docs` records it in `CONTEXT.md` or an ADR
    - one settled piece of work: `/implement`
 
-   Where the project maps a command to its own variant, give that name. Order the list by risk of loss, then the thread with the most open questions. Finish with the continue, clear or compact call from ask-matt's `PHASE-BOUNDARIES.md`: run the grill, spec and tickets steps in this session while the thinking is still in context.
+   Where the project maps a command to its own variant, give that name. Order the list by risk of loss, then the thread with the most open questions. Finish with the continue, clear or compact call from ask-matt's `PHASE-BOUNDARIES.md`.
