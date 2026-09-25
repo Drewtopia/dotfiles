@@ -15,6 +15,7 @@ Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governa
    - Chezmoi-managed (any skill with a source under `home/dot_claude/skills/`, hooks, CLAUDE.md — check with `chezmoi source-path <live-path>`): edit **chezmoi source** (`~/.local/share/chezmoi/home/dot_claude/...`), then `chezmoi apply <live-path>`.
    - Vault (`~/.claude-vault/rules|memory`, symlinked from `~/.claude/rules` and `~/.claude/memory`): edit vault paths.
    - Repo-local (`.claude/rules`, `.claude/skills`, `docs/adr/`, CI files): edit in the repo working tree.
+   - A **new** user-level skill starts in the vault (`~/.claude-vault/skills/<name>`, symlinked into `~/.claude/skills`). It moves to chezmoi, which is a public repo, only when the user asks, and only once it holds nothing machine- or employer-specific.
 3. Both the vault and the chezmoi repo protect `main` — create a work branch in its own worktree first (`wt -C <repo> switch --create <type>/<slug> --no-cd`), edit and commit there, then `git -C <repo> merge --ff-only <type>/<slug>`, push, and `wt -C <repo> remove <type>/<slug>`. Never bypass those hooks.
 4. The unlock is already granted: the user typing `/edit-governance` unlocked this session only, for 2h. No agent can grant it; a session without it stops and asks the user to run `/edit-governance`. Every other session stays blocked on Edit/Write and on common shell writes (`>`, `tee`, `cp`, `mv`, `rm`, `sed -i`). Interpreter writes (`python -c`, `node -e`) are not caught, so never use them on a governance surface.
 
