@@ -117,6 +117,17 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       }
     ],
+    "UserPromptExpansion": [
+      {
+        "matcher": "edit-governance|audit-rules-and-skills|reorganize-memory",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\" --expansion"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",

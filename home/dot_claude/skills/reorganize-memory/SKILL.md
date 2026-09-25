@@ -46,7 +46,7 @@ Always use plan mode — show the user what you intend to change before changing
 
 4. **Present the proposal** as a single ordered list with current → proposed per change. Use AskUserQuestion (multiSelect) so the user can approve a subset.
 
-5. **Apply approved changes**: rule writes are governance surfaces — `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` first (step 4's approval is the review gate) and use the vault branch → ff-merge flow. Memory writes need no unlock. Write/Edit for content; Bash for `mv`/`rm`; confirm any delete not already approved.
+5. **Apply approved changes**: rule writes are governance surfaces, unlocked for 2h when the user typed `/reorganize-memory` (step 4's approval is the review gate) and use the vault branch → ff-merge flow. Memory writes need no unlock. Write/Edit for content; Bash for `mv`/`rm`; confirm any delete not already approved.
 
 6. **Update indexes**: refresh the `memory.md` table (file + description); refresh `projects.md` if it changed; if `~/.claude/CLAUDE.md` enumerates topic files, update it (and the chezmoi source `home/dot_claude/CLAUDE.md.tmpl` if it differs) — show folders, don't enumerate files.
 

@@ -5,30 +5,17 @@
 
 const { getCommand } = require('../lib/hook-io');
 const { currentBranch } = require('../lib/git');
+const { WRAPPER, unquote, segments: splitSegments, cdBefore } = require('../lib/shell');
 
 const PROTECTED = /^(main|master|develop)$/;
-const SEGMENT = /(?:&&|\|\||;|\||\n)/;
 const GIT_COMMIT = /^git((?: -[cC] [^ ]+)*) commit(?: |$)/;
-const CD = /^cd\s+(?:--\s+)?(['"]?)([^'"]+)\1\s*$/;
-const WRAPPER = /^(?:eval|xargs(?:\s+-\S+)*|(?:ba|z)?sh\s+-c)\s+([\s\S]+)$/;
-
-const unquote = s => s.replace(/^(['"])([\s\S]*)\1$/, '$2');
-
-/** Nearest `cd` before `index`, whose path is where later segments run. */
-function cdBefore(segments, index) {
-    for (let j = index - 1; j >= 0; j--) {
-        const cd = segments[j].match(CD);
-        if (cd) return cd[2];
-    }
-    return '';
-}
 
 /**
  * Where a `git commit` invocation in `cmd` would run, or null when `cmd` holds
  * no such invocation. '' means the hook's own working directory.
  */
 function commitTarget(cmd) {
-    const segments = cmd.split(SEGMENT).map(s => s.trim());
+    const segments = splitSegments(cmd);
     for (let i = 0; i < segments.length; i++) {
         const flags = segments[i].match(GIT_COMMIT);
         if (flags) {

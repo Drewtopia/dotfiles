@@ -9,6 +9,7 @@ const { isHookEnabled } = require('./lib/hook-flags');
 const CHECKS = [
     'pre:bash:block-dangerous-commands',
     'pre:bash:block-dangerous-git',
+    'pre:bash:gate-governance-writes',
     'pre:bash:gate-push-convention',
     'pre:bash:gate-commit-not-protected',
 ].map(id => ({

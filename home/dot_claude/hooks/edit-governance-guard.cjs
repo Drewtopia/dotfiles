@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// PreToolUse(Edit|Write): deny governance surfaces unless an unlock marker is under 2h old.
-// `--unlock` adds a marker; `--lock` removes every marker, ending all sessions' unlocks.
+// UserPromptExpansion (--expansion): the user typing an UNLOCKING command unlocks governance surfaces
+// for that session only, for 2h. PreToolUse(Edit|Write): deny governance surfaces otherwise.
 'use strict';
 const fs = require('fs');
 const os = require('os');
@@ -8,6 +8,7 @@ const path = require('path');
 
 const UNLOCK_MS = 2 * 60 * 60 * 1000;
 const MARKER_DIR = path.join(os.homedir(), '.claude', 'governance-unlock');
+const UNLOCKING = new Set(['edit-governance', 'audit-rules-and-skills', 'reorganize-memory']);
 
 const GOVERNED = [
     /\/\.github\/workflows\//,
@@ -18,63 +19,47 @@ const GOVERNED = [
     /\/SKILL\.md$/,
     /\/(dot_claude|\.claude)\/(rules|hooks|skills|commands)\//,
     /\/(dot_claude|\.claude)\/[^/]*settings[^/]*\.json(\.tmpl)?$/,
+    /\/\.chezmoitemplates\/claude-settings-merge$/,
+    /\/\.claude\/governance-unlock(\/|$)/,
     /\/\.?claude-vault\/(?:[^/]+\/)?rules\//,
     /\/(CLAUDE|AGENTS)(\.local)?\.md$/,
     /\/docs\/adr\//,
     /\/CONTEXT(-MAP)?\.md$/,
 ];
 
-function markerFresh() {
-    try {
-        for (const f of fs.readdirSync(MARKER_DIR)) {
-            if (Date.now() - fs.statSync(path.join(MARKER_DIR, f)).mtimeMs < UNLOCK_MS) return true;
-        }
-    } catch {
-        /* no marker dir */
-    }
-    return false;
+const isGoverned = fp => GOVERNED.some(re => re.test(fp));
+
+function markerPath(sessionId) {
+    if (!/^[\w-]+$/.test(String(sessionId || ''))) return null;
+    return path.join(MARKER_DIR, `session-${sessionId}`);
 }
 
-function lock() {
-    let n = 0;
+function unlocked(sessionId) {
+    const p = markerPath(sessionId);
+    if (!p) return false;
     try {
-        for (const f of fs.readdirSync(MARKER_DIR)) {
-            fs.unlinkSync(path.join(MARKER_DIR, f));
-            n++;
-        }
+        return Date.now() - fs.statSync(p).mtimeMs < UNLOCK_MS;
     } catch {
-        /* no marker dir */
+        return false;
     }
-    console.log(
-        `governance lock: removed ${n} marker(s) — this ends EVERY session's unlock window on this machine`,
-    );
 }
 
-function unlock() {
+function grantOnExpansion(data) {
+    const p = markerPath(data.session_id);
+    if (!p || !UNLOCKING.has(data.command_name)) return false;
     fs.mkdirSync(MARKER_DIR, { recursive: true });
-    // One marker per unlock so concurrent flows keep their own; prune only stale ones.
-    try {
-        for (const old of fs.readdirSync(MARKER_DIR)) {
-            const p = path.join(MARKER_DIR, old);
-            if (Date.now() - fs.statSync(p).mtimeMs >= UNLOCK_MS) fs.unlinkSync(p);
-        }
-    } catch {
-        /* best effort */
-    }
-    const f = path.join(MARKER_DIR, `active-${Date.now()}`);
-    fs.writeFileSync(f, String(Date.now()));
-    console.log(`governance unlock granted for 2h (${f})`);
+    fs.writeFileSync(p, String(Date.now()));
+    return true;
 }
 
-function decide(data, unlocked = markerFresh) {
+function decide(data, isUnlocked = unlocked) {
     const fp = (data.tool_input && data.tool_input.file_path) || '';
-    if (!fp || !GOVERNED.some(re => re.test(fp))) return null;
-    if (unlocked()) return null;
+    if (!fp || !isGoverned(fp)) return null;
+    if (isUnlocked(data.session_id)) return null;
     return (
         `Governance surface: ${fp}\n` +
-        'Direct edits are forbidden. ' +
-        'Invoke /edit-governance — it scopes, edits, and reviews the change, ' +
-        'and grants a 2h unlock via `node ~/.claude/hooks/edit-governance-guard.cjs --unlock`.'
+        'Direct edits are forbidden. Stop and ask the user to run /edit-governance: ' +
+        'it scopes, edits, and reviews the change, and unlocks this session only.'
     );
 }
 
@@ -88,9 +73,16 @@ function denyOnError(fn) {
 }
 
 function main() {
-    if (process.argv.includes('--unlock')) return unlock();
-    if (process.argv.includes('--lock')) return lock();
-    const reason = denyOnError(() => decide(JSON.parse(fs.readFileSync(0, 'utf8'))));
+    const raw = fs.readFileSync(0, 'utf8');
+    if (process.argv.includes('--expansion')) {
+        try {
+            grantOnExpansion(JSON.parse(raw));
+        } catch {
+            /* never block the user's command */
+        }
+        return;
+    }
+    const reason = denyOnError(() => decide(JSON.parse(raw)));
     if (!reason) return;
     process.stdout.write(
         JSON.stringify({
@@ -105,4 +97,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { decide, denyOnError };
+module.exports = { decide, denyOnError, grantOnExpansion, isGoverned, markerPath, unlocked };
