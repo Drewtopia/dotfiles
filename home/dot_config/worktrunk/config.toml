@@ -73,7 +73,7 @@ exit 0
 [post-start]
 agent-guidance = """
 P={{ primary_worktree_path }}
-[ -d "$P/.claude/rules" ] || exit 0
+[ -d "$P/.claude/rules" ] || [ -d "$P/.claude/hooks" ] || exit 0
 mkdir -p .claude
 for e in rules hooks settings.json; do
   [ -L ".claude/$e" ] && rm ".claude/$e"
