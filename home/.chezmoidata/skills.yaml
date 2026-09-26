@@ -33,9 +33,6 @@ skill_repos:
   - repo: anivar/zod-skill
     skills:
       - zod
-  - repo: currents-dev/playwright-best-practices-skill
-    skills:
-      - playwright-best-practices
   - repo: microsoft/playwright-cli
     skills:
       - playwright-cli
