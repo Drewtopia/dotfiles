@@ -2,24 +2,61 @@
 
 const { getCommand } = require('../lib/hook-io');
 const { currentBranch } = require('../lib/git');
+const { WRAPPER, unquote, segments, cdBefore } = require('../lib/shell');
 
 const PROTECTED = 'main|master|develop';
+const PUSH = /(?:^|[\s'"(`])git((?:\s+-[cC]\s+\S+)*)\s+push(?:\s+([\s\S]*))?$/;
 const block = reason => ({
     exitCode: 2,
     stderr: `🛑 BLOCKED: ${reason} The user has prevented you from doing this.`,
 });
 
-function run(input) {
+/**
+ * Each `git push` in `cmd`, with its arguments and the directory it runs in, so
+ * a branch named elsewhere in the command is not read as the push target.
+ */
+function pushes(cmd, outerCwd = '') {
+    const segs = segments(cmd);
+    return segs.flatMap((seg, i) => {
+        const cwd = cdBefore(segs, i) || outerCwd;
+        const wrapped = seg.match(WRAPPER);
+        if (wrapped) return pushes(unquote(wrapped[1]), cwd);
+        const m = seg.match(PUSH);
+        if (!m) return [];
+        const dashC = m[1].match(/-C\s+(\S+)/);
+        const args = (m[2] || '').replace(/['"`()]/g, '');
+        return [{ args, cwd: dashC ? unquote(dashC[1]) : cwd }];
+    });
+}
+
+function checkPush({ args, cwd }, branchOf) {
+    if (/(^|\s)(--force(=\S*)?|--force-with-lease\S*|-f)(\s|$)/.test(args)) {
+        return `force-push detected in 'git push ${args}'.`;
+    }
+    if (new RegExp(`(^|[\\s:/])(${PROTECTED})(\\s|$)`).test(args)) {
+        return `push targets a protected branch (${PROTECTED}) in 'git push ${args}'.`;
+    }
+    // Bare push (no explicit refspec) pushes the branch checked out in `cwd`.
+    const refspec = args
+        .split(/\s+/)
+        .filter(t => t && !t.startsWith('-'))
+        .slice(1);
+    if (refspec.length > 0) return null;
+    const branch = branchOf(cwd);
+    if (branch && new RegExp(`^(${PROTECTED})$`).test(branch)) {
+        return `bare push would push protected branch '${branch}'; push a feature branch explicitly ('git push ${args}').`;
+    }
+    return null;
+}
+
+function run(input, deps = {}) {
+    const branchOf = deps.currentBranch || currentBranch;
     const cmd = getCommand(input);
     if (!cmd.includes('git')) return { exitCode: 0 };
 
-    const isPush = /git\s+push/.test(cmd);
-
-    if (
-        isPush &&
-        /push.*(--force([^-]|$)|--force-with-lease|\s-f(\s|$))/.test(cmd)
-    ) {
-        return block(`force-push detected in '${cmd}'.`);
+    for (const push of pushes(cmd)) {
+        const reason = checkPush(push, branchOf);
+        if (reason) return block(reason);
     }
 
     if (/git\s+reset(\s+.*)?\s+--hard/.test(cmd))
@@ -46,29 +83,6 @@ function run(input) {
     }
     if (/\bgit\b[^;&|]*\sworktree\s+remove\b[^;&|]*\s(--force|-f)(\s|$)/.test(cmd)) {
         return block(`forced worktree removal in '${cmd}'. Use 'wt remove <branch>'.`);
-    }
-
-    if (isPush) {
-        if (new RegExp(`([\\s:/])(${PROTECTED})(\\s|$)`).test(cmd)) {
-            return block(
-                `push targets a protected branch (${PROTECTED}) in '${cmd}'.`,
-            );
-        }
-        // Bare push (no explicit refspec) pushes the CURRENT branch.
-        const m = cmd.match(/git(?: -c [^ ]+)* push\s*(.*)/);
-        const pushTail = m ? m[1] : '';
-        const tokens = pushTail
-            .split(/\s+/)
-            .filter(t => t && !t.startsWith('-'));
-        const refspec = tokens.slice(1);
-        if (refspec.length === 0) {
-            const branch = currentBranch();
-            if (branch && new RegExp(`^(${PROTECTED})$`).test(branch)) {
-                return block(
-                    `bare push would push protected branch '${branch}'; push a feature branch explicitly ('${cmd}').`,
-                );
-            }
-        }
     }
 
     return { exitCode: 0 };
