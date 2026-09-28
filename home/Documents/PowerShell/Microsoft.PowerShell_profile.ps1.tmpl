@@ -28,9 +28,28 @@ $winLibsBin = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\BrechtSanders.WinLibs
 $canonicalMiseShims = ($miseShims -replace '/', '\').TrimEnd('\')
 $env:PATH = (Get-NormalizedPath -Prepend $prepend -Entries ($env:PATH -split ';') -AppendIfExists $winLibsBin -CanonicalMiseShims $canonicalMiseShims) -join ';'
 
+# Defender scans mise.exe and fnox.exe on every spawn (see
+# docs/reference/pwsh-cold-start.md), so run a prompt hook only after a cd or a
+# call to the tool itself. Edits to mise.toml/fnox.toml apply on the next cd.
+function Global:__Use-CdOnlyHook([string]$Name, [string]$Tool) {
+    $inner = (Get-Item "Function:\$Name").ScriptBlock
+    $state = @{ Path = $PWD.Path }
+    Set-Item "Function:\global:$Name" {
+        if ($PWD.Path -eq $state.Path -and (Get-PSCallStack)[1].FunctionName -ne $Tool) { return }
+        $state.Path = $PWD.Path
+        & $inner @args
+    }.GetNewClosure()
+}
+
+# Init scripts that bind no startup keys run on first idle. The scriptblocks are
+# created here in global scope, so dot-sourcing them from the OnIdle action
+# defines their functions globally rather than in the action's own scope.
+$Global:__deferredInits = [System.Collections.Generic.List[scriptblock]]::new()
+
 # mise activate must run before the tool inits below, or they can't find their binaries.
 if (Get-Command mise -ErrorAction SilentlyContinue) {
     (&mise activate pwsh) | Out-String | Invoke-Expression
+    __Use-CdOnlyHook _mise_hook mise
 }
 
 # pwsh loads PSReadLine lazily after the profile; atuin/tv init bail without it.
@@ -46,10 +65,8 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
 }
 
 # Terminal-Icons costs ~1.3s at startup (module scan plus import from OneDrive
-# Documents) and only formats ls output, so load it once on first idle.
-$null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
-    Import-Module Terminal-Icons -Global -ErrorAction SilentlyContinue
-}
+# Documents) and only formats ls output.
+$__deferredInits.Add({ Import-Module Terminal-Icons -Global -ErrorAction SilentlyContinue })
 
 # History, not HistoryAndPlugin: without a registered predictor module the plugin
 # state stays null and atuin's GetHistoryItems() null-derefs. PSReadLine throws
@@ -69,7 +86,9 @@ if (Get-Command carapace -ErrorAction SilentlyContinue) {
     $env:CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense'
     Set-PSReadLineOption -Colors @{ "Selection" = "`e[7m" }
     Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
-    carapace _carapace | Out-String | Invoke-Expression
+    # The Tab binding above stays eager; until the completer loads, Tab falls
+    # back to pwsh's built-in completion.
+    $__deferredInits.Add({ carapace _carapace | Out-String | Invoke-Expression })
 }
 
 # Init zoxide from its real binary, not the mise shim: every shim call re-execs
@@ -94,9 +113,19 @@ if (Get-Command pay-respects -ErrorAction SilentlyContinue) {
     pay-respects pwsh --alias f | Out-String | Invoke-Expression
 }
 
-# fnox >= 1.21.0 is required for pwsh support.
+# fnox >= 1.21.0 is required for pwsh support. Secrets for the start directory
+# load on first idle, then on each cd.
 if (Get-Command fnox -ErrorAction SilentlyContinue) {
-    (&fnox activate pwsh) | Out-String | Invoke-Expression
+    $__deferredInits.Add({
+        (&fnox activate pwsh) | Out-String | Invoke-Expression
+        __Use-CdOnlyHook _fnox_hook fnox
+    })
+}
+
+$null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
+    foreach ($init in $Global:__deferredInits) {
+        try { . $init } catch { Write-Warning "deferred profile init failed: $_" }
+    }
 }
 
 # Manual kanata toggles (work machines don't auto-start it). Test-Path, not
