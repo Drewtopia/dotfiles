@@ -32,6 +32,11 @@ const DANGEROUS = [
     'mise exec -- git push origin develop',
     'out=$(git push origin main)',
     'git push -u origin feat/x && git push origin develop',
+    'cd /repo && git reset --hard',
+    "bash -lc 'git clean -fd'",
+    'git branch -a | xargs git branch -D',
+    'git status && git checkout .',
+    'git --no-pager branch -D old',
 ];
 
 // Allowed regardless of current branch (explicit feature refspec, non-git, etc.)
@@ -51,6 +56,11 @@ const SAFE = [
     'git push -u origin feat/x && az repos pr create --target-branch develop',
     'git push origin feat/x; git log origin/develop..HEAD',
     'git push origin feat/x && pnpm install --force',
+    'git clean -n && ls -lf',
+    'git stash && git reset HEAD file.ts && echo --hard',
+    'git branch -vv && grep -D skip notes.txt',
+    'git status && rg "git\\s+reset(\\s+.*)?\\s+--hard" hooks/',
+    'git worktree list && rm -f stale.lock',
 ];
 
 for (const cmd of DANGEROUS) {
