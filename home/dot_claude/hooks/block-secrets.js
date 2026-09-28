@@ -133,14 +133,25 @@ function extractFilePath(data) {
     for (const key of ['file_path', 'path', 'filename', 'file']) {
         if (key in toolInput) return toolInput[key];
     }
-    const command = toolInput.command || '';
-    if (command) {
-        for (const name of SENSITIVE_FILENAMES) {
-            if (command.includes(name)) return name;
-        }
-        for (const ext of SENSITIVE_EXTENSIONS) {
-            if (command.includes(ext)) return command;
-        }
+    return sensitiveTokenIn(String(toolInput.command || ''));
+}
+
+// Only a whole path token names a file: `process.env` or `Object.keys` in a
+// command is code, not `.env` or a `.key` file.
+function sensitiveTokenIn(command) {
+    // Glob and brace characters are dropped so `.env*` and `{.env,x}` still name `.env`.
+    // A token that starts with a known name (`.npmrc.bak`) reports that name.
+    const tokens = command.split(/[\s'"`=<>|;&(),${}]+/).map(t => t.replace(/[*?[\]]/g, ''));
+    for (const token of tokens) {
+        const base = path.basename(token);
+        if (ENV_TEMPLATE.test(base)) continue;
+        const name = [...SENSITIVE_FILENAMES].find(n =>
+            n.includes('/')
+                ? token === n || token.endsWith('/' + n)
+                : base === n || base.startsWith(n + '.'),
+        );
+        if (name) return name;
+        if (SENSITIVE_EXTENSIONS.has(path.extname(base).toLowerCase())) return token;
     }
     return '';
 }

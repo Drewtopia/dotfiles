@@ -3,20 +3,22 @@
 const { getCommand } = require('../lib/hook-io');
 
 const RM_FLAGS = '(-[a-zA-Z]*r[a-zA-Z]*f|--recursive\\s+--force|-rf|-fr)';
+// The target must end here, so `/` or `~` as the start of a longer path is not root or home.
+const PATH_END = '/?(?=$|[\\s;&|)])';
 
 // First match wins.
 const RULES = [
     {
         id: 'rm-rf-sensitive-path',
         re: new RegExp(
-            `rm\\s+${RM_FLAGS}\\s+(/|~|\\.\\.|\\$HOME|\\$\\{HOME\\})`,
+            `rm\\s+${RM_FLAGS}\\s+(/|\\.\\.|(~|\\$HOME|\\$\\{HOME\\})(/[^/\\s;&|]+)?)${PATH_END}`,
         ),
         msg: cmd =>
-            `🛑 BLOCKED: Destructive rm command targeting root, home, or parent directory\nCommand: ${cmd}`,
+            `🛑 BLOCKED: Destructive rm command targeting root, home, a folder directly in home, or parent directory\nCommand: ${cmd}`,
     },
     {
         id: 'rm-rf-wildcard',
-        re: new RegExp(`rm\\s+${RM_FLAGS}\\s+(/\\*|~/\\*|/home)`),
+        re: new RegExp(`rm\\s+${RM_FLAGS}\\s+(/\\*|~/\\*|\\$HOME/\\*|\\$\\{HOME\\}/\\*|/home(/[^/\\s;&|]+)?${PATH_END})`),
         msg: cmd =>
             `🛑 BLOCKED: Destructive rm command with wildcard on sensitive path\nCommand: ${cmd}`,
     },

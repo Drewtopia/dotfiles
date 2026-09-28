@@ -5,27 +5,35 @@ const { currentBranch } = require('../lib/git');
 const { WRAPPER, unquote, segments, cdBefore } = require('../lib/shell');
 
 const PROTECTED = 'main|master|develop';
-const PUSH = /(?:^|[\s'"(`])git((?:\s+-[cC]\s+\S+)*)\s+push(?:\s+([\s\S]*))?$/;
+const GIT = /(?:^|[\s'"(`])git((?:\s+(?:-[cC]\s+\S+|--\S+))*)\s+([\s\S]*)$/;
 const block = reason => ({
     exitCode: 2,
     stderr: `🛑 BLOCKED: ${reason} The user has prevented you from doing this.`,
 });
 
 /**
- * Each `git push` in `cmd`, with its arguments and the directory it runs in, so
- * a branch named elsewhere in the command is not read as the push target.
+ * Each git invocation in `cmd`, as its own text and the directory it runs in, so
+ * a flag or branch named by another command in the line is not read as its own.
  */
-function pushes(cmd, outerCwd = '') {
+function gitCalls(cmd, outerCwd = '') {
     const segs = segments(cmd);
     return segs.flatMap((seg, i) => {
         const cwd = cdBefore(segs, i) || outerCwd;
         const wrapped = seg.match(WRAPPER);
-        if (wrapped) return pushes(unquote(wrapped[1]), cwd);
-        const m = seg.match(PUSH);
+        if (wrapped) return gitCalls(unquote(wrapped[1]), cwd);
+        const m = seg.match(GIT);
         if (!m) return [];
         const dashC = m[1].match(/-C\s+(\S+)/);
-        const args = (m[2] || '').replace(/['"`()]/g, '');
-        return [{ args, cwd: dashC ? unquote(dashC[1]) : cwd }];
+        const tail = m[2].replace(/['"`()]/g, '').trim();
+        const [sub = '', ...rest] = tail.split(/\s+/);
+        return [
+            {
+                sub,
+                args: rest.join(' '),
+                text: `git ${tail}`,
+                cwd: dashC ? unquote(dashC[1]) : cwd,
+            },
+        ];
     });
 }
 
@@ -49,42 +57,36 @@ function checkPush({ args, cwd }, branchOf) {
     return null;
 }
 
+function checkCall({ sub, text }) {
+    if (sub === 'reset' && /\s--hard(\s|$)/.test(text)) return `git reset --hard in '${text}'.`;
+    if (sub === 'clean' && /\s-[a-zA-Z]*f/.test(text)) return `git clean -f in '${text}'.`;
+    if (/^git\s+(checkout|restore)\s+\.(\s|$)/.test(text)) {
+        return `bulk working-tree discard in '${text}'.`;
+    }
+    if (sub === 'branch' && /\s-D(\s|$)/.test(text)) {
+        return `git branch -D (force delete) in '${text}'. Use 'wt remove <branch>': it deletes a branch whose changes are merged, even under new SHAs, and runs the worktree hooks.`;
+    }
+    if (sub === 'branch' && /(--delete\s+--force|--force\s+--delete)/.test(text)) {
+        return `force branch delete in '${text}'.`;
+    }
+    if (sub === 'worktree' && /\sworktree\s+add(\s|$)/.test(text)) {
+        return `raw worktree create in '${text}'. Use 'wt switch --create <branch>': it runs the worktree hooks (deps, gitignored env files, mise trust).`;
+    }
+    if (sub === 'worktree' && /\sworktree\s+remove\b.*\s(--force|-f)(\s|$)/.test(text)) {
+        return `forced worktree removal in '${text}'. Use 'wt remove <branch>'.`;
+    }
+    return null;
+}
+
 function run(input, deps = {}) {
     const branchOf = deps.currentBranch || currentBranch;
     const cmd = getCommand(input);
     if (!cmd.includes('git')) return { exitCode: 0 };
 
-    for (const push of pushes(cmd)) {
-        const reason = checkPush(push, branchOf);
+    for (const call of gitCalls(cmd)) {
+        const reason = call.sub === 'push' ? checkPush(call, branchOf) : checkCall(call);
         if (reason) return block(reason);
     }
-
-    if (/git\s+reset(\s+.*)?\s+--hard/.test(cmd))
-        return block(`git reset --hard in '${cmd}'.`);
-    if (/git\s+clean(\s+.*)?\s+-[a-zA-Z]*f/.test(cmd))
-        return block(`git clean -f in '${cmd}'.`);
-    if (/git\s+(checkout|restore)\s+\.(\s|$)/.test(cmd)) {
-        return block(`bulk working-tree discard in '${cmd}'.`);
-    }
-
-    if (/git\s+branch(\s+.*)?\s-D(\s|$)/.test(cmd)) {
-        return block(
-            `git branch -D (force delete) in '${cmd}'. Use 'wt remove <branch>': it deletes a branch whose changes are merged, even under new SHAs, and runs the worktree hooks.`,
-        );
-    }
-    if (/git\s+branch.*(--delete\s+--force|--force\s+--delete)/.test(cmd)) {
-        return block(`force branch delete in '${cmd}'.`);
-    }
-
-    if (/\bgit\b[^;&|]*\sworktree\s+add(\s|$)/.test(cmd)) {
-        return block(
-            `raw worktree create in '${cmd}'. Use 'wt switch --create <branch>': it runs the worktree hooks (deps, gitignored env files, mise trust).`,
-        );
-    }
-    if (/\bgit\b[^;&|]*\sworktree\s+remove\b[^;&|]*\s(--force|-f)(\s|$)/.test(cmd)) {
-        return block(`forced worktree removal in '${cmd}'. Use 'wt remove <branch>'.`);
-    }
-
     return { exitCode: 0 };
 }
 
