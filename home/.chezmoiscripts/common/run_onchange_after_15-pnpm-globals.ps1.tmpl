@@ -58,8 +58,10 @@ try {
     Write-Host "[pnpm-globals] couldn't read state ($($_.Exception.Message)); will rebuild" -ForegroundColor Yellow
 }
 
-$missing = $desired | Where-Object { $_ -notin $actual }
-$extras  = $actual  | Where-Object { $_ -notin $desired }
+# @() keeps a single match an array: splatting a bare string passes one
+# argument per character, so `add -g @specs` would install packages t, y, p...
+$missing = @($desired | Where-Object { $_ -notin $actual })
+$extras  = @($actual  | Where-Object { $_ -notin $desired })
 
 if (-not $missing -and -not $extras) {
     Write-Host "[pnpm-globals] up to date ($($desired.Count) packages)" -ForegroundColor Green
@@ -76,7 +78,7 @@ if ($extras) {
     & $pnpmCmd remove -g @extras
 }
 if ($missing) {
-    $specs = $missing | ForEach-Object { $_ + '@latest' }
+    $specs = @($missing | ForEach-Object { $_ + '@latest' })
     & $pnpmCmd add -g @specs
 }
 {{- end }}
