@@ -45,6 +45,9 @@ const SAFE = [
     'cat README.md',
     'docker ps',
     'echo hello',
+    'cat src/config.ts && grep -rn process.env src',
+    'tail -n 50 app.log | grep .env',
+    'git push -f origin feat/x && git log main',
 ];
 
 for (const cmd of DANGEROUS) {

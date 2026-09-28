@@ -22,7 +22,7 @@ const RULES = [
     },
     {
         id: 'force-push-protected',
-        re: /git\s+push\s+.*(-f|--force)\s+.*(main|master|production|release)/,
+        re: /git\s+push\s+[^;&|\n]*(-f|--force)\s+[^;&|\n]*(main|master|production|release)/,
         msg: cmd =>
             `🛑 BLOCKED: Force push to protected branch\nCommand: ${cmd}\nTip: Create a PR instead of force pushing to main/master`,
     },
@@ -58,13 +58,13 @@ const RULES = [
     },
     {
         id: 'exfiltrate-sensitive',
-        re: /(curl|wget|nc|netcat)\s+.*\.(env|pem|key|secret)/,
+        re: /\b(curl|wget|nc|netcat)\s+[^;&|\n]*\.(env|pem|key|secret)/,
         msg: cmd =>
             `⚠️ BLOCKED: Command appears to exfiltrate sensitive files\nCommand: ${cmd}`,
     },
     {
         id: 'read-env-posix',
-        re: /(cat|less|head|tail|more|bat)\s+.*\.env/,
+        re: /\b(cat|less|head|tail|more|bat)\s+[^;&|\n]*\.env/,
         msg: cmd =>
             `⚠️ BLOCKED: Reading .env file via ${cmd}\nTip: Use environment variables instead of reading .env directly`,
     },
