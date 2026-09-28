@@ -45,8 +45,10 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
     oh-my-posh init pwsh --config $ompTheme | Invoke-Expression
 }
 
-if (Get-Module -ListAvailable -Name Terminal-Icons) {
-    Import-Module Terminal-Icons
+# Terminal-Icons costs ~1.3s at startup (module scan plus import from OneDrive
+# Documents) and only formats ls output, so load it once on first idle.
+$null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
+    Import-Module Terminal-Icons -Global -ErrorAction SilentlyContinue
 }
 
 # History, not HistoryAndPlugin: without a registered predictor module the plugin
