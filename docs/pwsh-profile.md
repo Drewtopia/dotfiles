@@ -9,7 +9,7 @@ The profile is a single template, rendered only when `chezmoi.os == "windows"` a
 1. The `windows-relocation` partial (`Get-NormalizedPath`), re-assertion of the relocated User-scope env vars, and PATH normalization (WinGet Links, mise shims, pnpm, WinLibs). None of these spawns a process.
 2. `mise activate pwsh`.
 3. `Import-Module PSReadLine`.
-4. `oh-my-posh init pwsh`, then `Terminal-Icons`, the PSReadLine prediction options (inside `try/catch`, because a non-VT host throws), and the base key handlers.
+4. `oh-my-posh init pwsh`, then a one-shot `PowerShell.OnIdle` import of `Terminal-Icons`, the PSReadLine prediction options (inside `try/catch`, because a non-VT host throws), and the base key handlers.
 5. `carapace _carapace` (binds `Tab`).
 6. `zoxide init powershell`, run on the real binary rather than the mise shim.
 7. `tv init power-shell`, then `atuin init powershell`.
@@ -17,7 +17,7 @@ The profile is a single template, rendered only when `chezmoi.os == "windows"` a
 9. The kanata toggle functions, gated on `Test-Path` of the scoop shim instead of `Get-Command`, which would scan all of PATH.
 10. The psmux `t`/`ta`/`tn`/... functions.
 
-That makes eight external `tool init | Invoke-Expression` spawns on every start. Nothing is deferred. No Defender exclusion is configured anywhere in the repo.
+That makes eight external `tool init | Invoke-Expression` spawns on every start. Only the Terminal-Icons import is deferred. No Defender exclusion is configured anywhere in the repo.
 
 Two changes to startup cost are already in place: zoxide resolves to its real binary, and kanata uses a direct `Test-Path` probe.
 
@@ -101,7 +101,7 @@ A `profile.d/` directory sits next to the profile. Its fragment sources are `*.p
 | `010-mise` | `mise activate pwsh` | Eager |
 | `015-psreadline` | PSReadLine import, prediction options, base key handlers | Eager |
 | `020-prompt-omp` | oh-my-posh | Eager |
-| `025-terminal-icons` | Terminal-Icons | Eager |
+| `025-terminal-icons` | Terminal-Icons, via one-shot OnIdle | Deferred |
 | `030-carapace` | carapace and the `Tab` binding | Eager |
 | `040-zoxide` | zoxide, initialized on the real binary | Eager |
 | `050-television` | `tv init power-shell` | Eager |
