@@ -98,3 +98,64 @@ test('run is a no-op (exit 0) for files with no tools', () => {
     assert.equal(fmt.run({ tool_input: { file_path: '/r/Makefile' } }, deps).exitCode, 0);
     assert.deepEqual(calls, []);
 });
+
+// Only errors on lines changed since HEAD block, so old lint debt in a file stays quiet.
+const OXLINT_OUT = [
+    'a.ts:2:5: `debugger` statement is not allowed [Error/eslint(no-debugger)]',
+    'a.ts:5:7: Variable x is declared but never used. [Error/eslint(no-unused-vars)]',
+    'a.ts:6:1: Prefer const [Warning/eslint(prefer-const)]',
+    '',
+    '3 problems',
+].join('\n');
+const ESLINT_OUT = JSON.stringify([
+    {
+        filePath: '/r/a.ts',
+        messages: [
+            { line: 2, column: 1, severity: 2, ruleId: 'no-var', message: 'Unexpected var' },
+            { line: 5, column: 1, severity: 2, ruleId: 'eqeqeq', message: 'Expected ===' },
+            { line: 6, column: 1, severity: 1, ruleId: 'no-console', message: 'Unexpected console' },
+        ],
+    },
+]);
+const changedRepo = ({ tracked = true, diff = '@@ -4,0 +5,2 @@\n+x\n+y', oxlint = OXLINT_OUT, eslint } = {}) => ({
+    ...repo(['oxlint.config.ts', bin('oxlint'), ...(eslint ? ['eslint.config.js', bin('eslint')] : [])]),
+    repoRoot: () => '/r',
+    git: args => (args.includes('ls-files') ? (tracked ? 'a.ts' : '') : args.includes('diff') ? diff : ''),
+    spawn: cmd =>
+        cmd.endsWith('oxlint')
+            ? { status: oxlint ? 1 : 0, stdout: oxlint || '', stderr: '' }
+            : { status: 1, stdout: eslint, stderr: '' },
+});
+const lint = deps => fmt.run({ tool_input: { file_path: '/r/a.ts' } }, deps);
+
+test('reports only errors on changed lines', () => {
+    const res = lint(changedRepo());
+    assert.equal(res.exitCode, 2);
+    assert.match(res.stderr, /no-unused-vars/);
+    assert.doesNotMatch(res.stderr, /no-debugger|prefer-const/);
+});
+
+test('errors only on unchanged lines, or only warnings, do not block', () => {
+    assert.equal(lint(changedRepo({ diff: '@@ -9,0 +10,1 @@\n+z' })).exitCode, 0);
+    assert.equal(lint(changedRepo({ diff: '@@ -5,0 +6,1 @@\n+z' })).exitCode, 0);
+});
+
+test('every line counts in a file git does not track yet', () => {
+    const res = lint(changedRepo({ tracked: false }));
+    assert.equal(res.exitCode, 2);
+    assert.match(res.stderr, /no-debugger/);
+    assert.match(res.stderr, /no-unused-vars/);
+});
+
+test('eslint JSON output is filtered the same way', () => {
+    const res = lint(changedRepo({ oxlint: '', eslint: ESLINT_OUT }));
+    assert.equal(res.exitCode, 2);
+    assert.match(res.stderr, /eqeqeq/);
+    assert.doesNotMatch(res.stderr, /no-var|no-console/);
+});
+
+test('output it cannot parse is reported whole rather than hidden', () => {
+    const res = lint(changedRepo({ oxlint: 'thread panicked at config.rs' }));
+    assert.equal(res.exitCode, 2);
+    assert.match(res.stderr, /panicked/);
+});

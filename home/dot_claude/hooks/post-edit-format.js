@@ -3,14 +3,14 @@
 // PostToolUse(Edit|Write): format the edited file, then lint it. JS-family tools come
 // from the config at the file's git root and run only from that repo's node_modules,
 // so a repo's own versions and plugins apply and a repo without a config is untouched.
-// Only a linter reporting errors (exit 1) blocks: exit 2 feeds the errors to Claude.
+// Only a linter error on a line changed since HEAD blocks: exit 2 feeds it to Claude.
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { readStdin, parseInput } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
-const { repoRoot } = require('./lib/git');
+const { git, repoRoot } = require('./lib/git');
 
 const HOOK_ID = 'post:edit:format';
 const TIMEOUT_MS = 20000;
@@ -88,9 +88,44 @@ function lintersFor(file, root, repo = fsRepo) {
     const oxlint = repoTool(root, 'oxlint', OXLINT_CONFIGS, repo);
     const eslint = repoTool(root, 'eslint', ESLINT_CONFIGS, repo);
     return [
-        ...(oxlint ? [{ bin: oxlint, args: ['--no-error-on-unmatched-pattern', file] }] : []),
-        ...(eslint ? [{ bin: eslint, args: [file] }] : []),
+        ...(oxlint
+            ? [{ bin: oxlint, args: ['--format', 'unix', '--no-error-on-unmatched-pattern', file], parse: parseUnix }]
+            : []),
+        ...(eslint ? [{ bin: eslint, args: ['--format', 'json', file], parse: parseEslintJson }] : []),
     ];
+}
+
+/** Errors as { line, text } from oxlint `--format unix`; warnings are dropped. */
+function parseUnix(out) {
+    return out.split('\n').flatMap(text => {
+        const m = text.match(/^.+?:(\d+):\d+: .*\[Error\//);
+        return m ? [{ line: Number(m[1]), text }] : [];
+    });
+}
+
+/** Errors as { line, text } from eslint `--format json`; warnings are dropped. */
+function parseEslintJson(out) {
+    try {
+        return JSON.parse(out).flatMap(f =>
+            f.messages
+                .filter(m => m.severity === 2)
+                .map(m => ({ line: m.line, text: `${f.filePath}:${m.line}:${m.column}: ${m.message} [${m.ruleId}]` })),
+        );
+    } catch {
+        return [];
+    }
+}
+
+/** Lines changed since HEAD, or null when every line counts (a file git does not track). */
+function changedLines(file, root, runGit) {
+    if (!runGit(['-C', root, 'ls-files', '--error-unmatch', file])) return null;
+    const lines = new Set();
+    for (const [, start, count = '1'] of runGit(['-C', root, 'diff', '-U0', 'HEAD', '--', file]).matchAll(
+        /^@@ -\S+ \+(\d+)(?:,(\d+))? @@/gm,
+    )) {
+        for (let i = 0; i < Number(count); i++) lines.add(Number(start) + i);
+    }
+    return lines;
 }
 
 function extractFilePath(input) {
@@ -116,6 +151,7 @@ function run(input, deps = {}) {
         }
     }
     const errors = [];
+    let changed;
     for (const l of lintersFor(file, root, repo)) {
         let res;
         try {
@@ -123,7 +159,16 @@ function run(input, deps = {}) {
         } catch {
             continue;
         }
-        if (res && res.status === 1) errors.push(`${res.stdout || ''}${res.stderr || ''}`.trim());
+        if (!res || res.status !== 1) continue;
+        const raw = `${res.stdout || ''}${res.stderr || ''}`.trim();
+        const found = l.parse(res.stdout || '');
+        // Output that parses to nothing is a linter failure worth seeing, not a clean file.
+        if (found.length === 0) {
+            errors.push(raw);
+            continue;
+        }
+        if (changed === undefined) changed = changedLines(file, root, deps.git || git);
+        errors.push(...found.filter(e => !changed || changed.has(e.line)).map(e => e.text));
     }
     if (errors.length === 0) return { exitCode: 0 };
     const lines = errors.join('\n').split('\n');
