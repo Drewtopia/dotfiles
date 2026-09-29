@@ -17,6 +17,7 @@ function git(args) {
 const REV_PARSE_BRANCH = ['rev-parse', '--abbrev-ref', 'HEAD'];
 
 const currentBranch = cwd => git(cwd ? ['-C', cwd, ...REV_PARSE_BRANCH] : REV_PARSE_BRANCH);
-const repoRoot = () => git(['rev-parse', '--show-toplevel']);
+const REV_PARSE_ROOT = ['rev-parse', '--show-toplevel'];
+const repoRoot = cwd => git(cwd ? ['-C', cwd, ...REV_PARSE_ROOT] : REV_PARSE_ROOT);
 
 module.exports = { git, currentBranch, repoRoot };

@@ -142,6 +142,36 @@ test('command referencing a sensitive filename falls through to file block', () 
     assert.match(res.stderr, /SECURITY HOOK BLOCKED/);
 });
 
+test('a sensitive name inside a longer word is not a file', () => {
+    for (const cmd of [
+        'grep -rn process.env src',
+        'git commit -m "read process.env once"',
+        'node -e "console.log(Object.keys(x))"',
+        'cat .env.example',
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+    }
+});
+
+test('a sensitive file named as a path token still blocks', () => {
+    for (const cmd of [
+        'cat apps/x/.env',
+        'source .env.local',
+        'cp .env.production /tmp/x',
+        'cat .env.custom',
+        'scp host:~/.ssh/id_rsa .',
+        'cat server.pem',
+        'x=$(<.env)',
+        'grep KEY .env;',
+        'cat .env*',
+        'cat {.env,README.md}',
+        'cp secrets.json.bak /tmp/x',
+        'cp .npmrc.bak /tmp/x',
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    }
+});
+
 test('unit: secretInCommand returns first provider only', () => {
     assert.deepEqual(guard.secretInCommand('no tokens here'), {
         matched: false,

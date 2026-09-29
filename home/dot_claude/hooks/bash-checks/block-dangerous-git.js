@@ -2,76 +2,92 @@
 
 const { getCommand } = require('../lib/hook-io');
 const { currentBranch } = require('../lib/git');
+const { WRAPPER, unquote, segments, cdBefore } = require('../lib/shell');
 
 const PROTECTED = 'main|master|develop';
+const GIT = /(?:^|[\s'"(`])git((?:\s+(?:-[cC]\s+\S+|--\S+))*)\s+([\s\S]*)$/;
 const block = reason => ({
     exitCode: 2,
     stderr: `🛑 BLOCKED: ${reason} The user has prevented you from doing this.`,
 });
 
-function run(input) {
+/**
+ * Each git invocation in `cmd`, as its own text and the directory it runs in, so
+ * a flag or branch named by another command in the line is not read as its own.
+ */
+function gitCalls(cmd, outerCwd = '') {
+    const segs = segments(cmd);
+    return segs.flatMap((seg, i) => {
+        const cwd = cdBefore(segs, i) || outerCwd;
+        const wrapped = seg.match(WRAPPER);
+        if (wrapped) return gitCalls(unquote(wrapped[1]), cwd);
+        const m = seg.match(GIT);
+        if (!m) return [];
+        const dashC = m[1].match(/-C\s+(\S+)/);
+        const tail = m[2].replace(/['"`()]/g, '').trim();
+        const [sub = '', ...rest] = tail.split(/\s+/);
+        return [
+            {
+                sub,
+                args: rest.join(' '),
+                text: `git ${tail}`,
+                cwd: dashC ? unquote(dashC[1]) : cwd,
+            },
+        ];
+    });
+}
+
+function checkPush({ args, cwd }, branchOf) {
+    if (/(^|\s)(--force(=\S*)?|--force-with-lease\S*|-f)(\s|$)/.test(args)) {
+        return `force-push detected in 'git push ${args}'.`;
+    }
+    if (new RegExp(`(^|[\\s:/])(${PROTECTED})(\\s|$)`).test(args)) {
+        return `push targets a protected branch (${PROTECTED}) in 'git push ${args}'.`;
+    }
+    // Bare push (no explicit refspec) pushes the branch checked out in `cwd`.
+    const refspec = args
+        .split(/\s+/)
+        .filter(t => t && !t.startsWith('-'))
+        .slice(1);
+    if (refspec.length > 0) return null;
+    const branch = branchOf(cwd);
+    if (branch && new RegExp(`^(${PROTECTED})$`).test(branch)) {
+        return `bare push would push protected branch '${branch}'; push a feature branch explicitly ('git push ${args}').`;
+    }
+    return null;
+}
+
+function checkCall({ sub, text }) {
+    if (sub === 'reset' && /\s--hard(\s|$)/.test(text)) return `git reset --hard in '${text}'.`;
+    if (sub === 'clean' && /\s-[a-zA-Z]*f/.test(text)) return `git clean -f in '${text}'.`;
+    if (/^git\s+(checkout|restore)\s+\.(\s|$)/.test(text)) {
+        return `bulk working-tree discard in '${text}'.`;
+    }
+    if (sub === 'branch' && /\s-D(\s|$)/.test(text)) {
+        return `git branch -D (force delete) in '${text}'. Use 'wt remove <branch>': it deletes a branch whose changes are merged, even under new SHAs, and runs the worktree hooks.`;
+    }
+    if (sub === 'branch' && /(--delete\s+--force|--force\s+--delete)/.test(text)) {
+        return `force branch delete in '${text}'.`;
+    }
+    if (sub === 'worktree' && /\sworktree\s+add(\s|$)/.test(text)) {
+        return `raw worktree create in '${text}'. Use 'wt switch --create <branch>': it runs the worktree hooks (deps, gitignored env files, mise trust).`;
+    }
+    if (sub === 'worktree' && /\sworktree\s+remove\b.*\s(--force|-f)(\s|$)/.test(text)) {
+        return `forced worktree removal in '${text}'. Use 'wt remove <branch>'.`;
+    }
+    return null;
+}
+
+function run(input, deps = {}) {
+    const branchOf = deps.currentBranch || currentBranch;
     const cmd = getCommand(input);
     if (!cmd.includes('git')) return { exitCode: 0 };
 
-    const isPush = /git\s+push/.test(cmd);
-
-    if (
-        isPush &&
-        /push.*(--force([^-]|$)|--force-with-lease|\s-f(\s|$))/.test(cmd)
-    ) {
-        return block(`force-push detected in '${cmd}'.`);
+    for (const call of gitCalls(cmd)) {
+        const reason = call.sub === 'push' ? checkPush(call, branchOf) : checkCall(call);
+        if (reason) return block(reason);
     }
-
-    if (/git\s+reset(\s+.*)?\s+--hard/.test(cmd))
-        return block(`git reset --hard in '${cmd}'.`);
-    if (/git\s+clean(\s+.*)?\s+-[a-zA-Z]*f/.test(cmd))
-        return block(`git clean -f in '${cmd}'.`);
-    if (/git\s+(checkout|restore)\s+\.(\s|$)/.test(cmd)) {
-        return block(`bulk working-tree discard in '${cmd}'.`);
-    }
-
-    if (/git\s+branch(\s+.*)?\s-D(\s|$)/.test(cmd)) {
-        return block(
-            `git branch -D (force delete) in '${cmd}'. Use 'wt remove <branch>': it deletes a branch whose changes are merged, even under new SHAs, and runs the worktree hooks.`,
-        );
-    }
-    if (/git\s+branch.*(--delete\s+--force|--force\s+--delete)/.test(cmd)) {
-        return block(`force branch delete in '${cmd}'.`);
-    }
-
-    if (/\bgit\b[^;&|]*\sworktree\s+add(\s|$)/.test(cmd)) {
-        return block(
-            `raw worktree create in '${cmd}'. Use 'wt switch --create <branch>': it runs the worktree hooks (deps, gitignored env files, mise trust).`,
-        );
-    }
-    if (/\bgit\b[^;&|]*\sworktree\s+remove\b[^;&|]*\s(--force|-f)(\s|$)/.test(cmd)) {
-        return block(`forced worktree removal in '${cmd}'. Use 'wt remove <branch>'.`);
-    }
-
-    if (isPush) {
-        if (new RegExp(`([\\s:/])(${PROTECTED})(\\s|$)`).test(cmd)) {
-            return block(
-                `push targets a protected branch (${PROTECTED}) in '${cmd}'.`,
-            );
-        }
-        // Bare push (no explicit refspec) pushes the CURRENT branch.
-        const m = cmd.match(/git(?: -c [^ ]+)* push\s*(.*)/);
-        const pushTail = m ? m[1] : '';
-        const tokens = pushTail
-            .split(/\s+/)
-            .filter(t => t && !t.startsWith('-'));
-        const refspec = tokens.slice(1);
-        if (refspec.length === 0) {
-            const branch = currentBranch();
-            if (branch && new RegExp(`^(${PROTECTED})$`).test(branch)) {
-                return block(
-                    `bare push would push protected branch '${branch}'; push a feature branch explicitly ('${cmd}').`,
-                );
-            }
-        }
-    }
-
     return { exitCode: 0 };
 }
 
-module.exports = { run };
+module.exports = { run, gitCalls };
