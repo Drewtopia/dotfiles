@@ -90,4 +90,4 @@ function run(input, deps = {}) {
     return { exitCode: 0 };
 }
 
-module.exports = { run };
+module.exports = { run, gitCalls };
