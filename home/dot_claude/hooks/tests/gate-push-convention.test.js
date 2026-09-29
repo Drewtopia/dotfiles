@@ -22,6 +22,7 @@ const PUSHES = [
     'git push origin feat/x',
     'git  push', // extra whitespace must not slip the gate
     'git -c key=val push',
+    'git -C /repo push',
     'FOO=bar git push',
 ];
 const NON_PUSHES = ['git status', 'npm test', 'git pushd', 'pushing'];
@@ -90,3 +91,17 @@ test('invalid branch (commit-check fail) blocks with detail + branch name', () =
     assert.match(res.stderr, /commit-check: branch name invalid/);
     assert.match(res.stderr, /conventionalbranch\.org/);
 });
+
+// A push after `cd <dir>` or with `git -C <dir>` pushes that directory's branch.
+const byDir = {
+    repoRoot: cwd => (cwd === '/wt' ? '/wt' : '/repo'),
+    currentBranch: cwd => (cwd === '/wt' ? 'bad_branch' : 'develop'),
+    check: root => (root === '/wt' ? { ok: false, output: 'invalid' } : { ok: true }),
+};
+for (const cmd of ['cd /wt && git push -u origin', 'git -C /wt push -u origin']) {
+    test(`checks the branch where the push runs: ${cmd}`, () => {
+        const res = run(input(cmd), deps(byDir));
+        assert.equal(res.exitCode, 2);
+        assert.match(res.stderr, /bad_branch/);
+    });
+}
