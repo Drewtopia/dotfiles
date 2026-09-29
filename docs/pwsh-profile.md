@@ -10,14 +10,14 @@ The profile is a single template, rendered only when `chezmoi.os == "windows"` a
 2. `mise activate pwsh`.
 3. `Import-Module PSReadLine`.
 4. `oh-my-posh init pwsh`, then a one-shot `PowerShell.OnIdle` import of `Terminal-Icons`, the PSReadLine prediction options (inside `try/catch`, because a non-VT host throws), and the base key handlers.
-5. `carapace _carapace` (binds `Tab`).
+5. The `Tab` → `MenuComplete` binding. `carapace _carapace` itself runs on first idle.
 6. `zoxide init powershell`, run on the real binary rather than the mise shim.
 7. `tv init power-shell`, then `atuin init powershell`.
-8. `pay-respects pwsh --alias f` and `fnox activate pwsh`.
+8. `pay-respects pwsh --alias f`. `fnox activate pwsh` runs on first idle.
 9. The kanata toggle functions, gated on `Test-Path` of the scoop shim instead of `Get-Command`, which would scan all of PATH.
 10. The psmux `t`/`ta`/`tn`/... functions.
 
-That makes eight external `tool init | Invoke-Expression` spawns on every start. Only the Terminal-Icons import is deferred. No Defender exclusion is configured anywhere in the repo.
+That makes six external `tool init | Invoke-Expression` spawns before the first prompt. Terminal-Icons, carapace and fnox load from one `PowerShell.OnIdle` action that dot-sources scriptblocks created in global scope, so their functions land globally. The mise and fnox prompt hooks run only after a `cd` or a call to the tool itself (`__Use-CdOnlyHook`). No Defender exclusion is configured, and none is available on managed machines; see `docs/reference/pwsh-cold-start.md` for the measured per-binary scan cost.
 
 Two changes to startup cost are already in place: zoxide resolves to its real binary, and kanata uses a direct `Test-Path` probe.
 
@@ -33,7 +33,7 @@ Any restructuring must keep this relative order:
 1. **PATH heal and `mise activate` come first.** On Windows most mise-managed tools only reach PATH through `activate`. If a later init can't find its binary, it silently skips.
 2. **PSReadLine is imported before any init that binds keys.** Without it, atuin and tv bail with "requires the PSReadLine module".
 3. **tv runs before atuin.** Both bind `Ctrl+R` and the last binding wins. tv's init always emits `Set-PSReadLineKeyHandler` for `Ctrl+T` and `Ctrl+R`, whatever its config says, so atuin has to bind after it to own `Ctrl+R`. `Ctrl+T` stays with tv. Sources: [tv shell_integration.rs](https://github.com/alexpasmantier/television/blob/main/television/config/shell_integration.rs), [atuin init](https://docs.atuin.sh/main/reference/init/).
-4. **carapace binds `Tab`** to `MenuComplete`, and that binding has to exist at startup ([carapace setup](https://carapace-sh.github.io/carapace-bin/setup.html)).
+4. **The profile binds `Tab`** to `MenuComplete` at startup ([carapace setup](https://carapace-sh.github.io/carapace-bin/setup.html)). The carapace completer registers on first idle; until then `Tab` uses built-in completion.
 
 ## Which inits to defer
 
@@ -41,19 +41,19 @@ A keypress can't trigger a lazy load, so any init that binds keys or draws the p
 
 | Init | Needed at first prompt? | Decision |
 |---|---|---|
-| mise | Yes. It sets PATH for other tools and installs a per-prompt hook. | Eager |
+| mise | Yes. It sets PATH for other tools. | Eager; prompt hook runs only after `cd` or a `mise` call |
 | oh-my-posh | Yes. It draws the prompt. | Eager |
-| carapace | Yes. It binds `Tab`. | Eager |
+| carapace | No. The profile owns the `Tab` binding; the completer can register later. | OnIdle |
 | zoxide | Yes. It defines `z` and hooks the prompt. | Eager |
 | tv | Yes. It binds `Ctrl+T` and `Ctrl+R` unconditionally. | Eager, before atuin |
 | atuin | Yes. It binds `Ctrl+R`. | Eager, after tv |
 | pay-respects | No. `f` is a typed function. | Defer with a stub `f` |
-| fnox | Only for secret auto-loading on `cd`. It binds no keys and defines no aliases. | Defer with a stub `fnox` |
+| fnox | No. It binds no keys; secrets for the start directory can load on first idle. | OnIdle; prompt hook runs only after `cd` |
 
 Caveats on the two deferrals:
 
 - **pay-respects.** Its init also binds `Ctrl+X,Ctrl+X` for the experimental inline correction ([init.ps1](https://github.com/iffse/pay-respects/blob/main/core/templates/init.ps1)). Deferring the init delays that chord too. If the chord is used, bind it eagerly and leave only `f` behind the stub.
-- **fnox.** `activate pwsh` installs only a prompt hook that loads and unloads secrets as the working directory changes ([fnox shell integration](https://fnox.jdx.dev/guide/shell-integration.html)). A stub delays auto-injection until the first explicit `fnox` call. Keep fnox eager if that auto-loading is relied on. fnox 1.21.0 or later is required for pwsh.
+- **fnox.** `activate pwsh` installs only a prompt hook that loads and unloads secrets as the working directory changes ([fnox shell integration](https://fnox.jdx.dev/guide/shell-integration.html)). A stub would delay auto-injection until the first explicit `fnox` call, which breaks auto-loading, so fnox loads on OnIdle instead: secrets for the start directory arrive on first idle. fnox 1.21.0 or later is required for pwsh.
 
 These tools have no endorsed static or cached init:
 
@@ -102,12 +102,12 @@ A `profile.d/` directory sits next to the profile. Its fragment sources are `*.p
 | `015-psreadline` | PSReadLine import, prediction options, base key handlers | Eager |
 | `020-prompt-omp` | oh-my-posh | Eager |
 | `025-terminal-icons` | Terminal-Icons, via one-shot OnIdle | Deferred |
-| `030-carapace` | carapace and the `Tab` binding | Eager |
+| `030-carapace` | `Tab` binding eager, completer on OnIdle | Mixed |
 | `040-zoxide` | zoxide, initialized on the real binary | Eager |
 | `050-television` | `tv init power-shell` | Eager |
 | `055-atuin` | `atuin init powershell` | Eager |
 | `080-pay-respects` | Stub `f` | Deferred |
-| `085-fnox` | Stub `fnox` | Deferred |
+| `085-fnox` | `fnox activate pwsh` on OnIdle | Deferred |
 | `090-kanata` | kanata toggle functions | Eager |
 | `095-psmux` | psmux helper functions | Eager |
 
@@ -150,4 +150,4 @@ Splitting the profile adds about 13 file opens and parse passes, and each open m
 
 - Set up the Defender exclusion. No repo script manages one yet.
 - Create `profile.d/` and reduce the profile to the loader.
-- Convert `pay-respects` and `fnox` to stubs, after deciding whether fnox's secret auto-loading on `cd` and the pay-respects inline chord are used.
+- Convert `pay-respects` to a stub, after deciding whether its inline chord is used.
