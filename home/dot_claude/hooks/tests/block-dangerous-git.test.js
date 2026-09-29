@@ -82,3 +82,19 @@ test('allows: bare push in a feature worktree reached by cd', () =>
     assert.equal(bare('cd /wt && git push -u origin', { '': 'develop', '/wt': 'feat/x' }), 0));
 test('blocks: bare push in a develop checkout reached by cd', () =>
     assert.equal(bare('cd /repo && git push', { '': 'feat/x', '/repo': 'develop' }), 2));
+
+// The hook reads the command before the shell expands it.
+const home = require('node:os').homedir();
+test('blocks: bare push in a directory named by a variable, judged by the session branch', () => {
+    assert.equal(bare('git -C $V push', { '': 'main' }), 2);
+    assert.equal(bare('cd "$X" && git push', { '': 'develop' }), 2);
+});
+test('resolves a variable assigned earlier in the same command', () => {
+    const branches = { '': 'feat/x', [`${home}/.claude-vault`]: 'main' };
+    assert.equal(bare('V=~/.claude-vault; git -C $V push', branches), 2);
+    assert.equal(bare('R=$HOME/.claude-vault && cd "${R}" && git push', branches), 2);
+});
+test('resolves ~ and $HOME in the push directory', () => {
+    assert.equal(bare('git -C ~/repo push', { '': 'feat/x', [`${home}/repo`]: 'main' }), 2);
+    assert.equal(bare('cd $HOME/wt && git push -u origin', { '': 'develop', [`${home}/wt`]: 'feat/x' }), 0);
+});

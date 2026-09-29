@@ -1,5 +1,6 @@
 'use strict';
 
+const os = require('node:os');
 const { getCommand } = require('../lib/hook-io');
 const { currentBranch } = require('../lib/git');
 const { WRAPPER, unquote, segments, cdBefore } = require('../lib/shell');
@@ -11,6 +12,28 @@ const block = reason => ({
     stderr: `🛑 BLOCKED: ${reason} The user has prevented you from doing this.`,
 });
 
+const ASSIGN = /^([A-Za-z_]\w*)=(\S+)$/;
+
+// The hook reads the command before the shell expands it: variables assigned earlier
+// in the command, the environment's, and `~` are expanded here; a directory still
+// naming a variable resolves to '' (the session's own).
+function resolveDir(dir, vars = {}) {
+    const expanded = dir
+        .replace(/\$\{?([A-Za-z_]\w*)\}?/g, (m, name) => vars[name] ?? process.env[name] ?? m)
+        .replace(/^~(?=\/|$)/, os.homedir());
+    return /[$`]/.test(expanded) ? '' : expanded;
+}
+
+/** `NAME=value` assignments in the segments before `index`, their own values expanded. */
+function assignedBefore(segs, index) {
+    const vars = {};
+    for (const seg of segs.slice(0, index)) {
+        const m = seg.match(ASSIGN);
+        if (m) vars[m[1]] = resolveDir(unquote(m[2]), vars) || unquote(m[2]);
+    }
+    return vars;
+}
+
 /**
  * Each git invocation in `cmd`, as its own text and the directory it runs in, so
  * a flag or branch named by another command in the line is not read as its own.
@@ -18,7 +41,8 @@ const block = reason => ({
 function gitCalls(cmd, outerCwd = '') {
     const segs = segments(cmd);
     return segs.flatMap((seg, i) => {
-        const cwd = cdBefore(segs, i) || outerCwd;
+        const vars = assignedBefore(segs, i);
+        const cwd = resolveDir(cdBefore(segs, i), vars) || outerCwd;
         const wrapped = seg.match(WRAPPER);
         if (wrapped) return gitCalls(unquote(wrapped[1]), cwd);
         const m = seg.match(GIT);
@@ -31,7 +55,7 @@ function gitCalls(cmd, outerCwd = '') {
                 sub,
                 args: rest.join(' '),
                 text: `git ${tail}`,
-                cwd: dashC ? unquote(dashC[1]) : cwd,
+                cwd: dashC ? resolveDir(unquote(dashC[1]), vars) : cwd,
             },
         ];
     });
