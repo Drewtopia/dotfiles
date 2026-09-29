@@ -1,7 +1,8 @@
 'use strict';
-// Gates `git push` on the CURRENT branch passing commit-check's Conventional Branch
-// rules; a cross-branch refspec is not checked. Allows when commit-check is absent,
-// so a half-provisioned machine can still push.
+// Gates `git push` on the branch checked out where the push runs (after `cd` or
+// `git -C`) passing commit-check's Conventional Branch rules; a cross-branch refspec
+// is not checked. Allows when commit-check is absent, so a half-provisioned machine
+// can still push.
 
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -9,9 +10,10 @@ const os = require('node:os');
 const path = require('node:path');
 const { getCommand } = require('../lib/hook-io');
 const { currentBranch, repoRoot } = require('../lib/git');
+const { gitCalls } = require('./block-dangerous-git');
 
 const isGitPush = cmd =>
-    /(^|[^a-zA-Z])git(\s+-c\s+\S+)*\s+push(\s|$)/.test(cmd);
+    /(^|[^a-zA-Z])git(\s+-[cC]\s+\S+)*\s+push(\s|$)/.test(cmd);
 
 const REPO_CONFIGS = [
     'cchk.toml',
@@ -81,13 +83,14 @@ function run(input, deps = {}) {
     const cmd = getCommand(input);
     if (!cmd || !isGitPush(cmd)) return { exitCode: 0 };
 
-    const worktree = getRepoRoot();
+    const where = gitCalls(cmd).find(call => call.sub === 'push')?.cwd || '';
+    const worktree = getRepoRoot(where);
     if (!worktree) return { exitCode: 0 };
 
     const result = check(worktree);
     if (result.ok || result.unavailable) return { exitCode: 0 };
 
-    const branch = getBranch() || '<unknown>';
+    const branch = getBranch(where) || '<unknown>';
     return {
         exitCode: 2,
         stderr: [
