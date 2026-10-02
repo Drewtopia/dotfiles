@@ -73,7 +73,7 @@
       {
         "id": "worktrunk-statusline",
         "type": "custom-command",
-        "commandPath": "wt list statusline --format=claude-code",
+        "commandPath": {{ if eq .chezmoi.os "windows" }}"wt list statusline --format=claude-code"{{ else }}"\"$HOME/.local/bin/wt-statusline\""{{ end }},
         "timeout": 5000,
         "preserveColors": true
       }
