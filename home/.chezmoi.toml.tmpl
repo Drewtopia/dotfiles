@@ -107,6 +107,14 @@
 {{- $vscode_ext_dir := printf "%s/.vscode/extensions" $tools_root -}}
 {{- $vscode_global_storage_dir := printf "%s/.vscode/globalStorage" $tools_root -}}
 
+# Work-only files that name the employer are committed as encrypted_*.age. The key
+# lives only on work machines (backed up in 1Password); .chezmoiignore skips those
+# files elsewhere, so a machine without the key never decrypts.
+encryption = "age"
+[age]
+    identity = "{{ .chezmoi.homeDir }}/.config/chezmoi/key.txt"
+    recipient = "age13xrdnan0ugxq6cgjqjdmm7v8rwzj5kyf89cqr7389ygu43majyrsdja39t"
+
 # Make mise-managed tools visible to chezmoi templates (lookPath, etc.)
 [env]
 {{ if eq .chezmoi.os "windows" -}}
