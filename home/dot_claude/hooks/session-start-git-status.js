@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// SessionStart: git workflow warnings on stdout, which joins session context.
+// SessionStart: git workflow warnings and the streams in flight on stdout, which joins session context.
 
 const { readStdin } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
@@ -33,12 +33,19 @@ function buildWarnings(s, t = DEFAULTS) {
     } else if (s.behind > 0) {
         w.push(`Branch is ${s.behind} commit(s) behind upstream.`);
     }
-    if (s.staleWorktrees && s.staleWorktrees.length) {
-        w.push(
-            `Stale worktrees (>${t.worktreeAge}d): ${s.staleWorktrees.join(' ')}`,
-        );
-    }
     return w;
+}
+
+// One line per linked worktree: the Orca card's status and next step when there is a card,
+// else the last commit subject. `merged` means the default branch already holds it.
+function buildStreams(streams, t = DEFAULTS) {
+    return streams.map(s => {
+        const status = s.merged ? 'merged' : s.cardStatus || 'no card';
+        const what = s.cardComment || s.lastSubject || '';
+        const dirty = s.dirty > 0 ? ` · ${s.dirty} uncommitted` : '';
+        const age = s.ageDays > t.worktreeAge ? ` · stale ${s.ageDays}d` : '';
+        return `${s.branch} — ${status} — ${what}${dirty}${age}`;
+    });
 }
 
 const intOr = (raw, fallback = 0) => {
@@ -86,23 +93,6 @@ function collectState(nowSec, t = DEFAULTS) {
         behind = intOr(git(['rev-list', '--count', 'HEAD..@{u}']), 0);
     }
 
-    const staleWorktrees = [];
-    const mainTop = git(['rev-parse', '--show-toplevel']);
-    const porcelain = git(['worktree', 'list', '--porcelain']).split('\n');
-    for (const line of porcelain) {
-        const m = /^worktree (.+)$/.exec(line);
-        if (!m) continue;
-        const wt = m[1];
-        if (wt === mainTop) continue;
-        const lastTs = intOr(
-            gitIn(wt, ['log', '-1', '--pretty=format:%ct']),
-            0,
-        );
-        if (!lastTs) continue;
-        const ageDays = Math.floor((nowSec - lastTs) / 86400);
-        if (ageDays > t.worktreeAge) staleWorktrees.push(`${wt} (${ageDays}d)`);
-    }
-
     return {
         branch,
         integ,
@@ -111,8 +101,57 @@ function collectState(nowSec, t = DEFAULTS) {
         dirtyCount,
         behind,
         upstream,
-        staleWorktrees,
     };
+}
+
+function collectStreams(nowSec, integ) {
+    const cards = orcaCards();
+    const porcelain = git(['worktree', 'list', '--porcelain']).split('\n');
+    const primary = porcelain[0].replace(/^worktree /, '');
+    const streams = [];
+    let path = null;
+    for (const line of porcelain) {
+        const w = /^worktree (.+)$/.exec(line);
+        if (w) path = w[1];
+        const b = /^branch refs\/heads\/(.+)$/.exec(line);
+        if (!b || !path || path === primary) continue;
+        const [ts, subject] = gitIn(path, ['log', '-1', '--pretty=format:%ct%x09%s']).split('\t');
+        const dirty = gitIn(path, ['status', '--porcelain']).split('\n').filter(Boolean).length;
+        const card = cards.get(path) || {};
+        streams.push({
+            branch: b[1],
+            ts: intOr(ts, 0),
+            ageDays: Math.floor((nowSec - intOr(ts, nowSec)) / 86400),
+            lastSubject: subject || '',
+            dirty,
+            // A branch cut from the integration tip, or holding only uncommitted work, is an ancestor too.
+            merged:
+                Boolean(integ) &&
+                dirty === 0 &&
+                git(['rev-parse', b[1]]) !== git(['rev-parse', integ]) &&
+                gitOk(['merge-base', '--is-ancestor', b[1], integ]),
+            cardStatus: card.workspaceStatus || '',
+            cardComment: card.comment || '',
+        });
+    }
+    return streams.sort((a, b) => b.ts - a.ts);
+}
+
+// Orca cards by worktree path; empty outside an Orca terminal, where bare `orca` is the GNOME screen reader.
+function orcaCards() {
+    const cards = new Map();
+    if (!process.env.ORCA_WORKTREE_ID) return cards;
+    try {
+        const out = execFileSync(process.env.ORCA_CLI_COMMAND || 'orca', ['worktree', 'list', '--json'], {
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore'],
+            timeout: 10000,
+        });
+        for (const w of JSON.parse(out).result?.worktrees ?? []) cards.set(w.path, w);
+    } catch {
+        // No cards: each stream falls back to its last commit subject.
+    }
+    return cards;
 }
 
 const { execFileSync } = require('node:child_process');
@@ -126,15 +165,25 @@ function gitIn(cwd, args) {
         return '';
     }
 }
+function gitOk(args) {
+    try {
+        execFileSync('git', args, { stdio: 'ignore' });
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 function run(nowSec) {
     if (!git(['rev-parse', '--git-dir'])) return { exitCode: 0, output: '' };
-    const warnings = buildWarnings(collectState(nowSec));
-    if (!warnings.length) return { exitCode: 0, output: '' };
-    const output =
-        'Git workflow check:\n' +
-        warnings.map(w => `  - ${w}`).join('\n') +
-        '\n';
+    const state = collectState(nowSec);
+    const warnings = buildWarnings(state);
+    const streams = buildStreams(collectStreams(nowSec, state.integ));
+    let output = '';
+    if (warnings.length)
+        output += 'Git workflow check:\n' + warnings.map(w => `  - ${w}`).join('\n') + '\n';
+    if (streams.length)
+        output += 'Streams in flight:\n' + streams.map(s => `  - ${s}`).join('\n') + '\n';
     return { exitCode: 0, output };
 }
 
@@ -158,6 +207,7 @@ if (require.main === module) main();
 
 module.exports = {
     buildWarnings,
+    buildStreams,
     collectState,
     findIntegration,
     run,
