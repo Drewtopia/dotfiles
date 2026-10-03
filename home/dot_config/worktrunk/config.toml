@@ -82,9 +82,28 @@ done
 exit 0
 """
 
+# A worktree made from an Orca terminal gets its card: in progress, linked to the branch's gh<n> issue.
+# Orca's own create sets the card itself, and its setup env has no ORCA_WORKTREE_ID.
+orca-card = """
+[ -n "${ORCA_WORKTREE_ID:-}" ] || exit 0
+N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
+"${ORCA_CLI_COMMAND:-orca}" worktree set --worktree path:{{ worktree_path }} --workspace-status in-progress ${N:+--issue "$N"} >/dev/null 2>&1 || true
+exit 0
+"""
+
 [pre-remove]
 tmux = """
 S={{ branch | sanitize }}
 S=$(printf '%s' "$S" | tr . -)
 tmux kill-session -t "=$S" 2>/dev/null || true
+"""
+
+# An Azure merge never closes the GitHub issue a branch carries, so name it while it is still open.
+issue-reminder = """
+N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
+[ -n "$N" ] || exit 0
+R=${GH_ISSUE_TRACKER_REPO:-$(mise exec -- printenv GH_ISSUE_TRACKER_REPO 2>/dev/null || true)}
+S=$(timeout 15 gh issue view "$N" ${R:+--repo "$R"} --json state --jq .state 2>/dev/null || true)
+[ "$S" = "OPEN" ] && echo "GH-$N is still open: gh issue close $N${R:+ --repo $R}"
+exit 0
 """

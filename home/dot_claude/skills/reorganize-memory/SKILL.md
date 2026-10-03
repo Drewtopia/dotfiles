@@ -15,7 +15,7 @@ Always use plan mode — show the user what you intend to change before changing
 - `general.md` — cross-project conventions and quality gates. Stay lean — behavioral rules go in `~/.claude/rules/`, not here.
 - `tools/{tool}.md` — one file per tool. Lazy-loaded.
 - `domain/{topic}.md` — domain knowledge per product/area (create lazily). Lazy-loaded.
-- `SESSION_LOG.md` — cross-device session log (prepended by `/close`)
+- `SESSION_LOG.md` — closeout history; no longer written (`/close` writes the stream's Orca card instead)
 - `projects.md` — where per-project agent knowledge lives
 
 **Behavioral rules** — native Claude Code mechanism; instructions, not facts (code.claude.com/docs/en/memory#organize-rules-with-claude/rules/). Two scopes:
