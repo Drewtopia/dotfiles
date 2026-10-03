@@ -45,6 +45,11 @@ Library
 .git-azdo-helper.sh
 {{ end }}
 
+# Work-only encrypted files: skipped off work machines and until the age key is restored.
+{{ if or (not .work) (not (stat (joinPath .chezmoi.homeDir ".config/chezmoi/key.txt"))) }}
+.config/worktrunk/work.toml
+{{ end }}
+
 {{ if ne .chezmoi.os "windows" }}
 .chezmoiscripts/windows/**
 .chezmoiscripts/**/*.ps1
