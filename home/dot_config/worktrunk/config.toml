@@ -58,13 +58,13 @@ echo "   Build on one of those, or Ctrl-C to abort this new '$B' worktree. (Warn
 exit 0
 """
 
-# Report only; removal stays with /clean-workspace. Skipped under Claude.
+# Report only; removal stays with you. Skipped under Claude.
 merged-report = """
 if [ -n "${CLAUDECODE:-}" ]; then exit 0; fi
 R=$(wt step prune --dry-run 2>&1 || true)
 N=$(printf '%s\\n' "$R" | grep -c ' — ' || true)
 [ "$N" -gt 0 ] || exit 0
-echo "🧹 $N merged worktrees or branches can go — preview: wt step prune --dry-run · remove: /clean-workspace"
+echo "🧹 $N merged worktrees or branches can go — preview: wt step prune --dry-run · remove: wt step prune"
 exit 0
 """
 
