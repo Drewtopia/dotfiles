@@ -1,12 +1,18 @@
 ---
 name: close
-description: Close out a session — quick by default (commit, notes, SESSION_LOG with a Next line, rename and color-status commands); full extras only when a merge, plan docs, or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
+description: Close out a session so the next one starts in the right place — commit, notes, and the worktree's Orca card (next step and status), which the SessionStart hook shows every new session; full extras only when a merge, plan docs, or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
 disable-model-invocation: true
 ---
 
 # /close — session closeout
 
-Quick close runs every time and stays short: a heavy closeout is a closeout that gets skipped. Full extras run only when their trigger is present, or when invoked as `/close full`. End with a counter line, then `/rename` and `/color` commands.
+Quick close runs every time and stays short: a heavy closeout is a closeout that gets skipped. Full extras run only when their trigger is present, or when invoked as `/close full`.
+
+Where things live after a close:
+
+- **This stream's next step** → its Orca worktree card (step 3). Drew reads the sidebar to find his place.
+- **Every stream at a glance** → built live at each session start by the `session-start-git-status` hook from the worktrees and their cards. Nothing to write.
+- **What happened** → the remember plugin's own history and `SESSION_TAILS.md`, both written automatically.
 
 Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
@@ -24,7 +30,7 @@ Not inside a git repo → skip to step 2. Clean tree → say so in one line and 
 
 Dirty tree → read the full diff (`git diff HEAD`): hunks, not filenames.
 
-- On `main`, `master`, or `develop`, cut a feature branch first — the `gate-commit-not-protected` hook hard-blocks commits there: `git checkout -b <type>/<topic>` (Conventional Branch name, e.g. `chore/session-closeout`).
+- On `main`, `master`, or `develop`, the work belongs on its stream's branch — the `gate-commit-not-protected` hook hard-blocks commits there. Find the stream with `wt list` and carry the changes over (`git stash -u`, then `git -C <stream-path> stash pop`); with no stream yet, `git switch -c <type>/<topic>` carries them in place.
 - Group hunks by **purpose**, not by file. A single file can span two commits; two files can belong to one. One logical change → one commit; don't manufacture splits.
 - For each group: state the paths/hunks and the commit message (English imperative, conventional-commit prefix when it fits), confirm with Drew, stage only those paths (`git add -p` when hunks in one file split), commit.
 - Do **not** push. Do **not** use `git add -A`.
@@ -35,7 +41,8 @@ Read back through the session once for what future work needs:
 
 - **Mistakes** — breakages or corrections not yet in the main checkout's `MISTAKES.md` → append them (what happened / root cause / consequence / prevention, newest first). Never a worktree's copy: it is gitignored and dies with the worktree. Target `"$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/MISTAKES.md"`.
 - **Decisions, insights, references** worth keeping → the memory file that owns them (table below).
-- **Open tasks** → the `Next:` line (step 3) or a tracker issue, not memory.
+- **Decisions with no durable home yet** — a scope call, a design choice, a deferred question → name the command that gives it one: `/to-spec` or `/re-spec` for a spec, `/to-tickets` or `/re-ticket` for tickets, `/edit-governance` for an ADR or rule. It goes in the card's next step (step 3) when it is the next thing to do.
+- **Open tasks** → the card's next step (step 3) or a tracker issue, not memory.
 
 Skip ephemeral debugging steps, retracted ideas, and anything obvious from the diff. Nothing worth keeping is a valid result: say "no notes".
 
@@ -48,55 +55,24 @@ Skip ephemeral debugging steps, retracted ideas, and anything obvious from the d
 
 A new file under `tools/` or `domain/` gets a one-line row (file path + description) in `~/.claude/memory/memory.md`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
-### 3. Rename and color
+### 3. The card
 
-Run any full-close extras that apply (below) before this step, so their outcome shapes the status and the `Next:` line.
+Run any full-close extras that apply (below) before this step, so their outcome shapes the card.
 
-Decide the session's name and color now: the SESSION_LOG entry in step 4 records both. Compose them as two commands. Drew pastes them at the prompt; the agent cannot run slash commands itself. They are the report's last two lines, after the counter, so they are not lost mid-report:
-
-```
-/rename <project>-<ticket-or-pr>-<topic>
-/color <status-color>
-```
-
-**Name** — kebab-case, lowercase, no date (the `/resume` picker shows recency). Name the session by everything it did, not just its opening ask. Lead with the project, then a ticket, PR, or branch number when there is one — those are what Drew searches for. Keep status words (`wip`, `done`) out of the name; the color carries status. Examples: `at-59806-seed-ledger-migration`, `dotfiles-gh-156-close-rename-line`.
-
-**Color** — the session's status, tinting its name in the agents view. Take the first row that applies:
-
-| Color | Status |
-|---|---|
-| `red` | broken or blocked on an unresolved failure |
-| `yellow` | waiting on Drew — a decision, manual step, merge, or apply |
-| `orange` | waiting on someone else — review, CI, QA |
-| `blue` | parked mid-work, to resume later |
-| `green` | done, kept — reference material or a likely follow-up |
-| `pink` | done and closed out — nothing in flight, safe to remove |
-
-Nothing open defaults to `pink`; use `green` only when the session holds context worth returning to or Drew asks to keep it. `purple` and `cyan` stay unassigned. A `pink` session's card is what `/clean-workspace` clears, which keeps the agents view short.
-
-### 4. Next line and SESSION_LOG
-
-If anything is in flight or open, print on its own line a prompt Drew can paste into a fresh session — the first action and the skill to call:
-
-```
-Next: <skill or command> — <first action, naming the branch, PR, or issue>
-```
-
-Skip the line when nothing is left open.
-
-Prepend the SESSION_LOG entry. The helper owns the format, derives date, machine, project and branch, writes the `Next: ` prefix itself, and refuses an empty required field or an unknown color:
+Inside Orca (`$ORCA_WORKTREE_ID` is set), write this worktree's card. Use `$ORCA_CLI_COMMAND` when set, else `orca`: outside an Orca terminal, bare `orca` on Linux is the GNOME screen reader.
 
 ```bash
-bash ~/.claude/skills/_lib/session-log-prepend.sh \
-  --title "<title>" \
-  --summary "<1–2 sentences on what got done and why it mattered>" \
-  --artifact "<path, PR link, or skill name>" \
-  --next "<the Next line's text, without the Next: prefix>" \
-  --name "<the /rename name from step 3>" \
-  --color "<the /color word from step 3>"
+"${ORCA_CLI_COMMAND:-orca}" worktree set --worktree path:"$(git rev-parse --show-toplevel)" \
+  --workspace-status <status> --comment "Next: <first action, naming the branch, PR, or issue>"
 ```
 
-Omit `--next` when there is no Next line. Run it from the repo or worktree the session worked in, so the derived branch is the right one. Creates `SESSION_LOG.md` if absent. Then `cvault apply` to push it.
+| Status | When |
+|---|---|
+| `in-progress` | work remains on this branch |
+| `in-review` | a PR is open and waiting on review |
+| `completed` | the branch has merged and nothing is left but `wt remove` |
+
+The comment is one line Drew acts on without reading anything else: the skill or command and the first action. Nothing left → `Next: wt remove <branch>`. Outside Orca, print the same `Next:` line instead.
 
 ## Full close — only when triggered
 
@@ -117,9 +93,9 @@ A merged PR does **not** auto-close its issue on a split-host project. Close the
 
 The normal closeout case is a WIP/unmerged branch — skip this. Only when the branch you're closing out has merged (its Azure PR is `Completed`, or the `GH-N` issue's PR shows merged):
 
-1. **Confirm the merge — don't infer it.** Check the PR state (`az repos pr list`, `gh pr view`) or ask Drew. worktrunk has no post-merge hook, and an Azure-UI merge never fires one, so nothing has cleaned up locally.
+1. **Confirm the merge — don't infer it.** Check the PR state (`az repos pr list`, `gh pr view`) or ask Drew. An Azure-UI merge fires no local hook, so nothing has cleaned up locally.
 2. Ensure the `GH-N` issue is closed (tracker reconcile does this on split-host projects).
-3. Verify `git status` is clean and **confirm with Drew** — a worktree with uncommitted changes is never removed. Then hand the removal to `clean-workspace`'s worktree step, which owns it for every caller: its dirty-tree refusal and no-`wt` fallback apply to this single branch exactly as they do to a bulk prune.
+3. Verify `git status` is clean and **confirm with Drew** — a worktree with uncommitted changes is never removed. Then `wt remove <branch>`, which refuses a branch the default branch does not contain.
 
 ### Plan sweep
 
@@ -134,20 +110,21 @@ List everything this session created, changed, or started outside the commits �
 - **Debris** — a branch after its merge, a leftover worktree, a temp file or container, a stale comment this session wrote.
 - **Out of scope** — a finding that deserves its own tracker issue. Draft the title and one-paragraph body now, while the context is live; file it on confirm.
 
-Report the sorted list with one proposed action per item and act only on what Drew confirms. Worktree removal goes to `clean-workspace`'s worktree step; branch deletion follows the `deletion-safety` rule.
+Report the sorted list with one proposed action per item and act only on what Drew confirms. Worktree removal is `wt remove <branch>`; branch deletion follows the `deletion-safety` rule.
 
 ## Report
 
 Print the counter:
 
 ```
-<N> memory updates · <N> commits · <N> issues closed · <N> issues filed · worktree removed · SESSION_LOG updated
+<N> memory updates · <N> commits · <N> issues closed · <N> issues filed · card set · worktree removed
 ```
 
-Drop any segment whose step didn't run rather than printing `0`. Then the `/rename` and `/color` commands as the last two lines, each on its own line, with nothing after them.
+Drop any segment whose step didn't run rather than printing `0`. Then the card's `Next:` line, and last a `/rename <project>-<ticket-or-pr>-<topic>` command Drew can paste (kebab-case, no date, no status words) so `/resume` and `/find-session` can find the session.
 
 ## Self-check before reporting done
 
 - Every new memory file has a one-line pointer in `memory.md`.
 - Counter line reflects actual counts, not aspirational ones.
+- Inside Orca, the card's comment is this session's `Next:` line, word for word.
 - If the session touched vault or chezmoi source: both repos clean and pushed.
