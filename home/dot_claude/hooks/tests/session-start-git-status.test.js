@@ -11,7 +11,6 @@ const base = {
     commitsAhead: 0,
     dirtyCount: 0,
     behind: 0,
-    staleWorktrees: [],
 };
 
 test('clean state produces no warnings', () => {
@@ -46,16 +45,39 @@ test('protected branches suppress age/ahead warnings', () => {
     }
 });
 
-test('dirty / behind / stale worktrees each add a line', () => {
-    const w = sg.buildWarnings({
-        ...base,
-        dirtyCount: 4,
-        behind: 2,
-        staleWorktrees: ['/wt/a (9d)'],
-    });
+test('dirty / behind each add a line', () => {
+    const w = sg.buildWarnings({ ...base, dirtyCount: 4, behind: 2 });
     assert.match(w[0], /4 uncommitted change\(s\)/);
     assert.match(w[1], /2 commit\(s\) behind upstream/);
-    assert.match(w[2], /Stale worktrees \(>7d\): \/wt\/a \(9d\)/);
+});
+
+const stream = {
+    branch: 'feat/gh12-x',
+    ageDays: 1,
+    lastSubject: 'feat: last commit',
+    dirty: 0,
+    merged: false,
+    cardStatus: '',
+    cardComment: '',
+};
+
+test('a stream with a card shows its status and next step', () => {
+    const [line] = sg.buildStreams([
+        { ...stream, cardStatus: 'in-review', cardComment: 'Next: review PR 10031' },
+    ]);
+    assert.equal(line, 'feat/gh12-x — in-review — Next: review PR 10031');
+});
+
+test('a stream without a card falls back to its last commit subject', () => {
+    const [line] = sg.buildStreams([stream]);
+    assert.equal(line, 'feat/gh12-x — no card — feat: last commit');
+});
+
+test('merged wins over the card status; uncommitted work and age are flagged', () => {
+    const [merged] = sg.buildStreams([{ ...stream, merged: true, cardStatus: 'in-review', ageDays: 9 }]);
+    assert.equal(merged, 'feat/gh12-x — merged — feat: last commit · stale 9d');
+    const [dirty] = sg.buildStreams([{ ...stream, dirty: 3 }]);
+    assert.equal(dirty, 'feat/gh12-x — no card — feat: last commit · 3 uncommitted');
 });
 
 test('behind names the upstream to read code state from', () => {
