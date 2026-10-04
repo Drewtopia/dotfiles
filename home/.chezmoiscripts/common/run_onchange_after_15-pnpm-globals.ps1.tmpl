@@ -36,12 +36,13 @@ if (-not $pnpmCmd) {
 }
 
 # pnpm v11 errors any global command if PNPM_HOME/bin isn't on PATH.
-# Profile adds it for interactive shells, but chezmoi spawns scripts fresh.
-if ($env:PNPM_HOME) {
-    $pnpmBin = Join-Path $env:PNPM_HOME 'bin'
-    if ((Test-Path $pnpmBin) -and ($env:PATH -notlike "*$pnpmBin*")) {
-        $env:PATH = "$pnpmBin;$env:PATH"
-    }
+# 05-set-env-vars writes PNPM_HOME to the User env, which sibling scripts in
+# the same apply don't inherit, so set both here from the template value.
+$env:PNPM_HOME = '{{ .directories.pnpm_home | replace "/" "\\" }}'
+$pnpmBin = Join-Path $env:PNPM_HOME 'bin'
+New-Item -ItemType Directory -Force -Path $pnpmBin | Out-Null
+if (($env:PATH -split ';') -notcontains $pnpmBin) {
+    $env:PATH = "$pnpmBin;$env:PATH"
 }
 
 $actual = @()
