@@ -10,16 +10,14 @@
 # re-trigger them either.
 #
 # Why winget portable instead of scoop:
-#   - WinGet Links shim provides PATH entry automatically; no scoop\shims
-#     prepend gymnastics required for mise.exe lookup.
 #   - One less reason scoop must work on locked-down boxes.
 #   - `winget upgrade jdx.mise` keeps it current; `mise self-update` also works.
 #
-# Install location:
-#   - Relocated dev tree: <tools_root>\tools\mise\bin\mise.exe (winget --location).
-#   - Default home: winget's standard %LOCALAPPDATA%\Microsoft\WinGet\Packages\jdx.mise_*\.
-# WinGet portable extracts the archive whole (bin/, LICENSE, README), so a
-# dir-per-tool layout is expected and matches the existing `tools/` convention.
+# Install location is always <tools_root>\tools\mise\bin\mise.exe (winget
+# --location). chezmoi.toml puts that dir on the [env] PATH every script gets,
+# so later scripts in this same apply find mise. WinGet's own PATH handling
+# (a Links symlink, or a User PATH entry when symlinks are not allowed) only
+# reaches new shells.
 
 $ErrorActionPreference = "Stop"
 
@@ -31,50 +29,28 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
 
 Write-Host "[bootstrap] mise not found, installing..." -ForegroundColor Yellow
 
+$miseInstallRoot = '{{ .directories.tools_root | replace "/" "\\" }}\tools'
+$miseExe = "$miseInstallRoot\mise\bin\mise.exe"
+
 if (Get-Command winget -ErrorAction SilentlyContinue) {
-{{- if .relocated }}
-    # Relocated dev tree: install under tools_root\tools so the mise dir-per-tool
-    # layout (mise\bin\mise.exe) lands inside the whitelisted path alongside
-    # any other portable apps in <tools_root>\tools\.
-    $miseInstallRoot = '{{ .directories.tools_root }}\tools'
-    if (-not (Test-Path $miseInstallRoot)) {
-        New-Item -ItemType Directory -Force -Path $miseInstallRoot | Out-Null
-    }
+    New-Item -ItemType Directory -Force -Path $miseInstallRoot | Out-Null
     Write-Host "[bootstrap] Installing mise via winget portable to $miseInstallRoot..." -ForegroundColor Blue
     winget install --id jdx.mise --exact --source winget `
         --location $miseInstallRoot `
         --disable-interactivity `
         --accept-source-agreements `
         --accept-package-agreements
-{{- else }}
-    # Default install location: %LOCALAPPDATA%\Microsoft\WinGet\Packages\jdx.mise_*\.
-    # No --location override needed; tools_root == home dir means there is
-    # no special placement requirement.
-    Write-Host "[bootstrap] Installing mise via winget portable (default location)..." -ForegroundColor Blue
-    winget install --id jdx.mise --exact --source winget `
-        --disable-interactivity `
-        --accept-source-agreements `
-        --accept-package-agreements
-{{- end }}
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[bootstrap] winget install returned exit $LASTEXITCODE" -ForegroundColor Yellow
-    }
-
-    # Refresh same-session PATH so the Get-Command check below sees the
-    # newly installed binary without requiring a fresh shell. WinGet portable
-    # adds %LOCALAPPDATA%\Microsoft\WinGet\Links to User PATH on install.
-    $wingetLinks = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
-    if ((Test-Path $wingetLinks) -and ($env:Path -notlike "*$wingetLinks*")) {
-        $env:Path = "$wingetLinks;$env:Path"
     }
 } else {
     Write-Host "[bootstrap] winget not available on PATH" -ForegroundColor Yellow
 }
 
-if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
-    Write-Error "[bootstrap] mise install completed but mise is still not on PATH. Check ${env:LOCALAPPDATA}\Microsoft\WinGet\Links and ensure it is in User PATH."
+if (-not (Test-Path $miseExe)) {
+    Write-Error "[bootstrap] mise.exe not found at $miseExe after winget install."
     exit 1
 }
 
-Write-Host "[bootstrap] mise installed: $(mise --version | Select-Object -First 1)" -ForegroundColor Green
+Write-Host "[bootstrap] mise installed: $(& $miseExe --version | Select-Object -First 1)" -ForegroundColor Green
 {{- end -}}
