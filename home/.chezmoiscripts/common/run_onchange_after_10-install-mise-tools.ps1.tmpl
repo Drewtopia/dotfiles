@@ -21,17 +21,23 @@ $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [En
 # mise is installed via winget in windows/run_onchange_before_00-install-mise.ps1.tmpl
 if (Get-Command mise -ErrorAction SilentlyContinue) {
     # Unauthenticated GitHub allows 60 API calls an hour, too few for a fresh
-    # install. gh is one mise tool, so install it alone and log in first.
+    # install. winget installs gh without using that quota, unlike mise.
     if (-not $env:GITHUB_TOKEN) {
         $env:GITHUB_TOKEN = [Environment]::GetEnvironmentVariable('GITHUB_TOKEN', 'User')
     }
     if (-not $env:GITHUB_TOKEN) {
-        mise install --yes aqua:cli/cli
-        $token = (mise exec aqua:cli/cli -- gh auth token 2>$null)
-        if (-not $token -and -not [Console]::IsInputRedirected) {
-            Write-Host "[Install] Log in to GitHub so mise can download tools without hitting the rate limit" -ForegroundColor Blue
-            mise exec aqua:cli/cli -- gh auth login --hostname github.com --git-protocol https --web
-            $token = (mise exec aqua:cli/cli -- gh auth token 2>$null)
+        if (-not (Get-Command gh -ErrorAction SilentlyContinue) -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+            winget install --id GitHub.cli --exact --source winget --disable-interactivity --accept-source-agreements --accept-package-agreements
+            $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
+        }
+        $token = $null
+        if (Get-Command gh -ErrorAction SilentlyContinue) {
+            $token = (gh auth token 2>$null)
+            if (-not $token -and -not [Console]::IsInputRedirected) {
+                Write-Host "[Install] Log in to GitHub so mise can download tools without hitting the rate limit" -ForegroundColor Blue
+                gh auth login --hostname github.com --git-protocol https --web
+                $token = (gh auth token 2>$null)
+            }
         }
         if ($token) {
             $env:GITHUB_TOKEN = $token
