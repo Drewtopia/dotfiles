@@ -119,18 +119,26 @@ encryption = "age"
 [env]
 {{ if eq .chezmoi.os "windows" -}}
 {{-   $miseShims := printf "%s/shims" $mise_dir | replace "/" "\\" -}}
+{{/*  00-install-mise installs here, so scripts later in the same apply find it. */}}
+{{-   $miseBin := printf "%s/tools/mise/bin" $tools_root | replace "/" "\\" -}}
+{{/*  chezmoi loads this [env] into its own process before rendering, so env "PATH"
+      is the PATH the previous init saved. Read the registry too, or tools
+      installed since the first init never reach scripts. */}}
+{{-   $registryPath := output "powershell.exe" "-NoLogo" "-NoProfile" "-NonInteractive" "-Command" "[Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')" | trim -}}
 {{-   $cleanPathParts := list -}}
+{{-   $seen := list ($miseBin | lower) -}}
 {{/*  Drop every mise shim dir; the canonical one is prepended. Two on PATH
       defeat mise's re-entry guard and fork-bomb. NOTE: twin of the pwsh
       Get-NormalizedPath guard in windows-relocation; keep them in sync. */}}
-{{-   range $part := splitList ";" (env "PATH") -}}
+{{-   range $part := splitList ";" (printf "%s;%s" $registryPath (env "PATH")) -}}
 {{-     $normalized := $part | replace "/" "\\" | trimSuffix "\\" -}}
 {{-     $lower := $normalized | lower -}}
-{{-     if and $normalized (not (or (hasSuffix "\\.mise\\shims" $lower) (hasSuffix "\\mise\\shims" $lower))) -}}
+{{-     if and $normalized (not (has $lower $seen)) (not (or (hasSuffix "\\.mise\\shims" $lower) (hasSuffix "\\mise\\shims" $lower))) -}}
 {{-       $cleanPathParts = append $cleanPathParts $normalized -}}
+{{-       $seen = append $seen $lower -}}
 {{-     end -}}
 {{-   end -}}
-    PATH = '{{ $miseShims }};{{ join ";" $cleanPathParts }}'
+    PATH = '{{ $miseShims }};{{ $miseBin }};{{ join ";" $cleanPathParts }}'
 {{- else }}
 {{/*  ~/.local/bin explicitly: install.sh runs init by full path, and a fresh Linux
       login shell has no ~/.local/bin on PATH yet. It holds the WSL op shim. */}}
