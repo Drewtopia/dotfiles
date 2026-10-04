@@ -9,6 +9,22 @@
 
 $ErrorActionPreference = "Stop"
 
+# Personal Windows symlinks ~/.claude/rules, which needs Developer Mode. Turn it
+# on now through one UAC prompt. Work boxes have no admin and don't need it.
+$devModeKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+$devMode = (Get-ItemProperty $devModeKey -ErrorAction SilentlyContinue).AllowDevelopmentWithoutDevLicense
+if ($devMode -ne 1) {
+    Write-Host "Turning on Developer Mode (needed for symlinks); approve the UAC prompt..."
+    # NOTE: New-Item -Force on an existing registry key deletes its values.
+    $enable = "if (-not (Test-Path '$devModeKey')) { New-Item -Path '$devModeKey' | Out-Null }; " +
+        "Set-ItemProperty -Path '$devModeKey' -Name AllowDevelopmentWithoutDevLicense -Type DWord -Value 1"
+    try {
+        Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList '-NoProfile', '-Command', $enable
+    } catch {
+        Write-Warning "Developer Mode not enabled ($($_.Exception.Message)). On a personal machine, turn it on in Settings > System > For developers before 'chezmoi apply'."
+    }
+}
+
 # winget puts chezmoi on PATH for new shells and upgrades it later. The
 # get.chezmoi.io script is the fallback for boxes without winget; it only
 # drops the binary, so its dir is added to User PATH here.

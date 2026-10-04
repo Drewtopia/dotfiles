@@ -32,7 +32,7 @@ Set in `home/.chezmoi.toml.tmpl`:
 
 - `~/.claude-vault` is a git-repo external (`Drewtopia/claude-vault`), cloned on personal machines and work non-Windows machines, pulled weekly with `--ff-only`.
 - Mac and Linux: `~/.claude/memory` and `~/.claude/rules` are symlinks into it (`home/dot_claude/symlink_memory.tmpl`, `symlink_rules.tmpl`).
-- Personal Windows manages only the `rules` symlink, which needs Developer Mode. Work Windows manages nothing under `~/.claude`.
+- Personal Windows manages only the `rules` symlink, which needs Developer Mode; `install.ps1` turns it on through a UAC prompt. Work Windows manages nothing under `~/.claude`.
 
 ## Scripts
 
