@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Agent-facing configuration for this chezmoi dotfiles repo. Domain vocabulary lives in `CONTEXT.md`.
+Agent-facing configuration for this chezmoi dotfiles repo. Domain vocabulary lives in `GLOSSARY.md`.
 
 ## Agent skills
 
@@ -14,4 +14,4 @@ Canonical triage role strings, mapped 1:1 to GitHub labels. See `docs/agents/tri
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `GLOSSARY.md` at the repo root. See `docs/agents/domain.md`.

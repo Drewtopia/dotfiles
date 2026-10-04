@@ -17,7 +17,7 @@ humanizer                 = "blader/humanizer"
 superwhisper              = "superultrainc/superwhisper-claude-code"
 "pstack-claude"           = "michael-denyer/pstack-claude"
 
-# Section = profile (see CONTEXT.md); a plugin needed in several profiles is
+# Section = profile (see GLOSSARY.md); a plugin needed in several profiles is
 # listed in each. false = installed but suppressed, kept as a rejection record.
 
 [plugins.always]
