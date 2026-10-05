@@ -24,26 +24,7 @@ since-main = "git log --oneline {{ default_branch }}..HEAD"
 [commit.generation]
 command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
 
-# Named from the BRANCH: worktree dirs drift from their branch (renames, agent-<id>).
-# Skipped under Claude or Orca, which already own the agent terminal; Orca's setup
-# env carries ORCA_ROOT_PATH but not ORCA_WORKTREE_ID, which only its terminals set.
 [pre-start]
-tmux = """
-if [ -n "${CLAUDECODE:-}" ] || [ -n "${ORCA_ROOT_PATH:-}" ] || [ -n "${ORCA_WORKTREE_ID:-}" ]; then exit 0; fi
-command -v tmux >/dev/null 2>&1 || exit 0
-S={{ branch | sanitize }}
-# tmux reads `.` in a target as the window.pane separator.
-S=$(printf '%s' "$S" | tr . -)
-W={{ worktree_path }}
-# `=` anchors an exact match. `if`, not `&& exit 0`: a failing has-session
-# would abort the create under `set -e`.
-if tmux has-session -t "=$S" 2>/dev/null; then exit 0; fi
-# send-keys takes a pane target, where the `=` prefix is a syntax error.
-P=$(tmux new-session -d -P -F '#{pane_id}' -s "$S" -c "$W" -n "$S")
-tmux send-keys -t "$P" 'claude' Enter
-echo "tmux session '$S' — attach with: ta $S"
-"""
-
 # Warn-only: flag an existing branch sharing this branch's ticket number.
 # `|| true` keeps an empty grep from aborting the create under set -e/pipefail.
 collision-check = """
@@ -92,12 +73,6 @@ exit 0
 """
 
 [pre-remove]
-tmux = """
-S={{ branch | sanitize }}
-S=$(printf '%s' "$S" | tr . -)
-tmux kill-session -t "=$S" 2>/dev/null || true
-"""
-
 # An Azure merge never closes the GitHub issue a branch carries, so name it while it is still open.
 issue-reminder = """
 N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
