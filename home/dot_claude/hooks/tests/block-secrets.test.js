@@ -172,6 +172,31 @@ test('a sensitive file named as a path token still blocks', () => {
     }
 });
 
+test('code and data that only look like key or env files stay allowed', () => {
+    for (const cmd of [
+        "jq '.hooks|to_entries[]|{e:.key,n:.value}' settings.json",
+        "grep -iE '\\.key$|\\.pem$' files.txt",
+        "node - <<'EOF'\nconst v = tab.key === 'home' ? 'a' : 'b'\nconst e = data?.env\nEOF",
+        "python3 - <<'EOF'\nrows.sort(key=lambda r: sort.key)\nEOF",
+        "cat > register.ts <<'EOF'\nconst home = await $.env.get('HOME')\nEOF",
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+    }
+});
+
+test('a sensitive file named in a heredoc still blocks where the body can read it', () => {
+    for (const cmd of [
+        "python3 - <<'EOF'\nprint(open('.env').read())\nEOF",
+        "bash <<'EOF'\ncat .env\nEOF",
+        "cat <<'EOF' | sh\ncat server.key\nEOF",
+        "cat .env <<'EOF'\nignored\nEOF",
+        'cat > out.txt <<EOF\n$(cat .env)\nEOF',
+        "node - <<'EOF'\nfs.readFileSync(`${dir}/.env`)\nEOF",
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    }
+});
+
 test('unit: secretInCommand returns first provider only', () => {
     assert.deepEqual(guard.secretInCommand('no tokens here'), {
         matched: false,
