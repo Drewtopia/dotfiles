@@ -98,3 +98,23 @@ test('resolves ~ and $HOME in the push directory', () => {
     assert.equal(bare('git -C ~/repo push', { '': 'feat/x', [`${home}/repo`]: 'main' }), 2);
     assert.equal(bare('cd $HOME/wt && git push -u origin', { '': 'develop', [`${home}/wt`]: 'feat/x' }), 0);
 });
+
+const COMMIT_THEN_PUSH = [
+    "cd /wt && git commit -q -F - <<'EOF'",
+    "fix: the user's role no longer matters",
+    'EOF',
+    `git push -q -u origin fix/any-role 2>&1 | tail -1; gh pr create --base develop --json number -q '.number'`,
+].join('\n');
+
+test('allows: a feature push after a heredoc whose body holds an apostrophe', () =>
+    assert.equal(code(COMMIT_THEN_PUSH), 0));
+test('allows: a data heredoc body that mentions a protected push', () =>
+    assert.equal(code("cat > notes.md <<'EOF'\ngit push origin main\nEOF"), 0));
+test('blocks: a heredoc body fed to a shell', () =>
+    assert.equal(code("bash <<'EOF'\ngit push origin main\nEOF"), 2));
+test('blocks: a data heredoc piped into a shell', () =>
+    assert.equal(code("cat <<'EOF' | sh\ngit push origin main\nEOF"), 2));
+test('blocks: a command substitution in an unquoted data heredoc', () =>
+    assert.equal(code('cat > notes.md <<EOF\n$(git push origin main)\nEOF'), 2));
+test('blocks: a protected push after a heredoc', () =>
+    assert.equal(code("git commit -F - <<'EOF'\nit's done\nEOF\ngit push origin main"), 2));
