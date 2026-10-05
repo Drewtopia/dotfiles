@@ -67,4 +67,12 @@ export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-li
 export SUPERWHISPER_SETTINGS="$HOME/superwhisper/settings/settings.json"
 {{- end }}
 
+# Claude Code loads each folder under ~/.claude/mods as a plugin. Globbed here, not set in
+# settings.json, whose merge keeps the first value it wrote and would miss a new mod.
+_mods=("$HOME"/.claude/mods/*(N/))
+if (( $#_mods )); then
+    export CLAUDE_CODE_PLUGIN_DIRS="${(j.:.)_mods}"
+fi
+unset _mods
+
 [[ -f "${HOME}/.zshenv.local" ]] && source "${HOME}/.zshenv.local"
