@@ -7,6 +7,7 @@
 const path = require('path');
 const { readStdin, parseInput } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
+const { rewriteHeredocs } = require('./lib/shell');
 
 const HOOK_ID = 'pre:secrets:block';
 
@@ -136,15 +137,26 @@ function extractFilePath(data) {
     return sensitiveTokenIn(String(toolInput.command || ''));
 }
 
+// A heredoc body read as data names no file it opens; in code a file is a string literal.
+const stringLiterals = body => (body.match(/'[^'\n]*'|"[^"\n]*"|`[^`]*`/g) || []).join(' ');
+const readableText = command =>
+    rewriteHeredocs(command, (body, kind) =>
+        kind === 'data' ? '' : kind === 'code' ? stringLiterals(body) : body,
+    );
+
 // Only a whole path token names a file: `process.env` or `Object.keys` in a
 // command is code, not `.env` or a `.key` file.
 function sensitiveTokenIn(command) {
     // Glob and brace characters are dropped so `.env*` and `{.env,x}` still name `.env`.
     // A token that starts with a known name (`.npmrc.bak`) reports that name.
-    const tokens = command.split(/[\s'"`=<>|;&(),${}]+/).map(t => t.replace(/[*?[\]]/g, ''));
+    const tokens = readableText(command)
+        .split(/[\s'"`=<>|;&(),${}:]+/)
+        .map(t => t.replace(/[*?[\]]/g, ''));
     for (const token of tokens) {
         const base = path.basename(token);
         if (ENV_TEMPLATE.test(base)) continue;
+        // A regex (`\.key$`) escapes the dot a file name would carry.
+        if (/\\\.\w+$/.test(base)) continue;
         const name = [...SENSITIVE_FILENAMES].find(n =>
             n.includes('/')
                 ? token === n || token.endsWith('/' + n)
