@@ -63,6 +63,11 @@ test('governs the settings merge template and the unlock markers', () => {
     assert.ok(!isGoverned('/repo/src/claude.ts'));
 });
 
+test('governs mods, which load into every session like hooks', () => {
+    assert.ok(isGoverned('/home/u/.claude/mods/vault-push/hooks/register.tsx'));
+    assert.ok(!isGoverned('/home/u/.claude/dev-mods/abc/x/hooks/register.ts'));
+});
+
 test('rejects a session id that could escape the marker dir', () => {
     assert.equal(markerPath('../x'), null);
     assert.equal(markerPath(undefined), null);
