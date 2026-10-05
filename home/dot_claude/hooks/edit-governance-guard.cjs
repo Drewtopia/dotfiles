@@ -17,7 +17,7 @@ const GOVERNED = [
     /\/\.moon\//,
     /\/moon\.yml$/,
     /\/SKILL\.md$/,
-    /\/(dot_claude|\.claude)\/(rules|hooks|skills|commands)\//,
+    /\/(dot_claude|\.claude)\/(rules|hooks|skills|commands|mods)\//,
     /\/(dot_claude|\.claude)\/[^/]*settings[^/]*\.json(\.tmpl)?$/,
     /\/\.chezmoitemplates\/claude-settings-merge$/,
     /\/\.claude\/governance-unlock(\/|$)/,
