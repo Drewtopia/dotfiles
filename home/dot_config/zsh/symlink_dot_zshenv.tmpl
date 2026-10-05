@@ -1,0 +1,3 @@
+{{- /* A shell that inherits ZDOTDIR (Orca and other terminals spawned from a zsh
+       session) reads .zshenv from here and never sees ~/.zshenv. */ -}}
+{{ .chezmoi.homeDir }}/.zshenv
