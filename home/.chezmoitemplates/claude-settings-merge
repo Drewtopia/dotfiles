@@ -104,11 +104,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           {
             "type": "command",
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\""
-          }{{- if ne .chezmoi.os "windows" }},
-          {
-            "type": "command",
-            "command": "{{ .directories.mise_dir }}/shims/dcg"
-          }{{- end }}
+          }
         ]
       },
       {
@@ -334,15 +330,14 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
       | map(.hooks |= map(select((.command | contains("claude-board")) | not)))
       | map(select((.hooks | length) > 0)))
   # Retire removed hooks: strip their commands and drop emptied entries and events.
-  # The dcg self-install pins a versioned binary path that breaks on upgrade; the managed
-  # entry runs it through the mise shim instead.
+  # The dcg hook is not managed here: each dcg run rewrites its own entry to its binary path.
   | .hooks = ((.hooks // {}) | with_entries(.value |= (
       map(.hooks |= map(select((.command // "") as $c | any(
             "warn-worktree-convention.js", "warn-derived-artifact.js",
             "permission-denied-audit.js", "stop-failure-log.js",
             "user-prompt-drift-check.js", "pre-compact-snapshot.js",
             "-name '\''*.sh'\'' ! -executable", "EnterWorktree without path",
-            "destructive-command-guard/";
+            "/shims/dcg";
             . as $r | $c | contains($r)) | not)))
       | map(select((.hooks | length) > 0))))
       | with_entries(select((.value | length) > 0)))
