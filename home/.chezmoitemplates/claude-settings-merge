@@ -64,6 +64,17 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
       "Bash(touch /tmp/claude-*)",
       "Bash(cat /tmp/claude-*)"
     ],
+    "ask": [
+      "mcp__azure-devops__wit_work_item_write",
+      "mcp__azure-devops__wit_work_item_comment_write",
+      "mcp__azure-devops__wit_work_item_link_write",
+      "mcp__azure-devops__wit_backlog",
+      "mcp__azure-devops__testplan_test_case_write",
+      "mcp__azure-devops__testplan_test_plan_write",
+      "mcp__azure-devops__testplan_test_suite_write",
+      "mcp__azure-devops__work_iteration_write",
+      "mcp__azure-devops__work_capacity_write"
+    ],
     "deny": [
       "Bash(> /dev/sda*)",
       "Read(**/.env)",
