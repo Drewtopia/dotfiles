@@ -54,6 +54,12 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export RIPGREP_CONFIG_PATH=$XDG_CONFIG_HOME/ripgrep/config
 
+{{- if eq .chezmoi.os "linux" }}
+# Windows Orca forwards the Windows CLAUDE_CONFIG_DIR through WSLENV untranslated; in WSL
+# `C:/...` is a relative path, so Claude makes a stray `C:` dir in the cwd and skips ~/.claude.
+[[ "$CLAUDE_CONFIG_DIR" == [A-Za-z]:* ]] && unset CLAUDE_CONFIG_DIR
+{{- end }}
+
 {{- if eq .chezmoi.os "darwin" }}
 # Skipped over SSH, where biometric unlock is unavailable.
 if [[ -z "$SSH_CONNECTION" ]]; then
