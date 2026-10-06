@@ -72,22 +72,6 @@ foreach ($kv in $envVars.GetEnumerator()) {
     }
     Set-Item -Path "Env:$($kv.Key)" -Value $kv.Value
 }
-{{- if .work }}
-
-# Values this script used to set on work machines. Setting a var never removes it, and
-# Orca forwards both into WSL via WSLENV, where a C:/ path is relative and breaks the tool.
-$retiredVars = [ordered]@{
-    'CLAUDE_CONFIG_DIR' = '{{ .directories.tools_root }}/.claude'
-    'CODEX_HOME'        = '{{ .directories.tools_root }}/.codex'
-}
-foreach ($kv in $retiredVars.GetEnumerator()) {
-    if ([Environment]::GetEnvironmentVariable($kv.Key, 'User') -eq $kv.Value) {
-        Write-Host "[Env] Removing retired $($kv.Key)" -ForegroundColor Blue
-        [Environment]::SetEnvironmentVariable($kv.Key, $null, 'User')
-        Remove-Item -Path "Env:$($kv.Key)" -ErrorAction SilentlyContinue
-    }
-}
-{{- end }}
 
 # Clean + normalize User PATH, ensure mise + WinGet Links are first.
 #
