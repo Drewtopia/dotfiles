@@ -43,6 +43,7 @@ Read back through the session once for what future work needs:
 - **Decisions, insights, references** worth keeping → the memory file that owns them (table below).
 - **Decisions with no durable home yet** — a scope call, a design choice, a deferred question → name the command that gives it one: `/to-spec` or `/re-spec` for a spec, `/to-tickets` or `/re-ticket` for tickets, `/edit-governance` for an ADR or rule. It goes in the card's next step (step 3) when it is the next thing to do.
 - **Open tasks** → the card's next step (step 3) or a tracker issue, not memory.
+- **Context the next session needs** (findings, a half-done approach, why a step is blocked) → a comment on the issue the card names (`gh issue comment <n>`, plus `--repo` when the tracker is its own repo), never a `/tmp` or scratch handoff file. `/handoff` is only for a new directory, a new harness or a colleague.
 
 Skip ephemeral debugging steps, retracted ideas, and anything obvious from the diff. Nothing worth keeping is a valid result: say "no notes".
 
@@ -72,7 +73,24 @@ Inside Orca (`$ORCA_WORKTREE_ID` is set), write this worktree's card. Use `$ORCA
 | `in-review` | a PR is open and waiting on review |
 | `completed` | the branch has merged and nothing is left but `wt remove` |
 
-The comment is one line Drew acts on without reading anything else: the skill or command and the first action. Nothing left → `Next: wt remove <branch>`. Outside Orca, print the same `Next:` line instead.
+The comment is one line Drew pastes into a fresh session, so it opens with a runnable command:
+
+| Next step | Comment |
+|---|---|
+| Build or continue a tracker issue | `Next: /implement GH-<n>` |
+| A spec with two or more `ready-for-agent` tickets | `Next: /implement-spec GH-<spec>` |
+| A slice with no issue yet ("PR 4", "the follow-up") | `Next: /to-tickets GH-<parent>`, then `/implement` per ticket |
+| Ship | `Next: /pr, then PR_BODY=<file> wt step ship` |
+| Nothing left | `Next: wt remove <branch>` |
+
+Outside Orca, print the same `Next:` line instead.
+
+Then retire the remember plugin's handoff slot. Its session-start hook re-delivers a non-empty slot to every session until it is replaced, and the card now holds the next step:
+
+```bash
+slot="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/.remember/remember.md"
+[ -s "$slot" ] && cat "$slot" >> "${slot%.md}.retired.md" && : > "$slot"
+```
 
 ## Full close — only when triggered
 
@@ -126,5 +144,6 @@ Drop any segment whose step didn't run rather than printing `0`. Then the card's
 
 - Every new memory file has a one-line pointer in `memory.md`.
 - Counter line reflects actual counts, not aspirational ones.
-- Inside Orca, the card's comment is this session's `Next:` line, word for word.
+- Inside Orca, the card's comment is this session's `Next:` line, word for word, and opens with a runnable command.
+- No `/tmp` or scratch handoff file was written for this repo; the remember slot is empty.
 - If the session touched vault or chezmoi source: both repos clean and pushed.
