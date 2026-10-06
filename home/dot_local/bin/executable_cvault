@@ -178,9 +178,6 @@ usage: cvault <command> [args]
   sync           update + apply
   merge          Resolve conflicts via `git mergetool` and continue
   help           Show this message
-
-The vault auto-syncs at session boundaries via hooks (~/.claude/hooks/memory-{pull,push}.sh).
-Use cvault when you want explicit control.
 EOF
 }
 
