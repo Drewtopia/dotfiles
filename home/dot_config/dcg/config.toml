@@ -1,0 +1,24 @@
+[general]
+log_file = "~/.local/share/dcg/blocked.log"
+
+[packs]
+enabled = [
+  "platform.azure_devops",
+  "platform.github",
+  "cloud.azure",
+  "windows.misc",
+]
+custom_paths = ["~/.config/dcg/packs/*.yaml"]
+
+[policy.packs]
+"drew.azure_writes" = "ask"
+
+# NOTE: these rules cannot see the redirect target, so they fire on every `> $VAR/file`
+# write to a scratch dir. Ask puts the call to a human instead of a dead-end deny.
+[policy.rules]
+"core.filesystem:redirect-truncate-dynamic-path" = "ask"
+"core.filesystem:mv-dynamic-path" = "ask"
+"core.git:branch-dynamic-token" = "ask"
+
+[history]
+enabled = true

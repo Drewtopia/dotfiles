@@ -1,0 +1,38 @@
+schema_version: 1
+id: drew.azure_writes
+name: Azure DevOps writes
+version: 1.0.0
+description: Board, test plan, PR and pipeline writes are visible to the team, so a human approves each one.
+keywords: [az, boards, repos, pipelines, devops, rest]
+denial_banner: Azure DevOps write needs approval
+destructive_patterns:
+  - name: boards-work-item-write
+    pattern: '\baz\b.*?\bboards\s+work-item\s+(?:create|update|relation\s+(?:add|remove))\b'
+    severity: high
+    description: Creates or changes an Azure Boards work item the team sees.
+    explanation: Reads (show, query) stay allowed. Deletes are denied by platform.azure_devops.
+  - name: boards-planning-write
+    pattern: '\baz\b.*?\bboards\s+(?:iteration|area)\s+\S+\s+(?:create|update|add)\b'
+    severity: high
+    description: Changes Azure Boards iterations or areas.
+    explanation: Iteration and area changes move every work item planned against them.
+  - name: repos-pr-write
+    pattern: '\baz\b.*?\brepos\s+pr\s+(?:create|update|set-vote|reviewer\s+add|work-item\s+add)\b'
+    severity: high
+    description: Creates or changes an Azure Repos pull request.
+    explanation: A PR create, completion or vote notifies reviewers and can merge code.
+  - name: pipelines-run
+    pattern: '\baz\b.*?\bpipelines\s+(?:run|build\s+queue)\b'
+    severity: high
+    description: Queues an Azure pipeline run.
+    explanation: A queued run uses shared agents and can deploy.
+  - name: devops-invoke-write
+    pattern: '\baz\b.*?\bdevops\s+invoke\b.*?--http-method[=\s]+(?i:post|put|patch|delete)\b'
+    severity: high
+    description: Raw Azure DevOps REST write through az devops invoke.
+    explanation: A POST, PUT, PATCH or DELETE can change any Azure DevOps resource. GET stays allowed.
+  - name: rest-write
+    pattern: '\baz\b.*?\brest\b(?=.*dev\.azure\.com|.*visualstudio\.com).*?(?:--method|-m)[=\s]+(?i:post|put|patch|delete)\b'
+    severity: high
+    description: Raw Azure DevOps REST write through az rest.
+    explanation: A POST, PUT, PATCH or DELETE can change any Azure DevOps resource. GET stays allowed.
