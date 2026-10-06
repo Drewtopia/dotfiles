@@ -46,8 +46,8 @@ Ordering within the report: resident findings first, lazy ones after. Say which 
 
 ### 5. Apply approved changes
 
-- These are governance surfaces. The user typing `/audit-rules-and-skills` unlocked this session for 2h (the AskUserQuestion approval above is the review gate). Both the vault and chezmoi protect `main`: branch and commit, then land it as `edit-governance` step 3 says (vault: `merge --ff-only` back; chezmoi: a PR).
-- Rules in `~/.claude/rules/` are cvault-managed. Edit in place at the symlinked location.
+- These are governance surfaces. The user typing `/audit-rules-and-skills` unlocked this session for 2h (the AskUserQuestion approval above is the review gate). Both the vault and chezmoi protect `main`: branch and commit, then land it as `edit-governance` step 3 says (vault: `merge --ff-only` back, then Drew pushes; chezmoi: a PR).
+- Rules live in `~/.claude-vault/rules/`. Edit them in the vault work branch's worktree; the `~/.claude/rules` symlink points at `main`.
 - Skills in `~/.claude/skills/` are chezmoi-managed. Edit chezmoi source under `home/dot_claude/skills/`, then `chezmoi apply` targeted to the changed file.
 - Don't auto-commit either repo. Present commit messages and let user approve.
 - For long skills, prefer extract-to-`REFERENCE.md` over content deletion.
@@ -63,4 +63,4 @@ Ordering within the report: resident findings first, lazy ones after. Say which 
 - Never delete a rule or skill without explicit confirmation.
 - Preserve `paths:` frontmatter on path-scoped rules during rewrites. Dropping it silently promotes the rule to always-loaded.
 - Verify any file, skill, or plugin this skill names still exists before citing it. Exemplars and paths rot.
-- Two-repo commits: cvault first (push directly with conventional commit), then chezmoi (let user commit).
+- Two-repo changes: land the vault first, then chezmoi.

@@ -14,7 +14,7 @@ Where things live after a close:
 - **Every stream at a glance** → built live at each session start by the `session-start-git-status` hook from the worktrees and their cards. Nothing to write.
 - **What happened** → the remember plugin's own history and `SESSION_TAILS.md`, both written automatically.
 
-Global memory (`~/.claude/memory/`) is vault-managed and NOT auto-pushed — after updating it, run `cvault apply` (commit + push) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
+Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`merge --ff-only`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
 ## Quick close — every time
 
