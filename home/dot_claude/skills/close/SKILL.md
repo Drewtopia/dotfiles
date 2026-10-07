@@ -1,6 +1,6 @@
 ---
 name: close
-description: Close out a session so the next one starts in the right place — commit, notes, and the worktree's Orca card (next step and status); full extras only when a merge, plan docs, or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
+description: Close out a session so the next one starts in the right place — commit, notes, and a closing status line that every new session lists; full extras only when a merge, plan docs, or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
 disable-model-invocation: true
 ---
 
@@ -10,8 +10,7 @@ Quick close runs every time and stays short: a heavy closeout is a closeout that
 
 Where things live after a close:
 
-- **This stream's next step** → its Orca worktree card (step 3). Drew reads the sidebar to find his place.
-- **Every session's open loop** → the `open-loops` mod saves each session's closing status line and lists the open ones at every new session start. Nothing to write.
+- **This session's next step** → the closing `Parked:` or `Done.` line (step 3). The `open-loops` mod saves it and lists the open ones at every new session start.
 - **What happened** → the remember plugin's own history and `SESSION_TAILS.md`, both written automatically.
 
 Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`merge --ff-only`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
@@ -41,9 +40,9 @@ Read back through the session once for what future work needs:
 
 - **Mistakes** — breakages or corrections not yet in the main checkout's `MISTAKES.md` → append them (what happened / root cause / consequence / prevention, newest first). Never a worktree's copy: it is gitignored and dies with the worktree. Target `"$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/MISTAKES.md"`.
 - **Decisions, insights, references** worth keeping → the memory file that owns them (table below).
-- **Decisions with no durable home yet** — a scope call, a design choice, a deferred question → name the command that gives it one: `/to-spec` or `/re-spec` for a spec, `/to-tickets` or `/re-ticket` for tickets, `/edit-governance` for an ADR or rule. It goes in the card's next step (step 3) when it is the next thing to do.
-- **Open tasks** → the card's next step (step 3) or a tracker issue, not memory.
-- **Context the next session needs** (findings, a half-done approach, why a step is blocked) → a comment on the issue the card names (`gh issue comment <n>`, plus `--repo` when the tracker is its own repo), never a `/tmp` or scratch handoff file. `/handoff` is only for a new directory, a new harness or a colleague.
+- **Decisions with no durable home yet** — a scope call, a design choice, a deferred question → name the command that gives it one: `/to-spec` or `/re-spec` for a spec, `/to-tickets` or `/re-ticket` for tickets, `/edit-governance` for an ADR or rule. It goes in the status line (step 3) when it is the next thing to do.
+- **Open tasks** → the status line (step 3) or a tracker issue, not memory.
+- **Context the next session needs** (findings, a half-done approach, why a step is blocked) → a comment on the stream's issue (`gh issue comment <n>`, plus `--repo` when the tracker is its own repo), never a `/tmp` or scratch handoff file. `/handoff` is only for a new directory, a new harness or a colleague.
 
 Skip ephemeral debugging steps, retracted ideas, and anything obvious from the diff. Nothing worth keeping is a valid result: say "no notes".
 
@@ -56,36 +55,21 @@ Skip ephemeral debugging steps, retracted ideas, and anything obvious from the d
 
 A new file under `tools/` or `domain/` gets a one-line row (file path + description) in `~/.claude/memory/memory.md`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
-### 3. The card
+### 3. The status line
 
-Run any full-close extras that apply (below) before this step, so their outcome shapes the card.
+Run any full-close extras that apply (below) before this step, so their outcome shapes the line.
 
-Inside Orca (`$ORCA_WORKTREE_ID` is set), write this worktree's card. Use `$ORCA_CLI_COMMAND` when set, else `orca`: outside an Orca terminal, bare `orca` on Linux is the GNOME screen reader.
+The report (below) ends on one status line: `Parked: <first action, naming the branch, PR, or issue>` while work remains, `Waiting on you: <ask>` when Drew must act first, `Done.` when nothing is left. A `Parked:` line is one line Drew pastes into a fresh session, so it opens with a runnable command:
 
-```bash
-"${ORCA_CLI_COMMAND:-orca}" worktree set --worktree path:"$(git rev-parse --show-toplevel)" \
-  --workspace-status <status> --comment "Next: <first action, naming the branch, PR, or issue>"
-```
-
-| Status | When |
+| Next step | Status line |
 |---|---|
-| `in-progress` | work remains on this branch |
-| `in-review` | a PR is open and waiting on review |
-| `completed` | the branch has merged and nothing is left but `wt remove` |
+| Build or continue a tracker issue | `Parked: /implement GH-<n>` |
+| A spec with two or more `ready-for-agent` tickets | `Parked: /implement-spec GH-<spec>` |
+| A slice with no issue yet ("PR 4", "the follow-up") | `Parked: /to-tickets GH-<parent>`, then `/implement` per ticket |
+| Ship | `Parked: /pr, then PR_BODY=<file> wt step ship` |
+| Branch merged, only cleanup left | `Parked: wt remove <branch>` |
 
-The comment is one line Drew pastes into a fresh session, so it opens with a runnable command:
-
-| Next step | Comment |
-|---|---|
-| Build or continue a tracker issue | `Next: /implement GH-<n>` |
-| A spec with two or more `ready-for-agent` tickets | `Next: /implement-spec GH-<spec>` |
-| A slice with no issue yet ("PR 4", "the follow-up") | `Next: /to-tickets GH-<parent>`, then `/implement` per ticket |
-| Ship | `Next: /pr, then PR_BODY=<file> wt step ship` |
-| Nothing left | `Next: wt remove <branch>` |
-
-Outside Orca, print the same `Next:` line instead.
-
-Then retire the remember plugin's handoff slot. Its session-start hook re-delivers a non-empty slot to every session until it is replaced, and the card now holds the next step:
+Then retire the remember plugin's handoff slot. Its session-start hook re-delivers a non-empty slot to every session until it is replaced, and the status line now holds the next step:
 
 ```bash
 slot="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/.remember/remember.md"
@@ -135,15 +119,15 @@ Report the sorted list with one proposed action per item and act only on what Dr
 Print the counter:
 
 ```
-<N> memory updates · <N> commits · <N> issues closed · <N> issues filed · card set · worktree removed
+<N> memory updates · <N> commits · <N> issues closed · <N> issues filed · worktree removed
 ```
 
-Drop any segment whose step didn't run rather than printing `0`. Then the card's `Next:` line, and last a `/rename <project>-<ticket-or-pr>-<topic>` command Drew can paste (kebab-case, no date, no status words) so `/resume` and `/find-session` can find the session.
+Drop any segment whose step didn't run rather than printing `0`. Then a `/rename <project>-<ticket-or-pr>-<topic>` command Drew can paste (kebab-case, no date, no status words) so `/resume` and `/find-session` can find the session, and last the status line from step 3: `open-loops` reads only the reply's last line.
 
 ## Self-check before reporting done
 
 - Every new memory file has a one-line pointer in `memory.md`.
 - Counter line reflects actual counts, not aspirational ones.
-- Inside Orca, the card's comment is this session's `Next:` line, word for word, and opens with a runnable command.
+- The reply's last line is the status line, and a `Parked:` line opens with a runnable command.
 - No `/tmp` or scratch handoff file was written for this repo; the remember slot is empty.
 - If the session touched vault or chezmoi source: both repos clean and pushed.
