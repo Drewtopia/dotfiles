@@ -1,12 +1,12 @@
 ---
 name: catch-up
-description: Re-entry briefing for the branch you're standing in — starts from the Next line /close left on its Orca card, checks what could have made it stale, and says whether it still holds. Use for /catch-up, or when returning to a worktree after a day or more away.
+description: Re-entry briefing for the branch you're standing in — starts from the last status line a session left in this worktree, checks what could have made it stale, and says whether it still holds. Use for /catch-up, or when returning to a worktree after a day or more away.
 disable-model-invocation: true
 ---
 
 # Catch up
 
-Re-entry for the branch under your feet. `/close` already wrote down where this work stopped; this checks whether that is still true.
+Re-entry for the branch under your feet. The last session here already wrote down where this work stopped; this checks whether that is still true.
 
 ## 1. What was saved
 
@@ -15,17 +15,17 @@ git rev-parse --show-toplevel && git branch --show-current
 git log -1 --format='%h %cr %s'
 ```
 
-Read the worktree's Orca card, where `/close` writes the `Next:` line. Use `$ORCA_CLI_COMMAND` when set, else `orca`: outside an Orca terminal, bare `orca` on Linux is the GNOME screen reader.
+Read the newest entry the `open-loops` mod saved for a session in this worktree: one JSON file per session, with `kind` (`waiting`, `parked`, `done`), `text`, and `at` in epoch milliseconds.
 
 ```bash
-"${ORCA_CLI_COMMAND:-orca}" worktree current --json    # .result.worktree: comment, workspaceStatus, lastActivityAt
+grep -l "\"cwd\":\"$(git rev-parse --show-toplevel)" ~/.claude/open-loops/*.json | xargs -r ls -t | head -1 | xargs -r cat
 ```
 
-No card comment, or not in Orca → before `/close` wrote cards, closeouts went to `~/.claude/memory/SESSION_LOG.md`; for a branch untouched since, take its newest entry whose `- Branch:` line matches exactly.
+No entry → older branches keep their next step elsewhere. Read the worktree's Orca card comment (`"${ORCA_CLI_COMMAND:-orca}" worktree current --json`, `.result.worktree.comment`; outside an Orca terminal, bare `orca` on Linux is the GNOME screen reader), else the newest `~/.claude/memory/SESSION_LOG.md` entry whose `- Branch:` line matches exactly.
 
 Nothing found → say so, and build "Saved" from this branch's `git log` alone.
 
-Quote the saved date and `Next:` line verbatim. Everything below tests it.
+Quote the saved date and line verbatim. Everything below tests it.
 
 ## 2. What could have moved since
 
@@ -74,11 +74,12 @@ git status --short && git log --oneline @{u}.. && git stash list
 
 One screen, then stop:
 
-> **Saved:** <date> — `Next: …`, or "nothing saved"
+> **Saved:** <date> — the saved line, or "nothing saved"
 > **Since:** what moved — PR merged, approved, or waiting on you; new commits and who made them; issue closed — or "nothing moved"
-> **Verdict:** `Next still holds`, or `Next changed:` and one sentence why
-> **Next:** one action, with the command
+> **Verdict:** `Saved line still holds`, or `Saved line changed:` and one sentence why
 > **Unsaved:** only when something is
+
+The last line is the status line, naming one action with its command: `Parked: <action>`, or `Waiting on you: <ask>`.
 
 ## Handing off
 
