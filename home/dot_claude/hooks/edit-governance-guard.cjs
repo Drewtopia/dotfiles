@@ -21,7 +21,7 @@ const GOVERNED = [
     /\/(dot_claude|\.claude)\/[^/]*settings[^/]*\.json(\.tmpl)?$/,
     /\/\.chezmoitemplates\/claude-settings-merge$/,
     /\/\.claude\/governance-unlock(\/|$)/,
-    /\/\.?claude-vault\/(?:[^/]+\/)?rules\//,
+    /\/\.?claude-vault\/(?:[^/]+\/)?(?:rules|mods)\//,
     /\/(CLAUDE|AGENTS)(\.local)?\.md$/,
     /\/docs\/adr\//,
     /\/CONTEXT(-MAP)?\.md$/,
