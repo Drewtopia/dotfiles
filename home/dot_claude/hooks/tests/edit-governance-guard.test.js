@@ -28,12 +28,14 @@ test('denies a governance path without an unlock', () => {
     );
 });
 
-test('denies vault rules and mods in the checkout and in a worktree', () => {
+test('denies vault rules, mods and git hooks in the checkout and in a worktree', () => {
     for (const p of [
         '/home/u/.claude-vault/rules/style.md',
         '/home/u/dev/worktrees/claude-vault/rules-x/rules/style.md',
         '/home/u/.claude-vault/mods/blast-radius/hooks/register.tsx',
         '/home/u/dev/worktrees/claude-vault/mods-x/mods/pw-report/hooks/register.tsx',
+        '/home/u/.claude-vault/.githooks/pre-commit',
+        '/home/u/dev/worktrees/claude-vault/hooks-x/.githooks/pre-commit',
     ]) {
         assert.match(
             decide(edit(p), () => false),
