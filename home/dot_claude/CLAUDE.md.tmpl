@@ -4,7 +4,7 @@
 
 - **GitHub**: {{ .github.username }} (SSH: `git@github.com:{{ .github.username }}/<repo>.git`). Runtimes via mise; dotfiles via chezmoi.
 {{- if .is_wsl }}
-- This machine: WSL2 Ubuntu on Windows{{ if .work }} (corporate){{ end }}; interactive shell is zsh.
+- This machine: WSL2 Ubuntu on Windows{{ if .work }} (corporate){{ end }}; interactive shell is zsh. Windows binaries run but sit off PATH (`appendWindowsPath = false`): call them by full path, e.g. `/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe`.
 {{- else if eq .chezmoi.os "darwin" }}
 - This machine: macOS; interactive shell is zsh.
 {{- else if eq .chezmoi.os "windows" }}
