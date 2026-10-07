@@ -51,35 +51,6 @@ test('dirty / behind each add a line', () => {
     assert.match(w[1], /2 commit\(s\) behind upstream/);
 });
 
-const stream = {
-    branch: 'feat/gh12-x',
-    ageDays: 1,
-    lastSubject: 'feat: last commit',
-    dirty: 0,
-    merged: false,
-    cardStatus: '',
-    cardComment: '',
-};
-
-test('a stream with a card shows its status and next step', () => {
-    const [line] = sg.buildStreams([
-        { ...stream, cardStatus: 'in-review', cardComment: 'Next: review PR 10031' },
-    ]);
-    assert.equal(line, 'feat/gh12-x — in-review — Next: review PR 10031');
-});
-
-test('a stream without a card falls back to its last commit subject', () => {
-    const [line] = sg.buildStreams([stream]);
-    assert.equal(line, 'feat/gh12-x — no card — feat: last commit');
-});
-
-test('merged wins over the card status; uncommitted work and age are flagged', () => {
-    const [merged] = sg.buildStreams([{ ...stream, merged: true, cardStatus: 'in-review', ageDays: 9 }]);
-    assert.equal(merged, 'feat/gh12-x — merged — feat: last commit · stale 9d');
-    const [dirty] = sg.buildStreams([{ ...stream, dirty: 3 }]);
-    assert.equal(dirty, 'feat/gh12-x — no card — feat: last commit · 3 uncommitted');
-});
-
 test('behind names the upstream to read code state from', () => {
     const w = sg.buildWarnings({ ...base, behind: 11, upstream: 'origin/develop' });
     assert.match(w[0], /11 commit\(s\) behind origin\/develop/);

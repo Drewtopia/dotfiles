@@ -1,6 +1,6 @@
 ---
 name: close
-description: Close out a session so the next one starts in the right place — commit, notes, and the worktree's Orca card (next step and status), which the SessionStart hook shows every new session; full extras only when a merge, plan docs, or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
+description: Close out a session so the next one starts in the right place — commit, notes, and the worktree's Orca card (next step and status); full extras only when a merge, plan docs, or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
 disable-model-invocation: true
 ---
 
@@ -11,7 +11,7 @@ Quick close runs every time and stays short: a heavy closeout is a closeout that
 Where things live after a close:
 
 - **This stream's next step** → its Orca worktree card (step 3). Drew reads the sidebar to find his place.
-- **Every stream at a glance** → built live at each session start by the `session-start-git-status` hook from the worktrees and their cards. Nothing to write.
+- **Every session's open loop** → the `open-loops` mod saves each session's closing status line and lists the open ones at every new session start. Nothing to write.
 - **What happened** → the remember plugin's own history and `SESSION_TAILS.md`, both written automatically.
 
 Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`merge --ff-only`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
