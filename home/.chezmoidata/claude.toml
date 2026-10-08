@@ -48,16 +48,19 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 "code-review@claude-plugins-official"     = false
 "feature-dev@claude-plugins-official"     = false
 "typescript-lsp@claude-plugins-official"  = false
-"commit-commands@claude-plugins-official" = true
+# Unused: commits ship through `wt step ship`.
+"commit-commands@claude-plugins-official" = false
 "playwright@claude-plugins-official"      = false
-"code-simplifier@claude-plugins-official" = true
+# pr-review-toolkit ships the same code-simplifier agent.
+"code-simplifier@claude-plugins-official" = false
 "plugin-dev@claude-plugins-official"      = false
 "caveman@caveman"                         = true
 "pr-review-toolkit@claude-plugins-official" = true
 # Ships the stable engineering/ + productivity/ skills; the rest of the repo
 # stays on the `npx skills` path in .chezmoidata/skills.yaml.
 "mattpocock-skills@mattpocock"            = true
-"obsidian@obsidian-skills"                = true
+# Unused: one invocation since install.
+"obsidian@obsidian-skills"                = false
 "greptile@claude-plugins-official"        = false
 # Hundreds of skills and agents load at session start; the context cost
 # outweighs the use, and it duplicates mattpocock-skills.
