@@ -59,8 +59,7 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # Ships the stable engineering/ + productivity/ skills; the rest of the repo
 # stays on the `npx skills` path in .chezmoidata/skills.yaml.
 "mattpocock-skills@mattpocock"            = true
-# Unused: one invocation since install.
-"obsidian@obsidian-skills"                = false
+"obsidian@obsidian-skills"                = true
 "greptile@claude-plugins-official"        = false
 # Hundreds of skills and agents load at session start; the context cost
 # outweighs the use, and it duplicates mattpocock-skills.
