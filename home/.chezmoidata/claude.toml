@@ -48,9 +48,11 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 "code-review@claude-plugins-official"     = false
 "feature-dev@claude-plugins-official"     = false
 "typescript-lsp@claude-plugins-official"  = false
-"commit-commands@claude-plugins-official" = true
+# Unused: commits ship through `wt step ship`.
+"commit-commands@claude-plugins-official" = false
 "playwright@claude-plugins-official"      = false
-"code-simplifier@claude-plugins-official" = true
+# pr-review-toolkit ships the same code-simplifier agent.
+"code-simplifier@claude-plugins-official" = false
 "plugin-dev@claude-plugins-official"      = false
 "caveman@caveman"                         = true
 "pr-review-toolkit@claude-plugins-official" = true
