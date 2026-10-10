@@ -42,11 +42,6 @@ Host work
   RemoteCommand pwsh
   RequestTTY yes
   ProxyCommand sh -c 'for h in work-eth.home work-wifi.home; do nc -z -G1 "$h" %p 2>/dev/null && exec nc "$h" %p; done; echo "work: neither eth nor wifi up on %p" >&2; exit 1'
-
-Host work-wsl
-  Port 2222
-  HostKeyAlias work-wsl
-  ProxyCommand sh -c 'for h in work-eth.home work-wifi.home; do nc -z -G1 "$h" %p 2>/dev/null && exec nc "$h" %p; done; echo "work-wsl: neither eth nor wifi up on %p" >&2; exit 1'
 {{- end }}
 {{- end }}
 
