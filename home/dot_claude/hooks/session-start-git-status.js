@@ -102,17 +102,14 @@ function run(nowSec) {
 }
 
 async function main() {
-    const raw = await readStdin();
+    await readStdin();
     if (isHookEnabled(HOOK_ID)) {
         try {
             const { output } = run(Math.floor(Date.now() / 1000));
             if (output) process.stdout.write(output);
-            else process.stdout.write(raw);
         } catch {
-            process.stdout.write(raw);
+            // Fail silent: stdout joins session context.
         }
-    } else {
-        process.stdout.write(raw);
     }
     process.exit(0);
 }
