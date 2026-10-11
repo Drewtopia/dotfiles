@@ -38,14 +38,9 @@ function collectState() {
 }
 
 async function main() {
-    const raw = await readStdin();
-    if (!isHookEnabled(HOOK_ID)) {
-        process.stdout.write(raw);
-        process.exit(0);
-    }
-    const msg = warningFor(collectState());
+    await readStdin();
+    const msg = isHookEnabled(HOOK_ID) ? warningFor(collectState()) : '';
     if (msg) process.stdout.write(JSON.stringify({ systemMessage: msg }));
-    else process.stdout.write(raw);
     process.exit(0);
 }
 
