@@ -26,6 +26,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "env": {
     "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
     "EDITOR": "nvim",
+    "PONYTAIL_SUBAGENT_MATCHER": "^(general-purpose|claude|pr-review-toolkit:code-simplifier)$",
     "GIT_EDITOR": "nvim --wait"{{- if eq .chezmoi.os "windows" }},
     "CLAUDE_CODE_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe",
     "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
