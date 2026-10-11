@@ -36,7 +36,8 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 "explanatory-output-style@claude-plugins-official" = false
 "learning-output-style@claude-plugins-official"    = false
 "ralph-loop@claude-plugins-official"               = false
-"remember@claude-plugins-official"                 = true
+# Its per-turn timestamp and handoff block duplicate the vault memory.
+"remember@claude-plugins-official"                 = false
 "session-report@claude-plugins-official"           = false
 
 [plugins.personal]
