@@ -2,7 +2,19 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const sg = require('../session-start-git-status.js');
+
+test('outside a repo the hook writes nothing, not its stdin', () => {
+    const r = spawnSync(
+        process.execPath,
+        [path.join(__dirname, '../session-start-git-status.js')],
+        { cwd: os.tmpdir(), input: '{"session_id":"abc"}', encoding: 'utf8' },
+    );
+    assert.equal(r.stdout, '');
+});
 
 const base = {
     branch: 'feature/x',
