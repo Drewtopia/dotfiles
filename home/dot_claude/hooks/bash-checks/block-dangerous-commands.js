@@ -59,6 +59,14 @@ const RULES = [
             `🛑 BLOCKED: mkfs command (disk formatting)\nCommand: ${cmd}`,
     },
     {
+        // The Bash tool runs a command as `zsh -c "<command>"`, so a full-command-line
+        // match always finds the shell running it.
+        id: 'pkill-full-match',
+        re: /\bpkill\b[^;&|\n]*\s(?:-[a-zA-Z0-9]*f[a-zA-Z0-9]*|--full)(?=\s|$)/,
+        msg: cmd =>
+            `🛑 BLOCKED: pkill -f matches the shell running this command, and kills it\nCommand: ${cmd}\nTip: find the PID in one call (pgrep -af <pattern>), then kill <pid> in the next`,
+    },
+    {
         id: 'exfiltrate-sensitive',
         re: /\b(curl|wget|nc|netcat)\s+[^;&|\n]*\.(env|pem|key|secret)/,
         msg: cmd =>
