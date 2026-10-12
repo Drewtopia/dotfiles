@@ -268,6 +268,9 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "verbose": true,
   "preferredNotifChannel": "auto",
   "agentPushNotifEnabled": false,
+  {{- /* NOTE: effectively never: also disables the orphaned-worktree sweep. Prune
+         transcripts with `claude purge`, worktrees with `wt step prune`. */}}
+  "cleanupPeriodDays": 99999,
   {{- /* Seeds, not pins: the floor merge lets runtime win per scalar, so these
          only reach a machine that has not set its own. */}}
   "tui": "fullscreen",
