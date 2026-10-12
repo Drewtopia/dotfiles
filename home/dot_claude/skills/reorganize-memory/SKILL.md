@@ -12,7 +12,7 @@ Always use plan mode — show the user what you intend to change before changing
 **Global memory** — `~/.claude/memory/` (vault-managed; knowledge Claude accumulates)
 
 - No index file: the folder layout is the index. Agents find a topic with `rg -il <term> ~/.claude/memory`, and `rg '^description:' ~/.claude/memory` lists every file's description.
-- `general.md` — cross-project conventions and quality gates. Stay lean — always-on behavioral rules go in `~/.claude/AGENTS.md`, path-scoped ones in `~/.claude/rules/`, not here.
+- `general.md` — cross-project conventions and quality gates. Stay lean — always-on behavioral rules go in `~/.agents/AGENTS.md`, path-scoped ones in `~/.claude/rules/`, not here.
 - `tools/{tool}.md` — one file per tool. Lazy-loaded.
 - `domain/{topic}.md` — domain knowledge per product/area (create lazily). Lazy-loaded.
 - `SESSION_LOG.md` — closeout history; no longer written (`/close` ends on a status line the `open-loops` mod saves instead)
@@ -20,24 +20,24 @@ Always use plan mode — show the user what you intend to change before changing
 
 **Behavioral rules** — native Claude Code mechanism; instructions, not facts (code.claude.com/docs/en/memory#organize-rules-with-claude/rules/). Two scopes:
 
-- **User** — personal, all projects: always-on rules are one line each in `~/.claude/AGENTS.md` (imported by `~/.claude/CLAUDE.md`); path-scoped rules are `~/.claude/rules/{topic}.md`. This skill maintains both.
+- **User** — personal, all projects: always-on rules are one line each in `~/.agents/AGENTS.md` (imported by `~/.claude/CLAUDE.md`); path-scoped rules are `~/.claude/rules/{topic}.md`. This skill maintains both.
 - **Project** `.claude/rules/{topic}.md` — team-shared, lives in the repo (tracked). Managed in-repo, NOT by this skill. User rules load before project rules, so project rules win on conflict.
-- One rule per file. Rules with `paths:` frontmatter load only when Claude reads matching files; a user rule that would need no `paths:` belongs in `~/.claude/AGENTS.md` instead (pay-per-session context).
+- One rule per file. Rules with `paths:` frontmatter load only when Claude reads matching files; a user rule that would need no `paths:` belongs in `~/.agents/AGENTS.md` instead (pay-per-session context).
 - `.claude/rules/` supports symlinks for sharing one rule across projects.
 
 **Legacy patterns (do NOT create new):**
 - Prefix-based filenames at the root of `~/.claude/memory/` — `feedback_X.md`, `user_X.md`, `project_X.md`, `reference_X.md`. Out of step with the structured system (general.md / tools/ / domain/ / rules/).
-- Files under `~/.claude/memory/feedback/` — superseded by `~/.claude/AGENTS.md` and `~/.claude/rules/`. Migrate each to an AGENTS.md line or a path-scoped rule.
+- Files under `~/.claude/memory/feedback/` — superseded by `~/.agents/AGENTS.md` and `~/.claude/rules/`. Migrate each to an AGENTS.md line or a path-scoped rule.
 
 ## Workflow
 
 1. **Plan mode entry** — call EnterPlanMode (or note in conversation that we're operating cautiously). All destructive operations require explicit confirmation.
 
-2. **Read all files in scope**: every top-level `.md` in `~/.claude/memory/`; `tools/` and `domain/` (if present); `feedback/` (legacy — should be empty or gone); `~/.claude/AGENTS.md`; `~/.claude/rules/**/*.md`; `projects.md`.
+2. **Read all files in scope**: every top-level `.md` in `~/.claude/memory/`; `tools/` and `domain/` (if present); `feedback/` (legacy — should be empty or gone); `~/.agents/AGENTS.md`; `~/.claude/rules/**/*.md`; `projects.md`.
 
 3. **Build a proposal** — for each candidate change, identify:
-   - **Legacy-pattern files** — propose migration by content: behavioral rule → a line in `~/.claude/AGENTS.md`, or `~/.claude/rules/{topic}.md` when it applies to certain paths; convention/quality gate → `general.md`; tool knowledge → `tools/{tool}.md`; domain knowledge → `domain/{topic}.md`.
-   - **`general.md` bloat** — content that is behavioral guidance rather than a flat convention/quality gate → extract to `~/.claude/AGENTS.md` or a path-scoped rule.
+   - **Legacy-pattern files** — propose migration by content: behavioral rule → a line in `~/.agents/AGENTS.md`, or `~/.claude/rules/{topic}.md` when it applies to certain paths; convention/quality gate → `general.md`; tool knowledge → `tools/{tool}.md`; domain knowledge → `domain/{topic}.md`.
+   - **`general.md` bloat** — content that is behavioral guidance rather than a flat convention/quality gate → extract to `~/.agents/AGENTS.md` or a path-scoped rule.
    - **Stale audits/inventories** — date-stamped snapshots, `⚠ Last seen` markers older than ~30 days, tool/package inventories. Per the Note-keeping bias in `working-patterns.md`, the content rots but the rationale survives: extract durable patterns/decisions FIRST, then propose the drop. Never a bare DROP without listing what durable content would be lost.
    - **Duplicates** — same meaning in multiple files. Recommend merge to one source.
    - **Merge candidates** — separate files, same topic. **Split candidates** — one file, multiple topics.
