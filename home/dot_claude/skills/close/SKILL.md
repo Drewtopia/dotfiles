@@ -13,7 +13,7 @@ Where things live after a close:
 - **This session's next step** → the closing `Parked:` or `Done.` line (step 3). The `open-loops` mod saves it and lists the open ones at every new session start.
 - **What happened** → the remember plugin's own history and `SESSION_TAILS.md`, both written automatically.
 
-Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`merge --ff-only`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
+Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`git -C ~/.claude-vault fetch . <branch>:main`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
 ## Quick close — every time
 
