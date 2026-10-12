@@ -1,5 +1,7 @@
 # Global CLAUDE.md
 
+@~/.agents/AGENTS.md
+
 ## Environment
 
 - **GitHub**: {{ .github.username }} (SSH: `git@github.com:{{ .github.username }}/<repo>.git`). Runtimes via mise; dotfiles via chezmoi.
@@ -27,4 +29,4 @@ If Drew is away, leave the action undone and a note or tracker issue instead.
 
 ## Memory
 
-Topic notes live in `~/.claude/memory/`, indexed by `memory.md`. They are not loaded by default: grep them when a task touches a listed tool or domain. Add durable knowledge to the matching topic file and keep the index current.
+Topic notes live in `~/.claude/memory/` (`tools/<tool>.md`, `domain/<topic>.md`, `general.md`), loaded on demand: find one with `rg -il <term> ~/.claude/memory`. Add durable knowledge to the matching topic file, or a new `tools/<tool>.md`.
