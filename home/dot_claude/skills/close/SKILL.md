@@ -53,7 +53,7 @@ Skip ephemeral debugging steps, retracted ideas, and anything obvious from the d
 | Domain knowledge for a product, area, or codebase | `domain/{topic}.md` |
 | Project-specific learnings | the project's own repo docs (see `projects.md`) |
 
-A new file under `tools/` or `domain/` gets a one-line row (file path + description) in `~/.claude/memory/memory.md`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
+A new file under `tools/` or `domain/` opens with `name:` and `description:` frontmatter; there is no index, so agents find it with `rg -il <term> ~/.claude/memory`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
 ### 3. The status line
 
@@ -126,7 +126,7 @@ Drop any segment whose step didn't run rather than printing `0`. Then a `/rename
 
 ## Self-check before reporting done
 
-- Every new memory file has a one-line pointer in `memory.md`.
+- Every new memory file opens with a `description:` frontmatter line.
 - Counter line reflects actual counts, not aspirational ones.
 - The reply's last line is the status line, and a `Parked:` line opens with a runnable command.
 - No `/tmp` or scratch handoff file was written for this repo; the remember slot is empty.
