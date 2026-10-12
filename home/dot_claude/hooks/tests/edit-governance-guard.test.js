@@ -67,6 +67,14 @@ test('governs the settings merge template and the unlock markers', () => {
     assert.ok(!isGoverned('/repo/src/claude.ts'));
 });
 
+test('governs a CLAUDE_CONFIG_DIR config like ~/.claude, but not the vault itself', () => {
+    assert.ok(isGoverned('/home/u/.claude-fresh/settings.json'));
+    assert.ok(isGoverned('/home/u/.claude-fresh/skills/edit-governance/README.md'));
+    assert.ok(isGoverned('/home/u/.claude-fresh/hooks/x.js'));
+    assert.ok(!isGoverned('/home/u/.claude-fresh/projects/x/memory/notes.md'));
+    assert.ok(!isGoverned('/home/u/.claude-vault/plans/lean-reset.md'));
+});
+
 test('governs mods, which load into every session like hooks', () => {
     assert.ok(isGoverned('/home/u/.claude/mods/vault-push/hooks/register.tsx'));
     assert.ok(!isGoverned('/home/u/.claude/dev-mods/abc/x/hooks/register.ts'));
