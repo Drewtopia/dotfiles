@@ -24,23 +24,6 @@ since-main = "git log --oneline {{ default_branch }}..HEAD"
 [commit.generation]
 command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
 
-# WIP limit: refuse a new worktree once MAX are open besides the main checkout; switching to an
-# existing one passes. pre-switch, not pre-start: pre-start runs after the worktree exists, so a
-# failing pre-start still leaves it created. Orca's Create worktree dialog runs no wt hooks.
-[pre-switch]
-wip-limit = """
-[ -n "${WT_WIP_OK:-}" ] && exit 0
-git worktree list --porcelain | grep -qxF "branch refs/heads/{{ branch }}" && exit 0
-MAX=5
-N=$(( $(git worktree list --porcelain | grep -c '^worktree ') - 1 ))
-[ "$N" -lt "$MAX" ] && exit 0
-echo "✋ WIP limit: $N worktrees open besides the main checkout (limit $MAX). Close one before opening {{ branch }}:"
-echo "   wt step prune --min-age 0s                   # merged ones"
-echo "   wt remove <branch>                           # parks an unmerged branch; wt switch <branch> brings it back"
-echo "   WT_WIP_OK=1 wt switch --create {{ branch }}  # a deliberate side quest"
-exit 1
-"""
-
 [pre-start]
 # Warn-only: flag an existing branch sharing this branch's ticket number.
 # `|| true` keeps an empty grep from aborting the create under set -e/pipefail.
