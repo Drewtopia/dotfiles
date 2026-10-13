@@ -50,6 +50,7 @@ skill_repos:
   - repo: stablyai/orca
     skills:
       - computer-use
+      - orca-cli
   - repo: shadcn/improve
     skills:
       - improve
