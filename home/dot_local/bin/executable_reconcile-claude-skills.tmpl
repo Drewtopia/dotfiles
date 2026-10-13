@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Unlinks ~/.claude/skills symlinks into ~/.agents/skills that
+# .chezmoidata/skills.yaml does not declare for Claude. `npx skills update`
+# relinks every skill into every detected agent, ignoring the `agents:` pin set
+# at install, so a bare upstream copy comes back to shadow its plugin twin.
+# Lists by default; `-y` unlinks. Payloads in ~/.agents/skills stay for the
+# other agents.
+set -euo pipefail
+
+remove=0
+[ "${1:-}" = "-y" ] && remove=1
+
+{{- $all := false }}
+{{- $allow := list }}
+{{- range .skill_repos }}
+{{-   if or (not (hasKey . "agents")) (has "claude-code" .agents) }}
+{{-     if has "*" .skills }}{{ $all = true }}{{ end }}
+{{-     $allow = concat $allow .skills }}
+{{-   end }}
+{{- end }}
+{{- if $all }}
+
+# skills.yaml gives Claude a whole repo, so any link may be declared.
+echo "[reconcile-claude-skills] a skills.yaml entry gives Claude \"*\"; nothing to sweep"
+exit 0
+{{- end }}
+
+allowed=({{ range $allow }} {{ . | quote }}{{ end }} )
+
+dir="$HOME/.claude/skills"
+[ -d "$dir" ] || exit 0
+
+for link in "$dir"/*; do
+    [ -L "$link" ] || continue
+    case "$(readlink "$link")" in
+        */.agents/skills/*) ;;
+        *) continue ;;
+    esac
+    name=$(basename "$link")
+    # The +-guard keeps bash 3.2 (macOS) and `set -u` happy if the list is empty.
+    for a in ${allowed[@]+"${allowed[@]}"}; do
+        [ "$a" = "$name" ] && continue 2
+    done
+    if [ "$remove" = 1 ]; then
+        rm "$link"
+        echo "[reconcile-claude-skills] unlinked $name"
+    else
+        echo "[reconcile-claude-skills] would unlink $name"
+    fi
+done
