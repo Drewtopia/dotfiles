@@ -21,10 +21,9 @@ Host github.com
 
 {{- if .personal }}
 
-# Macs resolve via Tailscale MagicDNS, drew-pd via AdGuard (.home) until it joins the
-# tailnet; unpublished usernames live in config.override.
+# Names resolve via Tailscale MagicDNS; unpublished usernames live in config.override.
 Host drew-pd
-  HostName drew-pd.home
+  HostName drew-pd
 
 Host drew-mbp
   HostName drew-mbp
