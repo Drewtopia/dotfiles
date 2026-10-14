@@ -1,0 +1,95 @@
+#!/bin/bash
+# hsctl — register Tailscale devices with the homelab Headscale. See `hsctl help`.
+
+set -euo pipefail
+
+# Headscale runs in CT 201 on pve2; override for another host or container.
+HS_SSH="${HS_SSH:-root@pve2.home}"
+HS_CT="${HS_CT:-201}"
+HS_USER="${HS_USER:-drew}"
+
+headscale() {
+    # shellcheck disable=SC2029 # args are expanded locally on purpose
+    ssh -o BatchMode=yes "$HS_SSH" "pct exec $HS_CT -- headscale $*"
+}
+
+# This device's own control URL, so the login server lives in one place.
+login_server() {
+    if [ -n "${HS_URL:-}" ]; then
+        echo "$HS_URL"
+    else
+        tailscale debug prefs | jq -r .ControlURL
+    fi
+}
+
+user_id() {
+    headscale users list -o json | jq -r --arg n "$HS_USER" '.[] | select(.name == $n) | .id'
+}
+
+cmd_register() {
+    # Accept the bare ID or the whole line the login page shows.
+    local id
+    id=$(grep -oE 'hskey-authreq-[A-Za-z0-9_-]+' <<<"$*" | head -1 || true)
+    if [ -z "$id" ]; then
+        echo "hsctl: no hskey-authreq-… ID in: $*" >&2
+        exit 1
+    fi
+    headscale auth register --auth-id "$id" --user "$HS_USER"
+}
+
+cmd_key() {
+    local tags=() expiry=1h
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --tag) tags+=("$2"); shift 2 ;;
+            -e|--expiration) expiry="$2"; shift 2 ;;
+            *) echo "hsctl key: unknown option $1" >&2; exit 1 ;;
+        esac
+    done
+    local args=(preauthkeys create --user "$(user_id)" -e "$expiry" -o json)
+    if [ ${#tags[@]} -gt 0 ]; then
+        args+=(--tags "$(IFS=,; echo "${tags[*]}")")
+    fi
+    local key
+    key=$(headscale "${args[@]}" | jq -r .key)
+    echo "Single-use, expires in $expiry. Run on the new device:"
+    echo
+    echo "  tailscale up --login-server $(login_server) --authkey $key"
+}
+
+cmd_ls() {
+    headscale nodes list -o json \
+        | jq -r '.[] | [.id, .given_name, .ip_addresses[0], (.tags // [] | join(",")), (if .online then "online" else "offline" end)] | @tsv' \
+        | column -t -s $'\t'
+}
+
+cmd_rename() {
+    [ $# -eq 2 ] || { echo "usage: hsctl rename <id> <name>" >&2; exit 1; }
+    headscale nodes rename -i "$1" "$2"
+}
+
+cmd_help() {
+    cat <<'EOF'
+hsctl — register Tailscale devices with Headscale
+
+  hsctl register <id-or-line>   approve a device that ran `tailscale login --login-server …`;
+                             paste the hskey-authreq-… ID or the whole command line
+  hsctl key [--tag tag:x] [-e 1h]
+                             make a single-use key and print the `tailscale up` line
+                             to run on the new device (no paste-back needed)
+  hsctl ls                      list nodes
+  hsctl rename <id> <name>      set a node's tailnet name
+
+Env: HS_SSH (root@pve2.home), HS_CT (201), HS_USER (drew), HS_URL (this device's
+control URL).
+EOF
+}
+
+case "${1:-help}" in
+    register) shift; cmd_register "$@" ;;
+    key) shift; cmd_key "$@" ;;
+    ls) cmd_ls ;;
+    rename) shift; cmd_rename "$@" ;;
+    help|-h|--help) cmd_help ;;
+    *) echo "hsctl: unknown command $1" >&2; cmd_help >&2; exit 1 ;;
+esac
