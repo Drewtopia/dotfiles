@@ -1,0 +1,23 @@
+{{ if eq .hostname "drew-mini" -}}
+#!/bin/bash
+# (Re)load the T3 Code tailnet server launch agent on drew-mini, the always-on main Mac.
+# hash: {{ printf "%s%s" (include "Library/LaunchAgents/com.drew.t3-serve.plist.tmpl") (include "dot_local/bin/executable_t3-serve-tailnet") | sha256sum }}
+
+set -euo pipefail
+
+LABEL="com.drew.t3-serve"
+DOMAIN="gui/$(id -u)"
+PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+
+# bootout is asynchronous; bootstrap fails with "Input/output error" until the old job is gone.
+if launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; then
+  launchctl bootout "$DOMAIN/$LABEL"
+  for _ in $(seq 1 20); do
+    launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1 || break
+    sleep 0.5
+  done
+fi
+
+launchctl bootstrap "$DOMAIN" "$PLIST"
+echo "Loaded $LABEL"
+{{ end -}}

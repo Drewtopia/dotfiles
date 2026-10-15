@@ -1,0 +1,12 @@
+#!/bin/zsh -l
+# Run the T3 Code server on this Mac's tailnet address, for the phone and other Macs.
+# Started by ~/Library/LaunchAgents/com.drew.t3-serve.plist; launchd restarts it if it exits.
+# State lives in ~/.t3-server, apart from the desktop app's own backend on ~/.t3.
+# See homeserver .scratch/headscale/issues/16-t3-code-on-drew-mini.md.
+
+until ip=$(/usr/local/bin/tailscale ip -4 2>/dev/null) && [[ -n $ip ]]; do
+  sleep 5
+done
+
+cd ~/Developer || exit 1
+exec ~/.local/bin/t3 serve --host "$ip" --port 3773 --base-dir ~/.t3-server --no-browser
