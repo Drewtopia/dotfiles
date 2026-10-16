@@ -18,6 +18,14 @@ exclude = ["node_modules/", "dist/", ".turbo/"]
 
 [aliases]
 since-main = "git log --oneline {{ default_branch }}..HEAD"
+# `wt new <branch>`: create with wt (gates, hooks, exact branch name), then open a Claude
+# tab on it in Orca. `wt switch --create` alone leaves the session and Orca's view in the
+# old worktree. `set -e`: a refused create opens no tab.
+new = """
+set -e
+P=$(wt switch --create {{ args }} --no-cd --format=json | jq -r .path)
+orca terminal create --worktree "path:$P" --command claude --focus --json >/dev/null
+"""
 
 # --safe-mode keeps hooks/plugins/CLAUDE.md out of the generated text;
 # --setting-sources='user' keeps auth out of a project .claude/settings.json.
