@@ -71,6 +71,10 @@ orca-ide worktree set --worktree path:{{ worktree_path }} --workspace-status in-
 exit 0
 """
 
+# A switch from any tab, an agent's `--no-cd` included, moves the Orca view to that worktree.
+[post-switch]
+orca-focus = "orca-focus {{ worktree_path }} || true"
+
 [pre-remove]
 # An Azure merge never closes the GitHub issue a branch carries, so name it while it is still open.
 issue-reminder = """
