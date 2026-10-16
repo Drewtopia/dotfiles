@@ -1,70 +1,33 @@
 {{- if includeTemplate "linux-supported" . -}}
-{{- /* CLI + shell tools moved to mise: bat, fd, rg, gh, jq, age, fzf, zoxide, atuin, carapace, neovim */ -}}
-{{- /* core: the apply is broken without these, so a failure stops it */ -}}
-{{- $core := list
-     "ca-certificates"
-     "curl"
-     "git"
-     "gnupg"
-     "tmux"
-     "unzip"
-     "xz-utils"
-     "zsh" -}}
-{{- /* optional: installed one at a time so a missing package only warns */ -}}
-{{- $optional := list
-     "btop"
-     "git-lfs"
-     "pkg-config"
-     "shellcheck"
-     "units"
-     "wget" -}}
-{{- $snaps := list -}}
-{{- $classicSnaps := list -}}
-{{- if .dev_computer -}}
-{{-   $optional = mustAppend $optional "ffmpeg" -}}
-{{- end -}}
-{{- if not .ephemeral -}}
-{{-   $optional = mustAppend $optional "xclip" -}}
-{{-   if not .is_wsl -}}
-{{-   $classicSnaps = mustAppend $classicSnaps "code" -}}
-{{-   end -}}
-{{- end -}}
-{{- $sudo := "sudo " -}}
-{{- if eq .chezmoi.username "root" -}}
-{{-   $sudo = "" -}}
-{{- end -}}
-{{- $apt := printf "%senv DEBIAN_FRONTEND=noninteractive apt-get" $sudo -}}
 #!/bin/bash
 
 set -eufo pipefail
 
 echo "🐧 Installing system packages on Linux..."
 
-{{ $apt }} update
-{{ $apt }} install -y {{ $core | join " " }}
-
-failed=()
-for pkg in {{ $optional | join " " }}; do
-    {{ $apt }} install -y "$pkg" || failed+=("$pkg")
-done
-
-{{ if and (lookPath "snap") (or $snaps $classicSnaps) }}
-if [[ -S /run/snapd.socket ]]; then
-{{   range $snaps }}
-( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install {{ . }} || true
-{{   end }}
-{{   range $classicSnaps }}
-( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install --classic {{ . }} || true
-{{   end }}
+# Packages are declared in .chezmoitemplates/mise-bootstrap.toml. This script
+# runs before chezmoi writes ~/.config/mise/conf.d/bootstrap.toml, so it applies
+# an inline copy; the copy also retriggers run_onchange when the list changes.
+# mise runs apt-get through sudo itself when not root (--update runs apt-get
+# update first), so this needs passwordless sudo or a terminal.
+# It goes in as a trusted project mise.toml in a temp dir: pointing
+# MISE_GLOBAL_CONFIG_FILE at it instead demotes the real global config to an
+# untrusted project file, which mise refuses on Windows and warns about here.
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+config="$tmpdir/mise.toml"
+cat > "$config" <<'EOF'
+{{ template "mise-bootstrap.toml" . }}
+EOF
+# before_00 installs mise to ~/.local/bin, which a fresh shell may not have on PATH.
+mise_bin="$(command -v mise || echo "$HOME/.local/bin/mise")"
+if ! "$mise_bin" bootstrap packages --help >/dev/null 2>&1; then
+    echo "❌ $mise_bin has no 'bootstrap packages' (needs mise 2026.7.4+); run: $mise_bin self-update" >&2
+    exit 1
 fi
-{{ end }}
+(cd "$tmpdir" && MISE_TRUSTED_CONFIG_PATHS="$tmpdir" "$mise_bin" bootstrap packages apply --yes --update)
 
-if (( ${#failed[@]} )); then
-    echo "⚠️  Optional apt packages not installed: ${failed[*]}" >&2
-    echo "✅ Core apt packages installed"
-else
-    echo "✅ apt packages installed!"
-fi
+echo "✅ System packages installed!"
 {{ else if eq .chezmoi.os "linux" -}}
 #!/bin/bash
 echo "⚠️  Unsupported Linux ({{ .osid }} {{ get .chezmoi.osRelease "versionID" }}): supported are Debian 12+, Ubuntu 22.04+ and Raspberry Pi OS 12+." >&2
