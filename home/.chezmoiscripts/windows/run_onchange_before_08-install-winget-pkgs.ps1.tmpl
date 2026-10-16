@@ -35,22 +35,26 @@ if (-not $wingetOk) {
 # config to an untrusted project file, and mise refuses to run.
 $tmpDir = Join-Path ([IO.Path]::GetTempPath()) ("mise-bootstrap-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $tmpDir | Out-Null
-@'
+# chezmoi runs this under Windows PowerShell 5.1, which has no utf8NoBOM
+# encoding; write UTF-8 without a BOM through .NET instead.
+$bootstrapToml = @'
 {{ template "mise-bootstrap.toml" . }}
-'@ | Set-Content -Path (Join-Path $tmpDir 'mise.toml') -Encoding utf8NoBOM
+'@
+[IO.File]::WriteAllText((Join-Path $tmpDir 'mise.toml'), $bootstrapToml, (New-Object Text.UTF8Encoding $false))
 
 # chezmoi.toml puts 00-install-mise's location on PATH; fall back to it directly.
 $mise = (Get-Command mise -ErrorAction SilentlyContinue).Source
 if (-not $mise) { $mise = '{{ .directories.tools_root }}\tools\mise\bin\mise.exe' -replace '/', '\' }
 # A WinGet Links entry is a symlink, which a non-interactive (SSH) session can't launch.
 $target = (Get-Item $mise -ErrorAction SilentlyContinue).Target
-if ($target) { $mise = $target }
+if ($target) { $mise = @($target)[0] }
 
 Push-Location $tmpDir
 try {
-    # Capture instead of *>$null: redirecting a native exe's streams to $null
-    # fails in pwsh sessions without a console.
-    $null = & $mise bootstrap packages --help 2>&1
+    # Capture stdout instead of *>$null, which fails in pwsh sessions without a
+    # console. Leave stderr alone: under 5.1 with ErrorActionPreference Stop,
+    # 2>&1 turns any mise WARN line into a terminating NativeCommandError.
+    $null = & $mise bootstrap packages --help
     if ($LASTEXITCODE -ne 0) {
         throw "$mise has no 'bootstrap packages' (needs mise 2026.9.3+ for winget); run: winget upgrade jdx.mise"
     }
