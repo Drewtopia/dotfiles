@@ -5,16 +5,16 @@
 # Slot 08: lands after mise/pwsh bootstrap (00) and env-vars (05), before
 # scoop (10). Any winget-managed prereq is on PATH for downstream scripts.
 #
-# Idempotent: `winget list --id <id> --exact` returns exit 0 only when the
-# package is installed; non-zero means "not found" and we trigger install.
-#
 # Scope/location strategy:
-#   - Personal: pass nothing extra. winget chooses the manifest's default
-#     scope. Inno/MSI installers prompt UAC (acceptable on personal).
-#   - Work + relocated tools_root: pass --scope user --location to keep
-#     portable manifests inside the whitelisted dev path. Non-portable
-#     manifests will reject these flags - list them in winget.toml
-#     no_scope (installs bare) or move dev tools to scoop.toml [scoop.work].
+#   - Not relocated (personal): `mise bootstrap packages apply`, from the
+#     winget entries in .chezmoitemplates/mise-bootstrap.toml. mise passes no
+#     scope, so winget chooses the manifest's default; Inno/MSI installers
+#     prompt UAC (acceptable on personal).
+#   - Relocated (work): this script's own loop, which passes --scope user
+#     --location to keep portable manifests inside the whitelisted dev path.
+#     mise has no option for either. Non-portable manifests reject these
+#     flags - list them in winget.toml no_scope (installs bare) or move dev
+#     tools to scoop.toml [scoop.work].
 
 $ErrorActionPreference = 'Stop'
 
@@ -26,6 +26,40 @@ if (-not $wingetOk) {
     exit 0
 }
 
+{{- if not .relocated }}
+
+# This script runs before chezmoi writes ~/.config/mise/conf.d/bootstrap.toml,
+# so it applies an inline copy; the copy also retriggers run_onchange when the
+# list changes. mise picks the parser from the extension, so the file ends in .toml.
+$tmpDir = Join-Path ([IO.Path]::GetTempPath()) ("mise-bootstrap-" + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $tmpDir | Out-Null
+$config = Join-Path $tmpDir 'bootstrap.toml'
+@'
+{{ template "mise-bootstrap.toml" . }}
+'@ | Set-Content -Path $config -Encoding utf8NoBOM
+
+# chezmoi.toml puts 00-install-mise's location on PATH; fall back to it directly.
+$mise = (Get-Command mise -ErrorAction SilentlyContinue).Source
+if (-not $mise) { $mise = '{{ .directories.tools_root }}\tools\mise\bin\mise.exe' -replace '/', '\' }
+
+try {
+    & $mise bootstrap packages --help *>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "$mise has no 'bootstrap packages' (needs mise 2026.9.3+ for winget); run: winget upgrade jdx.mise"
+    }
+    $env:MISE_GLOBAL_CONFIG_FILE = $config
+    & $mise bootstrap packages apply --yes
+    if ($LASTEXITCODE -ne 0) { throw "mise bootstrap packages apply exit $LASTEXITCODE" }
+} finally {
+    Remove-Item Env:MISE_GLOBAL_CONFIG_FILE -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
+}
+
+Write-Host '[OK] winget package install completed' -ForegroundColor Green
+{{- else }}
+
+# Idempotent: `winget list --id <id> --exact` returns exit 0 only when the
+# package is installed; non-zero means "not found" and we trigger install.
 $wingetPackages = @(
 {{- range .winget.packages }}
     '{{ . }}'
@@ -55,12 +89,10 @@ $noScope = @(
 {{- end }}
 )
 
-{{- if .relocated }}
 $workLocation = '{{ .directories.tools_root }}\tools' -replace '/', '\'
 if (-not (Test-Path $workLocation)) {
     New-Item -ItemType Directory -Force -Path $workLocation | Out-Null
 }
-{{- end }}
 
 $failed = @()
 foreach ($id in $wingetPackages) {
@@ -75,7 +107,6 @@ foreach ($id in $wingetPackages) {
     }
 
     Write-Host "[Install] winget install $id" -ForegroundColor Blue
-{{- if .relocated }}
     # Scope-less installers (see $noScope) reject --scope user --location and
     # winget reports "No applicable installer found"; install them bare.
     if ($noScope -contains $id) {
@@ -86,10 +117,6 @@ foreach ($id in $wingetPackages) {
             --accept-package-agreements --accept-source-agreements `
             --scope user --location $workLocation
     }
-{{- else }}
-    & winget install --id $id --exact --source winget --disable-interactivity `
-        --accept-package-agreements --accept-source-agreements
-{{- end }}
     if ($LASTEXITCODE -ne 0) {
         $failed += $id
         Write-Host "[ERROR] winget install $id exit $LASTEXITCODE" -ForegroundColor Red
@@ -102,4 +129,5 @@ if ($failed.Count -gt 0) {
 }
 
 Write-Host '[OK] winget package install completed' -ForegroundColor Green
+{{- end }}
 {{- end -}}
