@@ -23,7 +23,9 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 [plugins.always]
 # NOTE: settings merge as a floor under runtime, so a runtime `false` wins;
 # a machine that had it off needs `claude plugin enable` once.
-"context7@claude-plugins-official"                 = true
+# The ctx7 CLI (mise) and the context7 rule replace it; the plugin mostly
+# failed to authorize.
+"context7@claude-plugins-official"                 = false
 # No hookify rules in use, yet it runs python3 around every tool call.
 "hookify@claude-plugins-official"                  = false
 "claude-md-management@claude-plugins-official"     = false

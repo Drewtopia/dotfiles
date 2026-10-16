@@ -66,6 +66,18 @@ chezmoi = "latest"
 # Claude Code status line. Installed here so each repaint runs a local binary
 # instead of resolving the package through `bun x` on every run.
 "npm:ccstatusline" = "latest"
+# Browser automation and library docs as CLIs (the playwright-cli and find-docs
+# skills), so sessions don't each start a Playwright MCP server.
+"npm:@playwright/cli" = "latest"
+"npm:ctx7" = "latest"
+"npm:typescript" = "latest"
+{{- if not (and (eq .chezmoi.os "windows") .work) }}
+# Codex isn't used on work Windows.
+"npm:@openai/codex" = "latest"
+{{- end }}
+{{- if ne .chezmoi.os "windows" }}
+"npm:@caveman-ai/cli" = "latest"
+{{- end }}
 
 # pipx-backed CLI tools (pure Python, cross-platform)
 # commit-check: policy engine for Conventional Commits + Conventional Branch +
