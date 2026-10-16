@@ -30,6 +30,13 @@ alias wtl='wt list'
 wtlog() { tail -f "$(wt config state logs get --hook="$1")"; }
 {{- end }}
 
+####################### ORCA #######################
+{{- if lookPath "orca-ide" }}
+# Windows Orca ships its WSL CLI as `orca-ide` (bare `orca` is GNOME's screen reader on
+# Linux). Prefer the per-terminal command so the Mac client's SSH relay still wins.
+alias orca='${ORCA_CLI_COMMAND:-orca-ide}'
+{{- end }}
+
 ####################### TOOL ALIASES #######################
 {{- if lookPath "bat" }}
 alias cat=bat
