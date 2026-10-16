@@ -30,28 +30,36 @@ if (-not $wingetOk) {
 
 # This script runs before chezmoi writes ~/.config/mise/conf.d/bootstrap.toml,
 # so it applies an inline copy; the copy also retriggers run_onchange when the
-# list changes. mise picks the parser from the extension, so the file ends in .toml.
+# list changes. It goes in as a trusted project mise.toml in a temp dir:
+# pointing MISE_GLOBAL_CONFIG_FILE at it instead demotes the real global
+# config to an untrusted project file, and mise refuses to run.
 $tmpDir = Join-Path ([IO.Path]::GetTempPath()) ("mise-bootstrap-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $tmpDir | Out-Null
-$config = Join-Path $tmpDir 'bootstrap.toml'
 @'
 {{ template "mise-bootstrap.toml" . }}
-'@ | Set-Content -Path $config -Encoding utf8NoBOM
+'@ | Set-Content -Path (Join-Path $tmpDir 'mise.toml') -Encoding utf8NoBOM
 
 # chezmoi.toml puts 00-install-mise's location on PATH; fall back to it directly.
 $mise = (Get-Command mise -ErrorAction SilentlyContinue).Source
 if (-not $mise) { $mise = '{{ .directories.tools_root }}\tools\mise\bin\mise.exe' -replace '/', '\' }
+# A WinGet Links entry is a symlink, which a non-interactive (SSH) session can't launch.
+$target = (Get-Item $mise -ErrorAction SilentlyContinue).Target
+if ($target) { $mise = $target }
 
+Push-Location $tmpDir
 try {
-    & $mise bootstrap packages --help *>$null
+    # Capture instead of *>$null: redirecting a native exe's streams to $null
+    # fails in pwsh sessions without a console.
+    $null = & $mise bootstrap packages --help 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "$mise has no 'bootstrap packages' (needs mise 2026.9.3+ for winget); run: winget upgrade jdx.mise"
     }
-    $env:MISE_GLOBAL_CONFIG_FILE = $config
+    $env:MISE_TRUSTED_CONFIG_PATHS = $tmpDir
     & $mise bootstrap packages apply --yes
     if ($LASTEXITCODE -ne 0) { throw "mise bootstrap packages apply exit $LASTEXITCODE" }
 } finally {
-    Remove-Item Env:MISE_GLOBAL_CONFIG_FILE -ErrorAction SilentlyContinue
+    Pop-Location
+    Remove-Item Env:MISE_TRUSTED_CONFIG_PATHS -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
 }
 
