@@ -58,6 +58,11 @@ export RIPGREP_CONFIG_PATH=$XDG_CONFIG_HOME/ripgrep/config
 # Windows Orca forwards the Windows CLAUDE_CONFIG_DIR through WSLENV untranslated; in WSL
 # `C:/...` is a relative path, so Claude makes a stray `C:` dir in the cwd and skips ~/.claude.
 [[ "$CLAUDE_CONFIG_DIR" == [A-Za-z]:* ]] && unset CLAUDE_CONFIG_DIR
+{{- if .work }}
+# Orca's WSL runtime starts over SSH with only this file's environment, and reads its
+# Azure DevOps token from ORCA_AZURE_DEVOPS_TOKEN. Created by hand (chmod 600), never by chezmoi.
+[[ -r "$XDG_CONFIG_HOME/orca/azure-devops.env" ]] && source "$XDG_CONFIG_HOME/orca/azure-devops.env"
+{{- end }}
 {{- end }}
 
 {{- if eq .chezmoi.os "darwin" }}
