@@ -72,10 +72,12 @@ exit 0
 """
 
 # A new worktree's Orca card: in progress, linked to the branch's gh<n> issue.
-# Runs from any shell, not only an Orca terminal: orca-ide is Orca's WSL launcher, and bare `orca` is the GNOME screen reader.
+# Runs from any shell, not only an Orca terminal: `orca` is Orca's CLI, which in WSL talks to the Orca
+# server there. Skipped where `orca` is a distro package, such as the GNOME screen reader.
 orca-card = """
+case "$(command -v orca)" in '' | /usr/*) exit 0 ;; esac
 N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
-orca-ide worktree set --worktree path:{{ worktree_path }} --workspace-status in-progress ${N:+--issue "$N"} >/dev/null 2>&1 || true
+orca worktree set --worktree path:{{ worktree_path }} --workspace-status in-progress ${N:+--issue "$N"} >/dev/null 2>&1 || true
 exit 0
 """
 
