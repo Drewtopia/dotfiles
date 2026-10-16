@@ -137,6 +137,14 @@ GIT_CLIFF_TEMPLATES_DIR = "{{ joinPath .chezmoi.homeDir ".config" "git-cliff" "t
 
 [settings]
 experimental = true
+
+# Project configs under these folders load without a trust prompt, including
+# repos cloned there later. Only my own repos live there; anything else gets
+# a per-file `mise trust`. Global-only, so a repo can't set it for itself.
+trusted_config_paths = [
+    '{{ joinPath .chezmoi.homeDir "Developer" }}',
+    '{{ joinPath .chezmoi.homeDir "dev" }}',
+]
 idiomatic_version_file_enable_tools = ['node', 'pnpm']
 
 # Persist computed env to disk so cold mise spawns skip the full tool walk.
