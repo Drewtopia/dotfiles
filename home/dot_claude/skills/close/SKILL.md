@@ -29,7 +29,7 @@ Not inside a git repo → skip to step 2. Clean tree → say so in one line and 
 
 Dirty tree → read the full diff (`git diff HEAD`): hunks, not filenames.
 
-- On `main`, `master`, or `develop`, the work belongs on its stream's branch — the `gate-commit-not-protected` hook hard-blocks commits there. Find the stream with `wt list` and carry the changes over (`git stash -u`, then `git -C <stream-path> stash pop`); with no stream yet, `git switch -c <type>/<topic>` carries them in place.
+- On `main`, `master`, or `develop`, the work belongs on its stream's branch — the `gate-commit-not-protected` hook hard-blocks commits there. Find the stream with `wt list`, or name a new `<type>/<topic>` branch. Carry the changes over with `git stash push -u -m <branch>`, then `wt new <branch>`; never switch this checkout's branch. That stream's tab pops the stash and commits: tell Drew which tab and that it runs `git stash pop` first, then skip to step 2 here.
 - Group hunks by **purpose**, not by file. A single file can span two commits; two files can belong to one. One logical change → one commit; don't manufacture splits.
 - For each group: state the paths/hunks and the commit message (English imperative, conventional-commit prefix when it fits), confirm with Drew, stage only those paths (`git add -p` when hunks in one file split), commit.
 - Do **not** push. Do **not** use `git add -A`.
