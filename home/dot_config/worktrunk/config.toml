@@ -63,12 +63,11 @@ done
 exit 0
 """
 
-# A worktree made from an Orca terminal gets its card: in progress, linked to the branch's gh<n> issue.
-# Orca's own create sets the card itself, and its setup env has no ORCA_WORKTREE_ID.
+# A new worktree's Orca card: in progress, linked to the branch's gh<n> issue.
+# Runs from any shell, not only an Orca terminal: orca-ide is Orca's WSL launcher, and bare `orca` is the GNOME screen reader.
 orca-card = """
-[ -n "${ORCA_WORKTREE_ID:-}" ] || exit 0
 N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
-"${ORCA_CLI_COMMAND:-orca}" worktree set --worktree path:{{ worktree_path }} --workspace-status in-progress ${N:+--issue "$N"} >/dev/null 2>&1 || true
+orca-ide worktree set --worktree path:{{ worktree_path }} --workspace-status in-progress ${N:+--issue "$N"} >/dev/null 2>&1 || true
 exit 0
 """
 
