@@ -70,6 +70,14 @@ chezmoi = "latest"
 # skills), so sessions don't each start a Playwright MCP server.
 "npm:@playwright/cli" = "latest"
 "npm:ctx7" = "latest"
+"npm:typescript" = "latest"
+{{- if not (and (eq .chezmoi.os "windows") .work) }}
+# Codex isn't used on work Windows.
+"npm:@openai/codex" = "latest"
+{{- end }}
+{{- if ne .chezmoi.os "windows" }}
+"npm:@caveman-ai/cli" = "latest"
+{{- end }}
 
 # pipx-backed CLI tools (pure Python, cross-platform)
 # commit-check: policy engine for Conventional Commits + Conventional Branch +
