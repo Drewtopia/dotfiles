@@ -18,13 +18,13 @@ exclude = ["node_modules/", "dist/", ".turbo/"]
 
 [aliases]
 since-main = "git log --oneline {{ default_branch }}..HEAD"
-# `wt new <branch>`: Orca creates the worktree so it gets its own tab with Claude in it;
-# `wt switch --create` leaves the session and Orca's view in the old worktree.
-# Orca flattens `/` in --name to `-`, so the branch is renamed back afterwards.
+# `wt new <branch>`: create with wt (gates, hooks, exact branch name), then open a Claude
+# tab on it in Orca. `wt switch --create` alone leaves the session and Orca's view in the
+# old worktree. `set -e`: a refused create opens no tab.
 new = """
-O=${ORCA_CLI_COMMAND:-$(command -v orca-ide || echo orca)}
-P=$($O worktree create --repo name:{{ repo }} --name {{ args[0] }} --agent claude --activate --json | jq -r .result.worktree.path)
-git -C "$P" branch -m {{ args[0] }}
+set -e
+P=$(wt switch --create {{ args }} --no-cd --format=json | jq -r .path)
+"${ORCA_CLI_COMMAND:-orca}" terminal create --worktree "path:$P" --command claude --focus --json >/dev/null
 """
 
 # --safe-mode keeps hooks/plugins/CLAUDE.md out of the generated text;
