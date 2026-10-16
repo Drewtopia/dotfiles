@@ -1,0 +1,17 @@
+# Read before any other mise config, because these settings decide which
+# config files load (they have no effect in config.toml).
+# https://mise.jdx.dev/configuration/environments.html
+
+# Load config.<os>.toml / config.<os>-<arch>.toml (and mise.<os>.toml in
+# projects) for the current platform. Off by default until mise 2027.6.0,
+# which warns from 2026.12.0; set now so the flip changes nothing.
+auto_env = true
+
+# conf.d fragment names take environment suffixes like other config files
+# (conf.d/tools.work.toml loads only for the work environment). Default from
+# mise 2027.8.10; until then a dotted fragment name is deprecated. Name
+# always-loaded fragments without dots, e.g. node-tools.toml.
+env_conf_d = true
+
+# Per-machine role modules go in an uncommitted miserc.local.toml beside this
+# file, as `env = ["..."]`.
