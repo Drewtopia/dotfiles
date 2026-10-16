@@ -24,7 +24,7 @@ since-main = "git log --oneline {{ default_branch }}..HEAD"
 new = """
 set -e
 P=$(wt switch --create {{ args }} --no-cd --format=json | jq -r .path)
-"${ORCA_CLI_COMMAND:-orca}" terminal create --worktree "path:$P" --command claude --focus --json >/dev/null
+orca terminal create --worktree "path:$P" --command claude --focus --json >/dev/null
 """
 
 # --safe-mode keeps hooks/plugins/CLAUDE.md out of the generated text;
