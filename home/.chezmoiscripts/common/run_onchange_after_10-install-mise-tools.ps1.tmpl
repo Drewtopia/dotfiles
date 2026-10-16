@@ -102,7 +102,9 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
     Link-MiseXdg (Join-Path $HOME '.local\state\mise') $miseDir   $linkFlag
     Link-MiseXdg (Join-Path $HOME '.cache\mise')       $miseCache $linkFlag
 
-    mise trust --all 2>$null
+    # No `mise trust --all`: the global config loads without trust, and --all
+    # walks every subdirectory of the working directory ($HOME here), which
+    # hung for minutes at full CPU on drew-pd. The sh script dropped it in 868f970.
     Write-Host "[Install] Installing mise tools..." -ForegroundColor Blue
     mise install --yes
     mise prune --yes 2>$null
