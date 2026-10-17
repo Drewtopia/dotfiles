@@ -58,6 +58,12 @@ export RIPGREP_CONFIG_PATH=$XDG_CONFIG_HOME/ripgrep/config
 # Windows Orca forwards the Windows CLAUDE_CONFIG_DIR through WSLENV untranslated; in WSL
 # `C:/...` is a relative path, so Claude makes a stray `C:` dir in the cwd and skips ~/.claude.
 [[ "$CLAUDE_CONFIG_DIR" == [A-Za-z]:* ]] && unset CLAUDE_CONFIG_DIR
+{{- if .is_wsl }}
+# WSL has no session bus, so keyring lookups (gh, claude, docker) X11-autolaunch a dbus-daemon
+# that never exits and keeps its terminal's Relay alive, pinning interop memory until new
+# interop calls fail (microsoft/WSL#40650). No keyring service runs here, so nothing is lost.
+export DBUS_SESSION_BUS_ADDRESS=disabled:
+{{- end }}
 {{- if .work }}
 # Orca's WSL runtime starts over SSH with only this file's environment, and reads its
 # Azure DevOps token from ORCA_AZURE_DEVOPS_TOKEN. Created by hand (chmod 600), never by chezmoi.
