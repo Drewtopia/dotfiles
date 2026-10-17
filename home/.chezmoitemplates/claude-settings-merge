@@ -377,10 +377,6 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   | .enabledPlugins["session-report@claude-plugins-official"] = false
   | .enabledPlugins["humanizer@humanizer"] = false
   | .enabledPlugins["andrej-karpathy-skills@karpathy-skills"] = false
-  # Auto-memory stays off on every machine: declaring it in the managed floor
-  # cannot force-disable a machine where Claude already enabled it (runtime wins),
-  # so pin it here to re-assert false on every apply.
-  | .autoMemoryEnabled = false
   # Attribution stays off in every form. sessionUrl defaults to true and the
   # deprecated includeCoAuthoredBy never covered it, so web and Remote Control
   # commits still carried a session trailer. Pin the whole object (runtime wins
