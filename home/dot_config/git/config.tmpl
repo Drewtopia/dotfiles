@@ -175,6 +175,9 @@
 	path = ~/.config/git/azure-signing.inc
 [includeIf "hasconfig:remote.*.url:git@ssh.dev.azure.com:**"]
 	path = ~/.config/git/azure-signing.inc
+# GCM's account binding for the Azure org names the employer, so it lives in an encrypted file.
+[include]
+	path = ~/.config/git/azrepos.inc
 {{- end }}
 
 {{- if and (eq .chezmoi.os "windows") (not .is_wsl) }}
