@@ -104,12 +104,15 @@ exit 0
 """
 
 [pre-remove]
+# Removal deletes untracked and ignored files without asking; a failed copy aborts the removal.
+attic = "wt-attic {{ worktree_path }}"
 # An Azure merge never closes the GitHub issue a branch carries, so name it while it is still open.
 issue-reminder = """
 N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
 [ -n "$N" ] || exit 0
 R=${GH_ISSUE_TRACKER_REPO:-$(mise exec -- printenv GH_ISSUE_TRACKER_REPO 2>/dev/null || true)}
-S=$(timeout 15 gh issue view "$N" ${R:+--repo "$R"} --json state --jq .state 2>/dev/null || true)
-[ "$S" = "OPEN" ] && echo "GH-$N is still open: gh issue close $N${R:+ --repo $R}"
+# One merged slice does not finish an issue that has sub-issues, so a parent gets no reminder.
+S=$(timeout 15 gh api "repos/$R/issues/$N" --jq '[.state, .sub_issues_summary.total] | map(tostring) | join(" ")' 2>/dev/null || true)
+[ "$S" = "open 0" ] && echo "GH-$N is still open: gh issue close $N --repo $R"
 exit 0
 """
