@@ -46,7 +46,7 @@ Read back through the session once for what future work needs:
 
 Skip ephemeral debugging steps, retracted ideas, and anything obvious from the diff. Nothing worth keeping is a valid result: say "no notes".
 
-| Content | Destination (`~/.claude/memory/`, the only memory destination; auto-memory is disabled) |
+| Content | Destination (`~/.claude/memory/`; auto-memory keeps its own notes under `~/.claude/projects/`, and `/close` does not write there) |
 |---|---|
 | Cross-project conventions, preferences, naming, workflow style | `general.md` (append) |
 | Tool configs, CLI patterns, workarounds for a specific tool | `tools/{tool}.md` (one file per tool) |
