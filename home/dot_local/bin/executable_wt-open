@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Opens a worktree's Claude session in Orca. worktrunk's `wt new` and `wt resume` aliases call it.
+# Usage: wt-open new <branch> [wt switch args]   open the worktree, creating it (and the branch
+#                                                 when neither it nor origin's copy exists), then
+#                                                 a fresh Claude tab, even beside a live one.
+#        wt-open resume <branch>                 the worktree's latest live Claude tab, else a new
+#                                                 tab running `claude --continue` (plain `claude`
+#                                                 when the folder has no saved session). Never creates.
+set -euo pipefail
+
+mode=${1:-}
+case "$mode" in new | resume) shift ;; *) echo "usage: wt-open new|resume <branch> [args]" >&2; exit 2 ;; esac
+b=${1:-}
+[ -n "$b" ] || { echo "wt $mode: name a branch" >&2; exit 2; }
+
+if [ "$mode" = new ]; then
+  c=--create
+  case "$b" in
+    pr:* | mr:*) c= ;;
+    *) if git rev-parse --verify --quiet "refs/heads/$b" >/dev/null ||
+         git rev-parse --verify --quiet "refs/remotes/origin/$b" >/dev/null; then c=; fi ;;
+  esac
+  p=$(wt switch $c "$@" --no-cd --format=json | jq -r .path)
+else
+  # `wt switch pr:<N>` would create the worktree, and resolving a PR without it needs each forge's CLI.
+  case "$b" in pr:* | mr:*) echo "wt resume: name the PR's branch, not $b" >&2; exit 2 ;; esac
+  p=$(wt list --format=json | jq -r --arg b "$b" '.items[] | select(.branch == $b) | .worktree.path // empty')
+  [ -n "$p" ] || { echo "wt resume: $b has no worktree; start it with: wt new $b" >&2; exit 1; }
+fi
+[ -n "$p" ] && [ "$p" != null ] || exit 1
+
+# Orca finds a new worktree on its next poll, some seconds later.
+i=0
+until orca worktree show --worktree "path:$p" >/dev/null 2>&1; do
+  i=$((i + 1))
+  [ "$i" -lt 30 ] || { echo "wt $mode: Orca has not picked up $p after 30 s; open it there" >&2; exit 1; }
+  sleep 1
+done
+# Orca keeps a tab's agentIdentity after Claude exits, so Claude's own live-session records
+# (pid and cwd) say whether one runs here; Orca then names the tab.
+cc=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+running=0
+for r in "$cc"/sessions/*.json; do
+  [ -e "$r" ] || continue
+  read -r pid cwd < <(jq -r '"\(.pid) \(.cwd)"' "$r" 2>/dev/null) || continue
+  case "$cwd" in "$p" | "$p"/*) kill -0 "$pid" 2>/dev/null && { running=1; break; } ;; esac
+done
+live=
+[ "$running" = 0 ] || live=$(orca terminal list --worktree "path:$p" --json | jq -r '
+  [.result.terminals[] | select((.orphaned | not) and .agentIdentity == "claude")]
+  | max_by(.lastOutputAt) | .handle // empty')
+# Interactive `claude --continue` exits at once in a folder with no saved session.
+resume=claude
+compgen -G "$cc/projects/$(printf '%s' "$p" | tr -c 'A-Za-z0-9' -)/*.jsonl" >/dev/null && resume="claude --continue"
+
+if [ "$mode" = new ]; then
+  [ -z "$live" ] || echo "wt new: $b has a live Claude session; wt resume $b returns to it" >&2
+  orca terminal create --worktree "path:$p" --command claude --focus --json >/dev/null
+elif [ -n "$live" ]; then
+  orca terminal switch --terminal "$live" >/dev/null
+else
+  orca terminal create --worktree "path:$p" --command "$resume" --focus --json >/dev/null
+fi

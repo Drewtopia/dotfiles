@@ -18,36 +18,12 @@ exclude = ["node_modules/", "dist/", ".turbo/"]
 
 [aliases]
 since-main = "git log --oneline {{ default_branch }}..HEAD"
-# `wt new <branch>`: the one way to open work. wt opens the branch's worktree (gates, hooks,
-# exact branch name), creating the branch only when neither it nor origin's copy exists; then
-# Orca shows it: its live tab if it has one, else a new Claude tab. `wt switch` alone leaves
-# the session and Orca's view in the old worktree. `set -e`: a refused switch opens no tab.
-new = """
-set -e
-set -- {{ args }}
-C=--create
-case "$1" in
-  pr:* | mr:*) C= ;;
-  *) if git rev-parse --verify --quiet "refs/heads/$1" >/dev/null ||
-       git rev-parse --verify --quiet "refs/remotes/origin/$1" >/dev/null; then C=; fi ;;
-esac
-P=$(wt switch $C "$@" --no-cd --format=json | jq -r .path)
-[ -n "$P" ] && [ "$P" != null ] || exit 1
-# Orca finds a new worktree on its next poll, some seconds later.
-i=0
-until orca worktree show --worktree "path:$P" >/dev/null 2>&1; do
-  i=$((i + 1))
-  [ "$i" -lt 30 ] || { echo "wt new: Orca has not picked up $P after 30 s; open it there" >&2; exit 1; }
-  sleep 1
-done
-H=$(orca terminal list --worktree "path:$P" --json |
-  jq -r '[.result.terminals[] | select(.orphaned | not)][0].handle // empty')
-if [ -n "$H" ]; then
-  orca terminal switch --terminal "$H" >/dev/null
-else
-  orca terminal create --worktree "path:$P" --command claude --focus --json >/dev/null
-fi
-"""
+# Open work through `wt-open`, never a bare `wt switch`: that leaves the session and Orca's view in
+# the old worktree. `wt new <branch>` opens the branch's worktree (gates, hooks, exact branch name),
+# creating it when missing, then a fresh Claude tab: a new ticket on an existing stream starts clean.
+# `wt resume <branch>` returns to the branch's live Claude tab, else `claude --continue` there.
+new = "wt-open new {{ args }}"
+resume = "wt-open resume {{ args }}"
 
 # --safe-mode keeps hooks/plugins/CLAUDE.md out of the generated text;
 # --setting-sources='user' keeps auth out of a project .claude/settings.json.
