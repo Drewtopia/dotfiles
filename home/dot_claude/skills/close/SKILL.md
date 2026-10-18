@@ -63,7 +63,7 @@ The report (below) ends on one status line: `Parked: <first action, naming the b
 
 | Next step | Status line |
 |---|---|
-| Build or continue a tracker issue | `Parked: /implement GH-<n>` |
+| Build or continue a tracker issue | `Parked: wt new <the branch the focus working document names, else the ticket's area stream>, then /implement GH-<n>` |
 | A spec with two or more `ready-for-agent` tickets | `Parked: /implement-spec GH-<spec>` |
 | A slice with no issue yet ("PR 4", "the follow-up") | `Parked: /to-tickets GH-<parent>`, then `/implement` per ticket |
 | Ship | `Parked: /pr, then PR_BODY=<file> wt step ship` |
