@@ -34,7 +34,7 @@ Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governa
 10. Adversarial pass — actively try to refute each change:
     - Does it conflict with an existing rule, skill, or ADR? Grep for overlaps.
     - Does it weaken a prohibition or safety rule? (Never acceptable silently.)
-    - Does a doc change violate the Docs section of the `style` rule?
+    - Does a doc change state what is, leaving history to git (`~/.agents/AGENTS.md`)?
     - Did any fact, command, or gotcha get lost relative to the old version? Diff-check, don't assume.
 11. Present to the user: the full diff, the refutation findings (including "none found"), and the commit plan. **Wait for explicit approval.** Do not commit, merge, or push before it.
 12. After approval: commit on the work branch, then land it per step 3 (vault: `fetch . <type>/<slug>:main`, then Drew pushes; chezmoi: branch push and PR). Confirm clean status in every touched repo.
