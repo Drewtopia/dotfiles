@@ -32,6 +32,10 @@ reconcile-claude-skills = "{{ .chezmoi.homeDir }}/.local/bin/reconcile-claude-sk
 # Skill updates need no command: topgrade's native `skills` step owns them.
 # tv skips channels that already exist, so chezmoi keeps its custom overrides.
 tv-channels = "tv update-channels"
+{{- if and .work .is_wsl }}
+# The WSL Orca server runs from an extracted AppImage that Orca's own updater can't replace.
+orca-server = "{{ .chezmoi.homeDir }}/.local/bin/orca-server-update"
+{{- end }}
 
 
 [python]
