@@ -60,10 +60,13 @@ if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-# turn off mouse tracking left on by a TUI that crashed
-_reset_mouse() { printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1015l' }
-autoload -Uz add-zsh-hook
-add-zsh-hook precmd _reset_mouse
+# turn off mouse and focus reporting that Orca replays after a restart
+# (https://github.com/stablyai/orca/issues/18424)
+if [[ $TERM_PROGRAM == Orca ]]; then
+  _reset_mouse() { printf '\e[?1000l\e[?1002l\e[?1003l\e[?1004l\e[?1006l\e[?1015l' }
+  autoload -Uz add-zsh-hook
+  add-zsh-hook precmd _reset_mouse
+fi
 
 # zsh-syntax-highlighting's install docs require it last: on zsh < 5.9 it wraps
 # only the widgets defined before it.
