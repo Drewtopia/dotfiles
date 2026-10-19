@@ -9,7 +9,7 @@ set -euo pipefail
 dry=0
 [ "${1:-}" = "-n" ] && { dry=1; shift; }
 wt=$(git -C "${1:-.}" rev-parse --show-toplevel)
-main=$(git -C "$wt" worktree list --porcelain | awk '/^worktree /{print substr($0,10); exit}')
+main=$(git -C "$wt" worktree list --porcelain | awk '/^worktree / && !n++ {print substr($0,10)}')
 [ "$wt" = "$main" ] && { echo "wt-attic: $wt is the primary checkout; nothing to archive" >&2; exit 0; }
 
 regen='(^|/)(node_modules|dist|\.moon/cache|\.astro|\.turbo|playwright-report|test-results|blob-report|playwright/\.auth)/|\.tsbuildinfo$'
