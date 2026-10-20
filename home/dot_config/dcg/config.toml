@@ -19,6 +19,16 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 "core.filesystem:redirect-truncate-dynamic-path" = "ask"
 "core.filesystem:mv-dynamic-path" = "ask"
 "core.git:branch-dynamic-token" = "ask"
+# These fire when dcg cannot parse a heredoc, inline script or PowerShell launcher, not when it
+# found something destructive: 75 of 190 work-WSL blocks in a week (2026-10-20), mostly scratch
+# writes and read-only VM probes. Ask keeps a human on each one without the dead end.
+"heredoc.shell:launcher-unverified" = "ask"
+"heredoc.posix:inline-launcher-unverified" = "ask"
+"heredoc.posix:substitution-unverified" = "ask"
+"heredoc.posix:pipeline-consumer" = "ask"
+"heredoc.posix:process-substitution" = "ask"
+"heredoc.posix:eval-dynamic" = "ask"
+"windows.filesystem:windows-filesystem-semantic-unverified" = "ask"
 
 [history]
 enabled = true
