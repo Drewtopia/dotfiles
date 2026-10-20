@@ -1,6 +1,6 @@
 ---
 name: close
-description: Close out a session so the next one starts in the right place — commit, notes, and a closing status line that every new session lists; full extras only when a merge, plan docs, or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
+description: Close out this session, never its stream, so the next one starts in the right place — commit, notes, and a closing status line that every new session lists and the worktree's Orca card shows; full extras only when plan docs or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
 disable-model-invocation: true
 ---
 
@@ -8,9 +8,11 @@ disable-model-invocation: true
 
 Quick close runs every time and stays short: a heavy closeout is a closeout that gets skipped. Full extras run only when their trigger is present, or when invoked as `/close full`.
 
+`/close` ends this session only; other sessions in the same worktree carry on, and `/settle` afterwards closes the tab. The stream ends when its PR merges and Drew presses **Land** on the `merge-watch` band. In a repo whose worktrunk config defines the `land` alias, that runs `wt step land`, which refuses while a Claude session runs in the worktree, closes the `gh<n>` issue, marks the Orca card completed and removes the worktree; elsewhere Drew runs `wt remove <branch>`. Either way `/close` never removes a worktree or closes a stream's issue; an issue whose branch carries no `gh<n>` is closed by `/reconcile-tracker`.
+
 Where things live after a close:
 
-- **This session's next step** → the closing `Parked:` or `Done.` line (step 3). The `open-loops` mod saves it and lists the open ones at every new session start.
+- **This session's next step** → the closing `Parked:`, `Waiting on you:` or `Done.` line (step 3). The `open-loops` mod saves it, writes it to the worktree's Orca card as its comment, and lists the open ones at every new session start.
 - **What happened** → the remember plugin's own history and `SESSION_TAILS.md`, both written automatically.
 
 Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`git -C ~/.claude-vault fetch . <branch>:main`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
@@ -68,7 +70,6 @@ The report (below) ends on one status line: `Parked: <first action, naming the b
 | A spec with two or more `ready-for-agent` tickets | `Parked: /implement-spec GH-<spec>` |
 | A slice with no issue yet ("PR 4", "the follow-up") | `Parked: /to-tickets GH-<parent>`, then `/implement` per ticket |
 | Ship | `Parked: /pr, then PR_BODY=<file> wt step ship` |
-| Branch merged, only cleanup left | `Parked: wt remove <branch>` |
 
 Then retire the remember plugin's handoff slot. Its session-start hook re-delivers a non-empty slot to every session until it is replaced, and the status line now holds the next step:
 
@@ -83,22 +84,8 @@ Run each extra whose trigger is present. `/close full` runs all of them.
 
 | Trigger | Extra |
 |---|---|
-| Split-host project (code on Azure, issues on GitHub) and a branch this session worked on has merged | Tracker reconcile |
-| The branch being closed has merged | Worktree tidy |
 | `.claude/tasks/*.md` or design docs belong to work closed this session | Plan sweep |
 | The session made things outside this repo — remote branches, other repos, containers, processes, scratch dirs, comments, files | Leftovers inventory |
-
-### Tracker reconcile
-
-A merged PR does **not** auto-close its issue on a split-host project. Close them per [`_lib/closing-merged-issues.md`](../_lib/closing-merged-issues.md). `merged-set.sh` lists every merged or `[gone]` branch in the repo, so keep only the branches this session worked on. Skip silently on a single-host project, where `Closes #N` already closes the issue.
-
-### Worktree tidy
-
-The normal closeout case is a WIP/unmerged branch — skip this. Only when the branch you're closing out has merged (its Azure PR is `Completed`, or the `GH-N` issue's PR shows merged):
-
-1. **Confirm the merge — don't infer it.** Check the PR state (`az repos pr list`, `gh pr view`) or ask Drew. An Azure-UI merge fires no local hook, so nothing has cleaned up locally.
-2. Ensure the `GH-N` issue is closed (tracker reconcile does this on split-host projects).
-3. Verify `git status` is clean and **confirm with Drew** — a worktree with uncommitted changes is never removed. Then `wt remove <branch>`, which refuses a branch the default branch does not contain.
 
 ### Plan sweep
 
@@ -106,21 +93,23 @@ Implementation plans and completed design docs do not survive task closure. List
 
 ### Leftovers inventory
 
-List everything this session created, changed, or started outside the commits — branches (local and remote), worktrees, PRs, issues, comments it wrote, files outside the repo, scratch dirs, processes, containers. Check each one **live** (remote, tracker, filesystem, `docker ps`), never from memory, and sort it:
+List everything this session created, changed, or started outside the commits — remote scratch branches, PRs, issues, comments it wrote, files outside the repo, scratch dirs, processes, containers. Worktrees and their branches are not on this list: `wt step land` ends them. Check each one **live** (remote, tracker, filesystem, `docker ps`), never from memory, and sort it:
 
 - **Landed** — merged, closed, released, verified on the remote.
 - **In flight** — waiting on review, CI, a pipeline, or a person; name who or what.
-- **Debris** — a branch after its merge, a leftover worktree, a temp file or container, a stale comment this session wrote.
+- **Debris** — a remote scratch branch this session pushed, a temp file, an idle process or container, a stale comment this session wrote.
 - **Out of scope** — a finding that deserves its own tracker issue. Draft the title and one-paragraph body now, while the context is live; file it on confirm.
 
-Report the sorted list with one proposed action per item and act only on what Drew confirms. Worktree removal is `wt remove <branch>`; branch deletion follows the `deletion-safety` rule.
+Clean up **Debris** without asking, since the live check already showed it finished or idle: `git push origin --delete <branch>` for a scratch branch, and stop or delete the process, container or temp file. A stale comment is proposed in the report, not deleted. Anything another agent made stays put and is named in the report; a step a hook blocks goes in the report as one `!` command for Drew.
+
+Report the sorted list: what was cleaned, what is in flight and who it waits on, and the out-of-scope drafts to file on confirm.
 
 ## Report
 
 Print the counter:
 
 ```
-<N> memory updates · <N> commits · <N> issues closed · <N> issues filed · worktree removed
+<N> memory updates · <N> commits · <N> issues filed · <N> leftovers cleaned
 ```
 
 Drop any segment whose step didn't run rather than printing `0`. Then a `/rename <project>-<ticket-or-pr>-<topic>` command Drew can paste (kebab-case, no date, no status words) so `/resume` and `/find-session` can find the session, and last the status line from step 3: `open-loops` reads only the reply's last line.
