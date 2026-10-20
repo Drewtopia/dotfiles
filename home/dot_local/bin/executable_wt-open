@@ -24,8 +24,8 @@ if [ "$mode" = new ]; then
   esac
   # Under Claude, a new branch for a ticket that already has a worktree is refused before anything is
   # created: a second worktree means a second session on the same work. Drew only gets worktrunk's
-  # collision-check warning, and an /implement-spec subagent (PARALLEL_BRANCH_OK) is exempt.
-  if [ -n "$c" ] && [ -n "${CLAUDECODE:-}" ] && [ -z "${PARALLEL_BRANCH_OK:-}" ]; then
+  # collision-check warning.
+  if [ -n "$c" ] && [ -n "${CLAUDECODE:-}" ]; then
     t=$(printf '%s' "$b" | grep -oE 'gh[0-9]+|[0-9]{4,6}' | head -1 || true)
     w=
     [ -z "$t" ] || w=$(git worktree list --porcelain | sed -n 's|^branch refs/heads/||p' |
