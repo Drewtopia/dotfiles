@@ -23,6 +23,7 @@ skill_repos:
       - loop-me
       - setup-ts-deep-modules
       - claude-handoff
+      - chief-of-staff
   - repo: github/awesome-copilot
     skills:
       - conventional-commit
