@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Opens a worktree's Claude session in Orca. worktrunk's `wt new` and `wt resume` aliases call it.
-# Usage: wt-open new <branch> [wt switch args]   open the worktree, creating it (and the branch
+# Usage: wt-open new <branch> [launch flags] [wt switch args]
+#                                                 open the worktree, creating it (and the branch
 #                                                 when neither it nor origin's copy exists), then
-#                                                 a fresh Claude tab. A branch that already has a
-#                                                 live Claude session goes back to that session
-#                                                 instead: one session per branch.
+#                                                 a fresh Claude session through `orca agent launch`
+#                                                 (a chat or a terminal, per Orca's Chat UI setting).
+#                                                 A branch that already has a live Claude session
+#                                                 goes back to that session instead: one session per branch.
+#          launch flags: --model <id>, --effort <level> (needs --model), --prompt <text> or
+#                        --prompt-file <file> (the brief the session starts on); `--flag=value` also works.
 #        wt-open resume <branch>                 the worktree's latest live Claude tab, else a new
 #                                                 tab running `claude --continue` (plain `claude`
 #                                                 when the folder has no saved session). Never creates.
@@ -14,6 +18,29 @@ mode=${1:-}
 case "$mode" in new | resume) shift ;; *) echo "usage: wt-open new|resume <branch> [args]" >&2; exit 2 ;; esac
 b=${1:-}
 [ -n "$b" ] || { echo "wt $mode: name a branch" >&2; exit 2; }
+shift
+
+# Launch flags are ours; everything else goes to `wt switch`.
+launch=() brief= rest=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --model | --effort) [ $# -ge 2 ] || { echo "wt $mode: $1 needs a value" >&2; exit 2; }
+      launch+=("$1" "$2"); shift 2 ;;
+    --model=* | --effort=*) launch+=("${1%%=*}" "${1#*=}"); shift ;;
+    --prompt) [ $# -ge 2 ] || { echo "wt $mode: --prompt needs a value" >&2; exit 2; }
+      brief=$2; shift 2 ;;
+    --prompt=*) brief=${1#*=}; shift ;;
+    --prompt-file) [ $# -ge 2 ] && [ -s "$2" ] || { echo "wt $mode: --prompt-file needs a non-empty file" >&2; exit 2; }
+      brief=$(cat "$2"); shift 2 ;;
+    --prompt-file=*) [ -s "${1#*=}" ] || { echo "wt $mode: --prompt-file needs a non-empty file" >&2; exit 2; }
+      brief=$(cat "${1#*=}"); shift ;;
+    *) rest+=("$1"); shift ;;
+  esac
+done
+[ -z "$brief" ] || launch+=(--prompt "$brief")
+if [ "$mode" = resume ] && [ ${#launch[@]} -gt 0 ]; then
+  echo "wt resume: --model, --effort and --prompt start a new session; use wt new" >&2; exit 2
+fi
 
 if [ "$mode" = new ]; then
   c=--create
@@ -35,7 +62,7 @@ if [ "$mode" = new ]; then
       exit 1
     fi
   fi
-  p=$(wt switch $c "$@" --no-cd --format=json | jq -r .path)
+  p=$(wt switch $c "$b" ${rest[@]+"${rest[@]}"} --no-cd --format=json | jq -r .path)
 else
   # `wt switch pr:<N>` would create the worktree, and resolving a PR without it needs each forge's CLI.
   case "$b" in pr:* | mr:*) echo "wt resume: name the PR's branch, not $b" >&2; exit 2 ;; esac
@@ -69,10 +96,14 @@ resume=claude
 compgen -G "$cc/projects/$(printf '%s' "$p" | tr -c 'A-Za-z0-9' -)/*.jsonl" >/dev/null && resume="claude --continue"
 
 if [ "$mode" = new ] && [ "$running" = 1 ] && [ -z "$live" ]; then
-  echo "wt new: $b already has a live Claude session outside Orca; carry on there, not in a second one" >&2
+  echo "wt new: $b already has a live Claude session (an Orca chat, or outside Orca); carry on there, not in a second one" >&2
+  exit 1
+elif [ "$mode" = new ] && [ -n "$live" ] && [ ${#launch[@]} -gt 0 ]; then
+  echo "wt new: $b already has a live Claude session; switched to it: give it the brief there, or close it first" >&2
+  orca terminal switch --terminal "$live" >/dev/null
   exit 1
 elif [ "$mode" = new ] && [ -z "$live" ]; then
-  orca terminal create --worktree "path:$p" --command claude --focus --json >/dev/null
+  orca agent launch --agent claude --worktree "path:$p" ${launch[@]+"${launch[@]}"} --focus --json >/dev/null
 elif [ -n "$live" ]; then
   [ "$mode" = resume ] || echo "wt new: $b already has a live Claude session; switched to it instead of opening a second" >&2
   orca terminal switch --terminal "$live" >/dev/null
