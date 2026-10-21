@@ -35,6 +35,15 @@ test('blocks known sensitive filenames', () => {
     }
 });
 
+test('blocks mise local configs, which hold plaintext env secrets', () => {
+    for (const filePath of ['mise.local.toml', '/home/u/.config/mise/config.local.toml']) {
+        assert.equal(guard.run(fileInput('Read', filePath)).exitCode, 2, `${filePath} should block`);
+    }
+    const grep = guard.run(cmdInput('Bash', 'grep -n AZURE_TOKEN ~/.config/mise/config.local.toml'));
+    assert.equal(grep.exitCode, 2);
+    assert.equal(guard.run(cmdInput('Bash', 'rg -l AZURE_TOKEN ~/.config')).exitCode, 0);
+});
+
 test('blocks sensitive extensions', () => {
     for (const ext of ['.pem', '.key', '.p12', '.pfx']) {
         const res = guard.run(fileInput('Edit', `certs/server${ext}`));
