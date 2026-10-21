@@ -70,8 +70,20 @@ fi
 # The CLI process (`serve --port`) and the Electron server it starts (`--serve-port`).
 pkill -f -- 'cli/index.js serve --port' || true
 pkill -f -- '--serve-port' || true
+
+# The wrapper launches through `current`, so the command line never names the version;
+# the resolved executable does.
+want_dir=$(readlink -f "$BASE/$latest")
+server_on_latest() {
+  for pid in $(pgrep -f -- 'cli/index.js serve --port'); do
+    case "$(readlink -f "/proc/$pid/exe" 2>/dev/null)" in
+      "$want_dir"/*) return 0 ;;
+    esac
+  done
+  return 1
+}
 i=0
-until pgrep -f "$BASE/$latest/squashfs-root/orca-ide" >/dev/null; do
+until server_on_latest; do
   i=$((i + 1))
   [ "$i" -lt 60 ] || { say "server not back on $latest after 60 s; check /var/log/orca-serve.log" >&2; exit 1; }
   sleep 1
