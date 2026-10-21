@@ -13,10 +13,13 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 [policy.packs]
 "drew.azure_writes" = "ask"
 
-# NOTE: these rules cannot see the redirect target, so they fire on every `> $VAR/file`
-# write to a scratch dir. Ask puts the call to a human instead of a dead-end deny.
+# NOTE: these rules cannot see what a variable expands to, so they fire on every
+# `> $VAR/file` write to a scratch dir. Ask puts the call to a human instead of a
+# dead-end deny. The redirect rule warns instead: writes to dotfiles, .git internals
+# and ~/.config are still denied by their own rules, and it was most of all prompts.
+# branch-dynamic-token stays ask because warn would let `git branch -D $B` run.
 [policy.rules]
-"core.filesystem:redirect-truncate-dynamic-path" = "ask"
+"core.filesystem:redirect-truncate-dynamic-path" = "warn"
 "core.filesystem:mv-dynamic-path" = "ask"
 "core.git:branch-dynamic-token" = "ask"
 
