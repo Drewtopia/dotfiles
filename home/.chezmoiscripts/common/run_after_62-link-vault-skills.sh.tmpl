@@ -7,6 +7,8 @@
 # run_after, not run_onchange: a vault pull adds skills without changing this
 # source. A name already taken by anything else is left alone, and a link whose
 # vault skill was deleted is removed.
+# Work machines get every vault skill. Other machines get only the skills that
+# carry a .personal marker file, since most vault skills drive work systems.
 vault="$HOME/.claude-vault/skills"
 dir="$HOME/.claude/skills"
 [ -d "$vault" ] || exit 0
@@ -16,6 +18,9 @@ for skill in "$vault"/*/; do
     skill=${skill%/}
     name=$(basename "$skill")
     [ -f "$skill/SKILL.md" ] || continue
+{{- if not .work }}
+    [ -f "$skill/.personal" ] || continue
+{{- end }}
     link="$dir/$name"
     if [ -L "$link" ] && [ "$(readlink "$link")" = "$skill" ]; then
         continue
@@ -27,10 +32,16 @@ for skill in "$vault"/*/; do
 done
 
 for link in "$dir"/*; do
-    [ -L "$link" ] && [ ! -e "$link" ] || continue
-    case "$(readlink "$link")" in
-        "$vault"/*) rm "$link" && echo "[vault-skills] unlinked $(basename "$link") (gone from the vault)" ;;
-    esac
+    [ -L "$link" ] || continue
+    target=$(readlink "$link")
+    case "$target" in "$vault"/*) ;; *) continue ;; esac
+    if [ ! -e "$link" ]; then
+        rm "$link" && echo "[vault-skills] unlinked $(basename "$link") (gone from the vault)"
+{{- if not .work }}
+    elif [ ! -f "$target/.personal" ]; then
+        rm "$link" && echo "[vault-skills] unlinked $(basename "$link") (no .personal marker)"
+{{- end }}
+    fi
 done
 {{- end }}
 {{- end }}
