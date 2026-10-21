@@ -1,5 +1,8 @@
 [general]
 log_file = "~/.local/share/dcg/blocked.log"
+# Default 1000. A long compound command (grep/sed/knip chains) can take longer to
+# evaluate; dcg then asks, which stalls an unattended Orca worker at the prompt.
+hook_timeout_ms = 3000
 
 [packs]
 enabled = [
