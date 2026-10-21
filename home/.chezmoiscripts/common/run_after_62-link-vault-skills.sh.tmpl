@@ -1,0 +1,36 @@
+{{- if ne .chezmoi.os "windows" -}}
+{{- if or .personal .work -}}
+#!/usr/bin/env bash
+# Links each skill in the claude-vault clone into ~/.claude/skills, the way
+# symlink_rules.tmpl links its rules. ~/.claude/skills also holds chezmoi's own
+# skills and the npx-installed ones, so it is linked per skill, not as a folder.
+# run_after, not run_onchange: a vault pull adds skills without changing this
+# source. A name already taken by anything else is left alone, and a link whose
+# vault skill was deleted is removed.
+vault="$HOME/.claude-vault/skills"
+dir="$HOME/.claude/skills"
+[ -d "$vault" ] || exit 0
+mkdir -p "$dir"
+
+for skill in "$vault"/*/; do
+    skill=${skill%/}
+    name=$(basename "$skill")
+    [ -f "$skill/SKILL.md" ] || continue
+    link="$dir/$name"
+    if [ -L "$link" ] && [ "$(readlink "$link")" = "$skill" ]; then
+        continue
+    elif [ -e "$link" ] || [ -L "$link" ]; then
+        echo "[vault-skills] $name: $link already exists, not linked"
+    else
+        ln -s "$skill" "$link" && echo "[vault-skills] linked $name"
+    fi
+done
+
+for link in "$dir"/*; do
+    [ -L "$link" ] && [ ! -e "$link" ] || continue
+    case "$(readlink "$link")" in
+        "$vault"/*) rm "$link" && echo "[vault-skills] unlinked $(basename "$link") (gone from the vault)" ;;
+    esac
+done
+{{- end }}
+{{- end }}
