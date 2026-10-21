@@ -81,9 +81,14 @@ orca worktree set --worktree path:{{ worktree_path }} --workspace-status in-prog
 exit 0
 """
 
-[pre-remove]
+# A table runs its entries concurrently, so a pipeline keeps the salvage ahead of the session close.
+[[pre-remove]]
 # Removal deletes untracked and ignored files without asking; a failed copy aborts the removal.
 attic = "wt-attic {{ worktree_path }}"
+
+[[pre-remove]]
+# Orca never closes an agent tab, and --reap spares processes holding a terminal.
+orca-close = "orca-close-worktree {{ worktree_path }}"
 # An Azure merge never closes the GitHub issue a branch carries, so name it while it is still open.
 issue-reminder = """
 N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
