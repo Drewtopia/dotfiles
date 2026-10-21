@@ -46,6 +46,9 @@ const SENSITIVE_FILENAMES = new Set([
     '.pgpass',
     '.my.cnf',
     '.mongorc.js',
+    // mise's untracked local configs, where env secrets sit in plaintext.
+    'mise.local.toml',
+    'config.local.toml',
 ]);
 
 const SENSITIVE_EXTENSIONS = new Set([
