@@ -17,10 +17,17 @@ destructive_patterns:
     description: Changes Azure Boards iterations or areas.
     explanation: Iteration and area changes move every work item planned against them.
   - name: repos-pr-write
-    pattern: '\baz\b.*?\brepos\s+pr\s+(?:create|update|set-vote|reviewer\s+add|work-item\s+add)\b'
+    pattern: '\baz\b.*?\brepos\s+pr\s+(?:create|set-vote|reviewer\s+add|work-item\s+add)\b'
     severity: high
-    description: Creates or changes an Azure Repos pull request.
-    explanation: A PR create, completion or vote notifies reviewers and can merge code.
+    description: Creates an Azure Repos pull request, votes on one, or adds reviewers or work items.
+    explanation: A PR create or vote notifies reviewers and can lead to a merge.
+  - name: repos-pr-state-change
+    # az accepts any unambiguous flag prefix (`--stat completed` runs), so each state
+    # flag matches by its shortest unique prefix among `az repos pr update` flags.
+    pattern: '\baz\b.*?\brepos\s+pr\s+update\b.*?\s--(?:st|au|ac|b|c|del|dr|m|sq|tr)'
+    severity: high
+    description: Completes, abandons, publishes or sets merge options on an Azure Repos pull request.
+    explanation: Editing only --title or --description passes; --status, --auto-complete, --acquire-policy-token, --bypass-policy, --change-reference, --delete-source-branch, --draft, --merge-commit-message, --squash and --transition-work-items (or any prefix of them) still need approval.
   - name: pipelines-run
     pattern: '\baz\b.*?\bpipelines\s+(?:run|build\s+queue)\b'
     severity: high
