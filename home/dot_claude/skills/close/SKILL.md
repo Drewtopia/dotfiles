@@ -1,6 +1,6 @@
 ---
 name: close
-description: Close out this session, never its stream, so the next one starts in the right place — commit, notes, and a closing status line that every new session lists and the worktree's Orca card shows; full extras only when plan docs or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
+description: Close out this session, never its stream, so the next one starts in the right place — commit, notes, and a closing status block, one line per unfinished item, kept in the transcript; full extras only when plan docs or out-of-repo leftovers call for them. Use for /close, "close the session", "wrap up", "end session"; `/close full` runs every extra.
 disable-model-invocation: true
 ---
 
@@ -12,7 +12,7 @@ Quick close runs every time and stays short: a heavy closeout is a closeout that
 
 Where things live after a close:
 
-- **This session's next step** → the closing `Parked:`, `Waiting on you:` or `Done.` line (step 3). The `open-loops` mod saves it, writes it to the worktree's Orca card as its comment, and lists the open ones at every new session start.
+- **Everything this session leaves unfinished** → the closing status block (step 3), one line per item. The block in the session's transcript is the record. The `open-loops` mod, when it saves for the session, also copies the last line to the worktree's Orca card and lists it at every new session start; that copy is a convenience, not the record.
 - **What happened** → the remember plugin's own history and `SESSION_TAILS.md`, both written automatically.
 
 Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`git -C ~/.claude-vault fetch . <branch>:main`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
@@ -42,8 +42,8 @@ Read back through the session once for what future work needs:
 
 - **Mistakes** — breakages or corrections not yet in the main checkout's `MISTAKES.md` → append them (what happened / root cause / consequence / prevention, newest first). Never a worktree's copy: it is gitignored and dies with the worktree. Target `"$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/MISTAKES.md"`.
 - **Decisions, insights, references** worth keeping → the memory file that owns them (table below).
-- **Decisions with no durable home yet** — a scope call, a design choice, a deferred question → name the command that gives it one: `/to-spec` or `/re-spec` for a spec, `/to-tickets` or `/re-ticket` for tickets, `/edit-governance` for an ADR or rule. It goes in the status line (step 3) when it is the next thing to do.
-- **Open tasks** → the status line (step 3) or a tracker issue, not memory.
+- **Decisions with no durable home yet** — a scope call, a design choice, a deferred question → name the command that gives it one: `/to-spec` or `/re-spec` for a spec, `/to-tickets` or `/re-ticket` for tickets, `/edit-governance` for an ADR or rule. It gets its own line in the status block (step 3).
+- **Open tasks** → a line each in the status block (step 3), or a tracker issue, not memory.
 - **Context the next session needs** (findings, a half-done approach, why a step is blocked) → a comment on the stream's issue (`gh issue comment <n>`, plus `--repo` when the tracker is its own repo), never a `/tmp` or scratch handoff file. `/handoff` is only for a new directory, a new harness or a colleague.
 
 Skip ephemeral debugging steps, retracted ideas, and anything obvious from the diff. Nothing worth keeping is a valid result: say "no notes".
@@ -57,11 +57,13 @@ Skip ephemeral debugging steps, retracted ideas, and anything obvious from the d
 
 A new file under `tools/` or `domain/` opens with `name:` and `description:` frontmatter; there is no index, so agents find it with `rg -il <term> ~/.claude/memory`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
-### 3. The status line
+### 3. The status block
 
-Run any full-close extras that apply (below) before this step, so their outcome shapes the line.
+Run any full-close extras that apply (below) before this step, so their outcome shapes the block.
 
-The report (below) ends on one status line: `Parked: <first action, naming the branch, PR, or issue>` while work remains, `Waiting on you: <ask>` when Drew must act first, `Done.` when nothing is left. A `Parked:` line is one line Drew pastes into a fresh session, so it opens with a runnable command:
+List every item this session leaves unfinished, not only the next one: uncommitted or unpushed work, an open PR, a question or approval still unanswered, a bug or issue drafted but not filed, a run queued or not yet read, a follow-up promised in the session. Check each against git, the PR host and the tracker, not memory.
+
+The report (below) ends on that list, one line per item, each naming its branch, PR, issue or file: `Parked: <action>` for work a session can do, `Waiting on you: <ask>` when Drew must act first. The item that comes first goes on the last line, and when other items sit above it the last line ends `(+<N> more above)`, so a reader of that line alone knows the list is longer. Nothing left → the block is one line, `Done.`. A `Parked:` line is one line Drew pastes into a fresh session, so it opens with a runnable command:
 
 | Next step | Status line |
 |---|---|
@@ -71,7 +73,7 @@ The report (below) ends on one status line: `Parked: <first action, naming the b
 | A slice with no issue yet ("PR 4", "the follow-up") | `Parked: /to-tickets GH-<parent>`, then `/implement` per ticket |
 | Ship | `Parked: /pr, then PR_BODY=<file> wt step ship` |
 
-Then retire the remember plugin's handoff slot. Its session-start hook re-delivers a non-empty slot to every session until it is replaced, and the status line now holds the next step:
+Then retire the remember plugin's handoff slot. Its session-start hook re-delivers a non-empty slot to every session until it is replaced, and the status block now holds the open items:
 
 ```bash
 slot="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/.remember/remember.md"
@@ -112,12 +114,12 @@ Print the counter:
 <N> memory updates · <N> commits · <N> issues filed · <N> leftovers cleaned
 ```
 
-Drop any segment whose step didn't run rather than printing `0`. Then a `/rename <project>-<ticket-or-pr>-<topic>` command Drew can paste (kebab-case, no date, no status words) so `/resume` and `/find-session` can find the session, and last the status line from step 3: `open-loops` reads only the reply's last line.
+Drop any segment whose step didn't run rather than printing `0`. Then a `/rename <project>-<ticket-or-pr>-<topic>` command Drew can paste (kebab-case, no date, no status words) so `/resume` and `/find-session` can find the session, and last the status block from step 3: the reply's last line must be a status line, because tools that read the transcript (and `open-loops`, when it saves) look there.
 
 ## Self-check before reporting done
 
 - Every new memory file opens with a `description:` frontmatter line.
 - Counter line reflects actual counts, not aspirational ones.
-- The reply's last line is the status line, and a `Parked:` line opens with a runnable command.
+- The reply ends on the status block: one line per unfinished item, the first item last with `(+<N> more above)` when others sit above it, and every `Parked:` line opens with a runnable command.
 - No `/tmp` or scratch handoff file was written for this repo; the remember slot is empty.
 - If the session touched vault or chezmoi source: both repos clean and pushed.
