@@ -1,0 +1,5 @@
+{{- /* Commit-signing key. Written from 1Password at apply time so signing never
+       calls 1Password. Empty output (no op or no vault) means no file. */ -}}
+{{- if and (lookPath "op") .opVault -}}
+{{-   onepasswordRead (printf "op://%s/Git Signing Key/private key?ssh-format=openssh" .opVault) | replace "\r\n" "\n" -}}
+{{- end -}}
