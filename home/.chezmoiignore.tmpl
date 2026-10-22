@@ -40,15 +40,19 @@ Library
 .wezterm.lua
 {{ end }}
 
-# Work WSL2 only: the headless Azure DevOps credential fallback (the rest use GCM) and the Orca server updater.
+# Work WSL2 only: the headless Azure DevOps credential fallback (the rest use GCM), the Orca server updater, and the Orca sleep and automation precheck scripts.
 {{ if not (and .work .is_wsl) }}
 .git-azdo-helper.sh
 .local/bin/orca-server-update
+.local/bin/orca-sleep
+.local/bin/orca-sleep-idle
+.local/bin/orca-pre
 {{ end }}
 
 # Work-only encrypted files: skipped off work machines and until the age key is restored.
 {{ if or (not .work) (not (stat (joinPath .chezmoi.homeDir ".config/chezmoi/key.txt"))) }}
 .config/worktrunk/work.toml
+.local/bin/orca-pre
 .config/git/azrepos.inc
 {{ end }}
 
