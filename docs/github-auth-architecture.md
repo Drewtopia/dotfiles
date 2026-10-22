@@ -57,7 +57,8 @@ Helpers chain in file order and git uses the first one that returns credentials.
 
 - The `gh` path is resolved at apply time with `lookPath "gh"`, falling back to the mise shim. The `gh` block must stay below every global `[credential]` helper; placed earlier, GitHub logins still reach GCM or osxkeychain, and on WSL the GCM store call hangs when interop is down.
 - All Azure DevOps platforms set `useHttpPath = true` and `azreposCredentialType = oauth`. GCM needs `useHttpPath` to find the organization, including from WSL.
-- On personal machines, `https://github.com/Drewtopia/` is rewritten to SSH (`url.insteadOf`), and commits are signed with `~/.ssh/id_ed25519.pub` (`gpg.format = ssh`).
+- On personal machines, `https://github.com/Drewtopia/` is rewritten to SSH (`url.insteadOf`).
+- Every machine with a 1Password vault (`.opVault`) signs commits with `~/.ssh/git_signing`, a key file that `chezmoi apply` writes from the vault item `Git Signing Key` (one per vault: `Private`, `Employee`). Git runs plain `ssh-keygen` on the private-key path, so signing never calls 1Password and still works while it is locked or WSL interop is down. Each vault's public key is registered on GitHub as a signing key.
 - Machine-only entries go in the untracked `~/.config/git/config.local`, included last.
 
 ## Work WSL and Azure DevOps
@@ -65,4 +66,4 @@ Helpers chain in file order and git uses the first one that returns credentials.
 - GCM is the primary helper and returns the cached AAD token from Windows Credential Manager.
 - `~/.git-azdo-helper.sh` (`home/executable_dot_git-azdo-helper.sh`, deployed only on work WSL) is the fallback. It mints a token from the cached `az` session without a sign-in dialog, which covers headless sessions such as SSH from the Mac when the GCM token has expired. Its `--resource` GUID is the public Azure DevOps app ID, not a secret.
 - Never put `helper =` before the az helper. That clears the inherited GCM helper and leaves the az helper as the only one.
-- Azure DevOps repos include `~/.config/git/azure-signing.inc`, which sets the work identity and signs commits with the 1Password SSH key through `op-ssh-sign-wsl.exe` over interop. Other repos keep the personal identity and stay unsigned.
+- Azure DevOps repos include `~/.config/git/azure-signing.inc`, which sets the work identity and also signs tags. Commits there use the same key file as every other repo. Other repos keep the personal identity.
