@@ -18,14 +18,6 @@ exclude = ["node_modules/", "dist/", ".turbo/"]
 
 [aliases]
 since-main = "git log --oneline {{ default_branch }}..HEAD"
-# Open work through `wt-open`, never a bare `wt switch`: that leaves the session and Orca's view in
-# the old worktree. `wt new <branch>` opens the branch's worktree (gates, hooks, exact branch name),
-# creating it when missing, then a fresh Claude tab, or the branch's live one: one session per branch.
-# `wt new <branch> --model sonnet --prompt "<brief>"` (or `--prompt-file <f>`) starts that session on
-# the model and brief given, through `orca agent launch`.
-# `wt resume <branch>` returns to the branch's live Claude tab, else `claude --continue` there.
-new = "wt-open new {{ args }}"
-resume = "wt-open resume {{ args }}"
 
 # --safe-mode keeps hooks/plugins/CLAUDE.md out of the generated text;
 # --setting-sources='user' keeps auth out of a project .claude/settings.json.
