@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# orca-close-worktree <worktree-path> — stop the Orca terminals, and the agent sessions in
+# them, of a worktree about to be removed. Without it a session keeps running in a deleted
+# directory: `wt remove --reap` spares anything holding a terminal, Claude included.
+# Run as a worktrunk pre-remove hook. The terminal running it is spared, because `wt remove`
+# is often run from inside the worktree it removes. It never blocks a removal.
+set -uo pipefail
+path=${1:?usage: orca-close-worktree <worktree-path>}
+command -v orca >/dev/null || exit 0
+
+if ! json=$(orca terminal list --worktree "path:$path" --json 2>/dev/null); then
+  echo "orca-close-worktree: no Orca terminals listed for $path; none closed" >&2
+  exit 0
+fi
+
+self=${ORCA_TERMINAL_HANDLE:-}
+if ! jq -e --arg self "$self" 'any(.result.terminals[]; .handle == $self)' <<<"$json" >/dev/null; then
+  # --all also drops the worktree's tab layouts and agent resume records.
+  orca terminal close --worktree "path:$path" --all --json >/dev/null 2>&1 ||
+    echo "orca-close-worktree: closing the terminals in $path failed" >&2
+  exit 0
+fi
+
+for h in $(jq -r --arg self "$self" '.result.terminals[] | select(.handle != $self) | .handle' <<<"$json"); do
+  orca terminal close --terminal "$h" --json >/dev/null 2>&1 ||
+    echo "orca-close-worktree: closing terminal $h failed" >&2
+done
