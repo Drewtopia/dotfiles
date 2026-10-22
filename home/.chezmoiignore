@@ -5,3 +5,8 @@
 .local/bin/t3-serve-tailnet
 Library/LaunchAgents/com.drew.t3-serve.plist
 {{ end }}
+{{ if not (and .work .is_wsl) }}
+.local/bin/orca-pre
+.local/bin/trace-fetch
+.local/bin/trace-read
+{{ end }}

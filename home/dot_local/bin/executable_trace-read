@@ -1,0 +1,427 @@
+#!/usr/bin/env -S python3 -I
+"""Summarise Playwright traces for debugging without the trace viewer.
+
+  trace-read <path>... [--all] [--window SECONDS]
+
+<path> is a trace zip, a blob report zip, an HTML report folder (playwright-report/, its
+data/*.zip are traces) or any folder holding trace.zip files. Only traces with a failed step
+are shown unless --all.
+
+Per failing trace: test title, the error(s), the test steps leading up to it, the browser
+actions and their logs before the failure, page errors, console errors, the network calls in
+the window before the failure (method, status, URL, form/JSON body), and the ARIA snapshot
+nearest the failure.
+
+Redaction: typed values never print. Step titles like Fill "..." / Type "..." are masked,
+action params `value`/`text`/`keys` are dropped, and body fields whose name looks like a
+secret (password, otp, code, token, secret, key, auth, pin) are masked. Run it with -I.
+"""
+import argparse
+import io
+import json
+import re
+import sys
+import urllib.parse
+import zipfile
+from pathlib import Path
+
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+TYPED_TITLE = re.compile(r'\b(Fill|Type|Press sequentially|fill|type|pressSequentially)\s+"[^"]*"')
+SECRET_KEY = re.compile(r"pass|pwd|otp|code|token|secret|key|auth|pin|cred|cookie", re.I)
+DROP_PARAMS = {"value", "text", "keys", "values", "files", "buffer"}
+# Telemetry and favicon calls that fail or fire constantly and never explain a test failure.
+NOISE = re.compile(r"events\.data\.microsoft\.com|browser\.events\.data|dc\.services\.visualstudio\.com"
+                   r"|google-analytics\.com|googletagmanager\.com|clarity\.ms|/apple-icon|/favicon")
+
+
+def mask_title(s):
+    return TYPED_TITLE.sub(lambda m: f'{m.group(1)} "***"', s or "")
+
+
+def clean(s, n=600):
+    s = ANSI.sub("", str(s or "")).strip()
+    return s if len(s) <= n else s[:n] + " …"
+
+
+def mask_body(body, n=400):
+    if not body:
+        return ""
+    body = str(body)
+    try:
+        data = json.loads(body)
+
+        def walk(o):
+            if isinstance(o, dict):
+                return {k: ("***" if SECRET_KEY.search(k) else walk(v)) for k, v in o.items()}
+            if isinstance(o, list):
+                return [walk(v) for v in o]
+            return o
+
+        return clean(json.dumps(walk(data)), n)
+    except (ValueError, TypeError):
+        pass
+    if "=" in body and "\n" not in body:
+        pairs = urllib.parse.parse_qsl(body, keep_blank_values=True)
+        if pairs:
+            return clean(urllib.parse.urlencode(
+                [(k, "***" if SECRET_KEY.search(k) else v) for k, v in pairs]), n)
+    return f"<{len(body)} bytes, not form or JSON>"
+
+
+def short_url(u, n=160):
+    p = urllib.parse.urlsplit(u or "")
+    q = "?…" if p.query else ""
+    base = f"{p.scheme}://{p.netloc}" if p.netloc else ""
+    return clean(f"{base}{p.path}{q}", n)
+
+
+def jsonl(data):
+    for line in data.splitlines():
+        line = line.strip()
+        if line:
+            try:
+                yield json.loads(line)
+            except ValueError:
+                continue
+
+
+class Trace:
+    """One trace zip: test.trace (runner steps) plus N-trace.trace/.network per browser context."""
+
+    def __init__(self, name, zf):
+        self.name = name
+        names = zf.namelist()
+        self.test = []
+        self.browser = []
+        self.network = []
+        self.aria = {}
+        self.title = ""
+        self.offsets = {}
+        for n in names:
+            if n.endswith(".trace"):
+                events = list(jsonl(zf.read(n).decode("utf-8", "replace")))
+                opts = next((e for e in events if e.get("type") == "context-options"), {})
+                off = (opts.get("wallTime") or 0) - (opts.get("monotonicTime") or 0)
+                for e in events:
+                    e["_wall"] = None
+                    t = e.get("startTime") or e.get("endTime") or e.get("time") or e.get("timestamp")
+                    if t is not None:
+                        e["_wall"] = t + off
+                if n == "test.trace":
+                    self.test = events
+                    self.title = opts.get("title") or self.title
+                else:
+                    self.browser += events
+                    self.title = self.title or opts.get("title") or ""
+                self.offsets[n] = off
+            elif n.endswith(".network"):
+                base = n[: -len(".network")] + ".trace"
+                for e in jsonl(zf.read(n).decode("utf-8", "replace")):
+                    e["_base"] = base
+                    self.network.append(e)
+            elif n.startswith("aria/") and n.endswith(".json"):
+                self.aria[n] = zf.read(n).decode("utf-8", "replace")
+        for e in self.network:
+            s = e.get("snapshot", {})
+            off = self.offsets.get(e["_base"], 0)
+            mono = s.get("_monotonicTime")
+            e["_wall"] = mono + off if mono is not None else None
+
+    def failures(self):
+        """(callId, message, wall time) for each runner step or browser call that ended in error."""
+        out = []
+        ends = {e["callId"]: e for e in self.test + self.browser
+                if e.get("type") == "after" and e.get("callId")}
+        for cid, e in ends.items():
+            err = e.get("error")
+            if not err:
+                continue
+            msg = err.get("message") if isinstance(err, dict) else err
+            if isinstance(err, dict) and not msg and isinstance(err.get("error"), dict):
+                msg = err["error"].get("message")
+            out.append((cid, clean(msg, 900), e.get("_wall")))
+        out.sort(key=lambda x: x[2] or 0)
+        return out
+
+
+def summarise(tr, window):
+    fails = tr.failures()
+    p = print
+    p(f"=== {tr.title or '(untitled)'}  [{tr.name}]")
+    if not fails:
+        p("no failed step")
+        return
+    first_cid, first_msg, t_fail = fails[0]
+    p("\n-- failed steps (soft checks and polled or retried attempts included)")
+    seen = set()
+    for cid, msg, _ in fails:
+        if msg in seen:
+            continue
+        seen.add(msg)
+        p(f"[{cid}] {msg}")
+
+    begins = {e["callId"]: e for e in tr.test if e.get("type") == "before"}
+    failed_ids = {c for c, _, _ in fails}
+    p("\n-- test steps before the failure (last 20)")
+    steps = [e for e in tr.test if e.get("type") == "before" and (e.get("_wall") or 0) <= (t_fail or 0) + 1]
+    for e in steps[-20:]:
+        depth, parent = 0, e.get("parentId")
+        while parent and parent in begins and depth < 6:
+            depth += 1
+            parent = begins[parent].get("parentId")
+        mark = "  ✗" if e["callId"] in failed_ids else ""
+        p(f"{'  ' * depth}{mask_title(e.get('title'))}{mark}")
+
+    p("\n-- browser actions before the failure (last 12)")
+    acts = [e for e in tr.browser if e.get("type") == "before"
+            and (e.get("_wall") or 0) <= (t_fail or 0) + 1
+            and not str(e.get("method", "")).startswith("__")]
+    logs = {}
+    for e in tr.browser:
+        if e.get("type") == "log":
+            logs.setdefault(e.get("callId"), []).append(e.get("message", ""))
+    for e in acts[-12:]:
+        params = {k: v for k, v in (e.get("params") or {}).items() if k not in DROP_PARAMS}
+        brief = {k: (short_url(v) if k == "url" else clean(v, 120)) for k, v in params.items()
+                 if k in ("selector", "url", "name", "state", "timeout", "expression", "event")}
+        p(f"{e.get('class')}.{e.get('method')} {json.dumps(brief) if brief else ''}".rstrip())
+    last = acts[-1]["callId"] if acts else None
+    if last and logs.get(last):
+        p("   log of the last action:")
+        for m in logs[last][-10:]:
+            p(f"   | {mask_title(clean(m, 200))}")
+
+    p("\n-- page errors")
+    perr = [e for e in tr.browser if e.get("type") == "event"
+            and e.get("method") in ("pageError", "pageerror", "crash")]
+    for e in perr[-10:]:
+        err = (e.get("params") or {}).get("error") or {}
+        msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else err.get("message")
+        p(f"{e.get('method')}: {clean(msg or json.dumps(err), 400)}")
+    if not perr:
+        p("none")
+
+    p("\n-- console errors and warnings (distinct, with counts; errors first)")
+    counts = {}
+    for e in tr.browser:
+        if e.get("type") == "console" and e.get("messageType") in ("error", "warning"):
+            loc = e.get("location") or {}
+            k = (e.get("messageType"), clean(e.get("text"), 300), short_url(loc.get("url"), 100))
+            counts[k] = counts.get(k, 0) + 1
+    for (kind, text, url), c in sorted(counts.items(), key=lambda kv: kv[0][0] != "error")[:15]:
+        p(f"{kind}{f' ×{c}' if c > 1 else ''}: {text}  @ {url}")
+    if not counts:
+        p("none")
+
+    p(f"\n-- network in the {window:.0f}s before the failure (non-GET or status >= 400), then every other failed call")
+    shown = 0
+    for e in tr.network:
+        s = e.get("snapshot", {})
+        req, res = s.get("request", {}), s.get("response", {})
+        t = e.get("_wall")
+        status = res.get("status")
+        in_win = t is not None and t_fail is not None and t_fail - window * 1000 <= t <= t_fail + 1000
+        bad = isinstance(status, int) and (status >= 400 or status <= 0)
+        if NOISE.search(urllib.parse.urlsplit(req.get("url") or "").netloc + urllib.parse.urlsplit(req.get("url") or "").path):
+            continue
+        if not ((in_win and (req.get("method") != "GET" or bad)) or bad):
+            continue
+        body = mask_body((req.get("postData") or {}).get("text"))
+        p(f"{req.get('method')} {status} {short_url(req.get('url'))}{'  ' + body if body else ''}{'' if in_win else '  (earlier)'}")
+        shown += 1
+        if shown >= 25:
+            p("…")
+            break
+    if not shown:
+        p("none")
+
+    p("\n-- ARIA snapshot nearest the failure")
+    snaps = [e for e in tr.browser if e.get("type") == "aria-snapshot" and e.get("file") in tr.aria
+             and (e.get("_wall") or 0) <= (t_fail or 0) + 1]
+    file = snaps[-1]["file"] if snaps else None
+    if not file and tr.aria:
+        def num(n):
+            m = re.search(r"@(\d+)", n)
+            return int(m.group(1)) if m else -1
+        fail_n = num(first_cid)
+        cands = sorted((n for n in tr.aria if num(n) <= fail_n or fail_n < 0), key=num)
+        file = cands[-1] if cands else None
+    if file:
+        p(f"({file}, phase {snaps[-1].get('phase') if snaps else '?'})")
+        try:
+            lines = aria_lines(json.loads(tr.aria[file]))
+        except ValueError:
+            lines = mask_title(tr.aria[file]).splitlines()
+        for ln in lines[:80]:
+            p(ln)
+        if len(lines) > 80:
+            p(f"… {len(lines) - 80} more lines")
+    else:
+        p("none recorded")
+    print()
+
+
+ARIA_STATES = ("checked", "disabled", "expanded", "selected", "pressed", "level", "required", "invalid")
+VALUE_ROLES = {"textbox", "searchbox", "combobox", "spinbutton"}
+
+
+def aria_lines(nodes, depth=0):
+    """Render ARIA nodes as an indented role "name" [states] tree. Field values never print."""
+    out = []
+    if isinstance(nodes, dict):
+        nodes = [nodes]
+    for n in nodes or []:
+        if isinstance(n, str):
+            out.append(f"{'  ' * depth}- text: {clean(n, 120)}")
+            continue
+        if not isinstance(n, dict):
+            continue
+        role, name = n.get("role", "?"), n.get("name")
+        states = [f"{k}={n[k]}" for k in ARIA_STATES if n.get(k) not in (None, False)]
+        if role in VALUE_ROLES and n.get("value"):
+            states.append("value=***")
+        line = f"{'  ' * depth}- {role}"
+        if name:
+            line += f' "{clean(name, 100)}"'
+        if states:
+            line += f" [{', '.join(states)}]"
+        out.append(line)
+        out += aria_lines(n.get("children"), depth + 1)
+    return out
+
+
+def html_report_verdicts(report_dir, kind="trace"):
+    """Map 'data/<sha>.<ext>' -> {status, outcome} for one attachment kind ('trace', 'error-context')
+    from an HTML report's embedded data, or {}."""
+    index = Path(report_dir) / "index.html"
+    if not index.is_file():
+        return {}
+    m = re.search(r'id="playwrightReportBase64"[^>]*>\s*data:application/zip;base64,([A-Za-z0-9+/=]+)',
+                  index.read_text(errors="replace"))
+    if not m:
+        return {}
+    import base64
+    z = zipfile.ZipFile(io.BytesIO(base64.b64decode(m.group(1))))
+    out = {}
+    for n in z.namelist():
+        if n == "report.json" or not n.endswith(".json"):
+            continue
+        for t in json.loads(z.read(n)).get("tests", []):
+            for r in t.get("results", []):
+                for a in r.get("attachments", []):
+                    if a.get("name") == kind and a.get("path"):
+                        out[a["path"]] = {"status": r.get("status"), "outcome": t.get("outcome"),
+                                          "title": " › ".join(t.get("path", []) + [t.get("title", "")]),
+                                          "location": t.get("location")}
+    return out
+
+
+def blob_verdicts(zf):
+    """Map 'resources/<sha>.zip' -> {status, expected} from a blob report's report.jsonl."""
+    attach, status = {}, {}
+    for e in jsonl(zf.read("report.jsonl").decode("utf-8", "replace")):
+        p = e.get("params") or {}
+        if e.get("method") == "onAttach":
+            for a in p.get("attachments", []):
+                if a.get("name") == "trace" and a.get("path"):
+                    attach[a["path"]] = p.get("resultId")
+        elif e.get("method") == "onTestEnd":
+            r = p.get("result") or {}
+            status[r.get("id")] = {"status": r.get("status"), "expected": (p.get("test") or {}).get("expectedStatus")}
+            for a in r.get("attachments", []):
+                if a.get("name") == "trace" and a.get("path"):
+                    attach[a["path"]] = r.get("id")
+    return {path: status.get(rid) for path, rid in attach.items()}
+
+
+def unexpected(v):
+    """True when a test result's status was not what the test expected (test.fail that passes counts)."""
+    if not v:
+        return None
+    if v.get("outcome") is not None:
+        if v.get("status") == "skipped":
+            return False
+        if v["outcome"] == "unexpected":  # every attempt, including a test.fail test that passed
+            return True
+        return v["outcome"] == "flaky" and v.get("status") != "passed"
+    return v.get("status") != (v.get("expected") or "passed") and v.get("status") != "skipped"
+
+
+def traces_in(path, verdicts=None):
+    """Yield (name, ZipFile, verdict) for every trace under path, opening blob zips' nested traces too.
+    verdict is {status, expected|outcome} when a report says how the test ended, else None."""
+    path = Path(path)
+    if path.is_dir():
+        # Every HTML report under the folder says how each of its traces' tests ended.
+        known = {}
+        for index in path.rglob("index.html"):
+            for rel, v in html_report_verdicts(index.parent).items():
+                known[str(index.parent / rel)] = v
+        for z in sorted(path.rglob("*.zip")):
+            yield from traces_in(z, {str(z): known[str(z)]} if str(z) in known else None)
+        return
+    try:
+        zf = zipfile.ZipFile(path)
+    except (zipfile.BadZipFile, OSError):
+        return
+    names = zf.namelist()
+    if any(n.endswith(".trace") for n in names):
+        yield str(path), zf, (verdicts or {}).get(str(path))
+    elif "report.jsonl" in names:  # blob report: traces sit under resources/
+        v = blob_verdicts(zf)
+        for n in names:
+            if n.startswith("resources/") and n.endswith(".zip"):
+                try:
+                    inner = zipfile.ZipFile(io.BytesIO(zf.read(n)))
+                except zipfile.BadZipFile:
+                    continue
+                if any(m.endswith(".trace") for m in inner.namelist()):
+                    yield f"{path}!{n}", inner, v.get(n)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("paths", nargs="+")
+    ap.add_argument("--all", action="store_true", help="also show traces with no failed step")
+    ap.add_argument("--window", type=float, default=30, help="seconds of network before the failure (default 30)")
+    ap.add_argument("--list-failing", nargs="?", const="trace", choices=["trace", "error-context"],
+                    help="for an HTML report folder: print the data/ path of each unexpected result's trace "
+                         "(or error-context.md) from index.html alone, the files need not be present, then stop")
+    a = ap.parse_args()
+    for p in a.paths:
+        if not p.strip() or not Path(p).exists():
+            ap.error(f"no such path: {p!r}")
+    if a.list_failing:
+        found = 0
+        for p in a.paths:
+            for rel, v in html_report_verdicts(p, a.list_failing).items():
+                if unexpected(v):
+                    print(rel)
+                    found += 1
+        return 0 if found else 1
+    total = shown = guessed = 0
+    for p in a.paths:
+        for name, zf, verdict in traces_in(p):
+            total += 1
+            tr = Trace(name, zf)
+            bad = unexpected(verdict)
+            if bad is None:  # no report says how the test ended: fall back to "a step failed"
+                bad = bool(tr.failures())
+                guessed += bad
+            if bad or a.all:
+                shown += 1
+                if verdict:
+                    how = (f"outcome {verdict['outcome']}" if verdict.get("outcome")
+                           else f"expected {verdict.get('expected') or 'passed'}")
+                    print(f"[test status: {verdict.get('status')}, {how}]")
+                    if verdict.get("status") == "passed":
+                        print("[a test marked test.fail passed: the bug it marks may be fixed. "
+                              "Failed steps below are retried or soft attempts, not the verdict.]")
+                summarise(tr, a.window)
+    note = f"; {guessed} of them judged by a failed step only (no report status)" if guessed else ""
+    print(f"trace-read: {total} trace(s) read, {shown} shown{note}", file=sys.stderr)
+    return 0 if total else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

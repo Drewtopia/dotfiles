@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# Bring a failed run's evidence into WSL. Nothing is written on the VM.
+#
+#   trace-fetch --run <pipeline run id> [filter]     download the run's playwright-report artifact(s)
+#   trace-fetch --marker <file> [--traces]           from a failed `vm` run's kept report (marker written
+#                                                    by `vm`): index.html plus each failed result's
+#                                                    error-context.md; --traces adds their trace zips
+#
+# Read each failed result's error-context.md first (error, page ARIA snapshot, test source; a few
+# KB). Traces (tens of MB each) add network, console, page errors and the step history: fetch them
+# with --traces when error-context does not settle it, then run trace-read on the folder.
+# Prints the local folder. Downloads go to ~/.cache/trace-fetch/<id>/, reused when complete.
+set -euo pipefail
+cache=$HOME/.cache/trace-fetch
+# Azure organization and project come from `az devops configure --defaults`.
+PS=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+here=$(dirname "$(readlink -f "$0")")
+# Traces run to hundreds of MB a run: drop downloads older than 3 days.
+mkdir -p "$cache"
+find "$cache" -mindepth 1 -maxdepth 1 -type d -mtime +3 -exec rm -r {} + 2>/dev/null || true
+
+case ${1:-} in
+--run)
+    run=${2:?trace-fetch --run <id> [filter]}
+    filter=${3:-}
+    case $run in *[!0-9]*) echo "trace-fetch: run id is a number, got $run" >&2; exit 64 ;; esac
+    dest=$cache/run-$run
+    mkdir -p "$dest"
+    names=$(az pipelines runs artifact list --run-id "$run" \
+        --query "[?contains(name,'playwright-report')].name" -o tsv)
+    [ -n "$names" ] || { echo "trace-fetch: run $run has no playwright-report artifact" >&2; exit 1; }
+    while read -r name; do
+        [ -z "$filter" ] || [[ $name == *"$filter"* ]] || continue
+        [ -f "$dest/$name/index.html" ] && continue
+        az pipelines runs artifact download --run-id "$run" \
+            --artifact-name "$name" --path "$dest/$name" -o none
+    done <<<"$names"
+    for r in "$dest"/*/; do
+        python3 -I "$here/trace-read" --list-failing error-context "$r" 2>/dev/null | sed "s|^|${r}|" >&2 || true
+    done
+    echo "$dest"
+    ;;
+--marker)
+    m=${2:?trace-fetch --marker <file> [--traces]}
+    traces=false
+    [ "${3:-}" = --traces ] && traces=true
+    stamp=$(jq -r .stamp "$m")
+    key=$(jq -r .key "$m")
+    case $stamp$key in *[!A-Za-z0-9_-]*) echo "trace-fetch: odd key or stamp in $m" >&2; exit 64 ;; esac
+    dest=$cache/vm-$key-$stamp
+    done_flag=$dest/.complete-context
+    $traces && done_flag=$dest/.complete-traces
+    if [ -f "$done_flag" ]; then echo "$dest"; exit 0; fi
+    mkdir -p "$dest"
+    blob=$(jq -r '.blob // empty' "$m")
+    report=$(jq -r '.report // empty' "$m")
+    [ -n "$blob$report" ] || { echo "trace-fetch: $m names no blob or kept report" >&2; exit 1; }
+    ps1=$(wslpath -w "$HOME/.local/share/vm/fetch-report.ps1")
+    # PowerShell copies into a Windows-local staging folder: writing straight to \\wsl.localhost
+    # fails with "being used by another process" on large files. WSL then copies the files over.
+    stage_win="$("$PS" -NoProfile -Command '[IO.Path]::GetTempPath()' | tr -d '\r')trace-fetch\\$key-$stamp"
+    stage_lin=$(wslpath -u "$stage_win")
+    mkdir -p "$stage_lin"
+    trap 'rm -r "$stage_lin" 2>/dev/null || true' EXIT
+    fetch() { "$PS" -NoProfile -ExecutionPolicy Bypass -File "$ps1" "$@" 2>&1 | tr -d '\r' >&2; }
+    if [ -n "$report" ] && fetch -Report "$report" -Files index.html -Dest "$stage_win\\playwright-report" &&
+        [ -f "$stage_lin/playwright-report/index.html" ]; then
+        list() { python3 -I "$here/trace-read" --list-failing "$1" "$stage_lin/playwright-report" | sort -u | paste -sd, -; }
+        want=$(list error-context || true)
+        if $traces; then want=$(printf '%s,%s' "$want" "$(list trace || true)" | sed 's/^,//; s/,$//'); fi
+        if [ -z "$want" ]; then
+            echo "trace-fetch: no error-context.md for an unexpected result in the kept report (a test.fail test that passed leaves none; pass --traces)" >&2
+        else
+            fetch -Report "$report" -Files "$want" -Dest "$stage_win\\playwright-report"
+        fi
+    elif [ -n "$blob" ]; then
+        fetch -Blob "$blob" -Dest "$stage_win"
+    fi
+    cp -r "$stage_lin"/. "$dest"/
+    [ -n "$(ls -A "$dest" 2>/dev/null)" ] || { echo "trace-fetch: nothing copied into $dest" >&2; exit 1; }
+    find "$dest" -name '*.md' -path '*/data/*' -printf '%p\n' >&2
+    touch "$done_flag"
+    $traces && touch "$dest/.complete-context"
+    echo "$dest"
+    ;;
+*)
+    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+    exit 64
+    ;;
+esac
