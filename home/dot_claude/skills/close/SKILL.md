@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Quick close runs every time and stays short: a heavy closeout is a closeout that gets skipped. Full extras run only when their trigger is present, or when invoked as `/close full`.
 
-`/close` ends this session only; other sessions in the same worktree carry on, and `/settle` afterwards closes the tab. The stream ends when its PR merges and Drew presses **Land** on the `merge-watch` band. In a repo whose worktrunk config defines the `land` alias, that runs `wt step land`, which refuses while a Claude session runs in the worktree, closes the `gh<n>` issue, marks the Orca card completed and removes the worktree; elsewhere Drew runs `wt remove <branch>`. Either way `/close` never removes a worktree or closes a stream's issue; an issue whose branch carries no `gh<n>` is closed by `/reconcile-tracker`.
+`/close` ends this session only; other sessions in the same worktree carry on. The stream ends when its PR merges and Drew presses **Land** on the `merge-watch` band. In a repo whose worktrunk config defines the `land` alias, that runs `wt step land`, which refuses while a Claude session runs in the worktree, closes the `gh<n>` issue, marks the Orca card completed and removes the worktree; elsewhere Drew runs `wt remove <branch>`. Either way `/close` never removes a worktree or closes a stream's issue; an issue whose branch carries no `gh<n>` is closed by `/reconcile-tracker`.
 
 Where things live after a close:
 
@@ -31,7 +31,7 @@ Not inside a git repo → skip to step 2. Clean tree → say so in one line and 
 
 Dirty tree → read the full diff (`git diff HEAD`): hunks, not filenames.
 
-- On `main`, `master`, or `develop`, the work belongs on its stream's branch — the `gate-commit-not-protected` hook hard-blocks commits there. Find the stream with `wt list`, or name a new `<type>/<topic>` branch. Carry the changes over with `git stash push -u -m <branch>`, then `wt new <branch>`; never switch this checkout's branch. That stream's tab pops the stash and commits: tell Drew which tab and that it runs `git stash pop` first, then skip to step 2 here.
+- On `main`, `master`, or `develop`, the work belongs on its stream's branch — the `gate-commit-not-protected` hook hard-blocks commits there. Find the stream with `wt list`, or name a new `<type>/<topic>` branch. Carry the changes over with `git stash push -u -m <branch>`, then `orca-new <branch>`; never switch this checkout's branch. That stream's tab pops the stash and commits: tell Drew which tab (card and tab title) and that it runs `git stash pop` first, then skip to step 2 here.
 - Group hunks by **purpose**, not by file. A single file can span two commits; two files can belong to one. One logical change → one commit; don't manufacture splits.
 - For each group: state the paths/hunks and the commit message (English imperative, conventional-commit prefix when it fits), confirm with Drew, stage only those paths (`git add -p` when hunks in one file split), commit.
 - Do **not** push. Do **not** use `git add -A`.
@@ -65,8 +65,8 @@ The report (below) ends on one status line: `Parked: <first action, naming the b
 
 | Next step | Status line |
 |---|---|
-| Start a tracker issue | `Parked: wt new <the branch the focus working document names, else the ticket's area stream>, then /implement GH-<n>` |
-| Continue a tracker issue this session left half-done | `Parked: wt resume <branch>` |
+| Start a tracker issue | `Parked: orca-new <the branch the focus working document names, else the ticket's area stream>, then /implement GH-<n>` |
+| Continue a tracker issue this session left half-done | `Parked: orca-new <branch>` |
 | A spec with two or more `ready-for-agent` tickets | `Parked: /implement-spec GH-<spec>` |
 | A slice with no issue yet ("PR 4", "the follow-up") | `Parked: /to-tickets GH-<parent>`, then `/implement` per ticket |
 | Ship | `Parked: /pr, then PR_BODY=<file> wt step ship` |
