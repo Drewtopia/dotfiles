@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# orca-focus [<branch|worktree-path>] — open a stream in Orca and bring it to the front: its first
+# live terminal, else a new tab there running `claude --continue`. Defaults to the current directory.
+# A branch with no worktree yet goes through `wt switch`, whose post-switch hook calls back here.
+set -euo pipefail
+
+# An /implement-spec coordinator sets this per slice: Orca starts the slice's worker itself, so no
+# `claude --continue` tab and no stolen view.
+[ "${ORCA_FOCUS:-}" = 0 ] && exit 0
+command -v orca-ide >/dev/null || exit 0
+
+A=${1:-.}
+if [ -d "$A" ]; then
+  P=$(cd "$A" && pwd -P)
+else
+  P=$(wt list --format=json | jq -r --arg b "$A" '.items[] | select(.branch == $b) | .worktree.path // empty')
+  [ -n "$P" ] || exec wt switch "$A" --no-cd
+fi
+W=$(wslpath -w "$P")
+
+live() {
+  orca-ide terminal list --json |
+    jq -r --arg w "$W" '.result.terminals[] | select((.orphaned|not) and .worktreePath == $w) | .handle'
+}
+
+# A worktree made seconds ago can be missing from Orca's runtime for a while (memory: tools/orca.md).
+for _ in 1 2 3 4 5 6; do
+  L=$(live 2>/dev/null) && break
+  sleep 5
+done
+[ -n "${L+x}" ] || { echo "orca-focus: Orca not reachable" >&2; exit 1; }
+# Already looking at it: the calling terminal sits in this worktree.
+grep -qxF "${ORCA_TERMINAL_HANDLE:-none}" <<<"$L" && exit 0
+
+h=$(head -1 <<<"$L")
+if [ -z "$h" ]; then
+  # A main checkout is shared by automations and other sessions, so its newest session is rarely
+  # this stream's: `--continue` there resumed an automation run, or a second copy of a slept one.
+  cmd='claude --continue || claude'
+  [ "$(git -C "$P" rev-parse --git-dir 2>/dev/null)" = "$(git -C "$P" rev-parse --git-common-dir 2>/dev/null)" ] && cmd=claude
+  # Create unfocused, then switch: `create --focus` on a tabless worktree also gets Orca's own default tab.
+  for _ in 1 2 3 4 5 6; do
+    h=$(orca-ide terminal create --worktree "path:$P" --command "$cmd" --json 2>/dev/null |
+      jq -r '.result.handle // .result.terminal.handle // empty') && [ -n "$h" ] && break
+    sleep 5
+  done
+  [ -n "$h" ] || { echo "orca-focus: Orca has no worktree at $P" >&2; exit 1; }
+fi
+orca-ide terminal switch --terminal "$h" >/dev/null
