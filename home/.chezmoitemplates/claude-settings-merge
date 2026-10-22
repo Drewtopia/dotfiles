@@ -126,6 +126,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\""
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$HOME/.claude-vault/hooks/block-windows-root-files.cjs\"; [ ! -f \"$f\" ] || node \"$f\""
+          }
+        ]
       }
     ],
     "UserPromptExpansion": [
