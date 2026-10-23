@@ -9,6 +9,8 @@
 #     unless a completed PR says it was merged and then synced to the trunk.
 #   - its worktree, if any, is clean
 #   - every Claude session in its worktree has been idle for N minutes (default 30)
+#   - `session-done <worktree>` passes: no card note or session left waiting on a person, not
+#     parked. A machine without `session-done` removes no worktree.
 # Removal goes through `wt remove`, so pre-remove hooks run (attic salvage, Orca terminal
 # close) and wt keeps a branch it cannot prove merged. Never forces.
 # Prints one line per candidate: "removed", "would remove" or "skip", the branch, a reason.
@@ -75,6 +77,9 @@ git for-each-ref --format='%(refname:short)' refs/heads | while IFS= read -r b; 
   fi
   if [ -n "$p" ] && pid=$(busy_session_in "$p"); then
     echo "skip          $b  (Claude session $pid active in the last ${idle_min}m)"; continue
+  fi
+  if [ -n "$p" ] && ! sd=$(session-done "$p" 2>&1); then
+    echo "skip          $b  (not done: $(sed -n 2p <<<"$sd" | cut -c3-) $(head -1 <<<"$sd" | grep -o '^parked' || true))"; continue
   fi
   if [ "$go" -eq 1 ]; then
     if out=$(wt remove --yes --foreground "$b" 2>&1 </dev/null); then
