@@ -1,10 +1,10 @@
 schema_version: 1
 id: drew.azure_writes
-name: Azure DevOps writes
-version: 1.0.0
-description: Board, test plan, PR and pipeline writes are visible to the team, so a human approves each one.
-keywords: [az, boards, repos, pipelines, devops, rest]
-denial_banner: Azure DevOps write needs approval
+name: Azure DevOps and Key Vault writes
+version: 1.1.0
+description: Board, test plan, PR, pipeline and shared Key Vault writes reach the whole team, so a human approves each one.
+keywords: [az, boards, repos, pipelines, devops, rest, keyvault]
+denial_banner: Azure write needs approval
 destructive_patterns:
   - name: boards-work-item-write
     pattern: '\baz\b.*?\bboards\s+work-item\s+(?:create|update|relation\s+(?:add|remove))\b'
@@ -43,3 +43,8 @@ destructive_patterns:
     severity: high
     description: Raw Azure DevOps REST write through az rest.
     explanation: A POST, PUT, PATCH or DELETE can change any Azure DevOps resource. GET stays allowed.
+  - name: keyvault-secret-write
+    pattern: '\baz\b.*?\bkeyvault\s+(?:secret|key|certificate)\s+(?:set|import|delete|purge|recover|restore|set-attributes)\b'
+    severity: high
+    description: Writes or deletes a Key Vault secret, key or certificate.
+    explanation: Shared vaults feed every consumer's config; a new value reaches them on their next read. show and list stay allowed.
