@@ -58,7 +58,8 @@ chezmoi = "latest"
 {{- if ne .chezmoi.os "windows" }}
 "github:Dicklesworthstone/destructive_command_guard" = { version = "latest", postinstall = "printf '%s' '{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"true\"},\"hook_event_name\":\"PreToolUse\"}' | dcg >/dev/null 2>&1 || true" }
 {{- else }}
-"github:Dicklesworthstone/destructive_command_guard" = "latest"
+# NOTE: mise runs a Windows postinstall under `cmd /c`, which has no printf.
+"github:Dicklesworthstone/destructive_command_guard" = { version = "latest", postinstall = 'echo {"tool_name":"Bash","tool_input":{"command":"true"},"hook_event_name":"PreToolUse"}| dcg >NUL 2>&1 & exit /b 0' }
 {{- end }}
 
 # npm-backed CLI tools (pure JS, cross-platform)
