@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Opens a branch's Claude session in Orca, creating the branch and worktree when needed.
 # Usage: orca-new <branch> [--title <t>] [--model <id>] [--effort <lvl>]
-#                 [--prompt <text> | --prompt-file <f>] [--base <ref>]
+#                 [--prompt <text> | --prompt-file <f>] [--base <ref>] [--issue <n>]
+#   --issue links the tracker issue to the Orca card; branch names no longer carry it.
 #   live Claude session on the branch -> switch to it (one session per branch; a brief is refused)
 #   worktree, no live session         -> `claude --continue` there, or a fresh session when a
 #                                        model or brief is given
@@ -21,14 +22,15 @@ run() {
 }
 
 b=${1:-}
-case "$b" in '' | -*) die "usage: orca-new <branch> [--title <t>] [--model <id>] [--effort <lvl>] [--prompt <text> | --prompt-file <f>] [--base <ref>]" 2 ;; esac
+case "$b" in '' | -*) die "usage: orca-new <branch> [--title <t>] [--model <id>] [--effort <lvl>] [--prompt <text> | --prompt-file <f>] [--base <ref>] [--issue <n>]" 2 ;; esac
 shift
-title='' base='' brief='' launch=()
+title='' base='' brief='' issue='' launch=()
 while [ $# -gt 0 ]; do
   [ $# -ge 2 ] || die "$1 needs a value" 2
   case "$1" in
     --title) title=$2 ;;
     --base) base=$2 ;;
+    --issue) case "$2" in *[!0-9]* | '') die "--issue needs a number" 2 ;; esac; issue=$2 ;;
     --model | --effort) launch+=("$1" "$2") ;;
     --prompt) brief=$2 ;;
     --prompt-file) [ -s "$2" ] || die "--prompt-file needs a non-empty file" 2; brief=$(cat "$2") ;;
@@ -66,6 +68,7 @@ if [ -z "$wt_path" ]; then
       [ "$i" -lt 30 ] || die "Orca has not picked up $wt_path after 30 s; open it there"
       sleep 1
     done
+    [ -z "$issue" ] || run orca worktree set --worktree "path:$wt_path" --issue "$issue" >/dev/null
   else
     # Under Claude, a new branch for a ticket that already has a worktree is refused: a second
     # worktree means a second session on the same work. Drew gets worktrunk's warning only.
@@ -75,13 +78,16 @@ if [ -z "$wt_path" ]; then
       [ -z "$t" ] || w=$(git worktree list --porcelain | sed -n 's|^branch refs/heads/||p' |
         grep -E "(^|[^0-9a-z])$t([^0-9]|$)" || true)
       [ -z "$w" ] || die "ticket $t already has a worktree (${w//$'\n'/ }); carry on there, or ask Drew"
+      if [ -n "$issue" ] && w=$(orca worktree show --worktree "issue:$issue" --json 2>/dev/null | jq -r '.result.worktree.path // empty') && [ -n "$w" ]; then
+        die "GH-$issue already has a worktree ($w); carry on there, or ask Drew"
+      fi
     fi
     if [ -z "$base" ]; then
       base=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD) ||
         die "no origin/HEAD; pass --base, or run: git remote set-head origin --auto"
     fi
     out=$(run orca worktree create --name "${b//\//-}" --no-parent --base-branch "$base" --setup run \
-      --agent claude ${launch[@]+"${launch[@]}"} --surface terminal --json)
+      --agent claude ${issue:+--issue "$issue"} ${launch[@]+"${launch[@]}"} --surface terminal --json)
     wt_path=$(jq -r .result.worktree.path <<<"$out")
     handle=$(jq -r '.result.launch.outcome.handle // empty' <<<"$out")
     # Orca turns / into - and may add its branch prefix, so rename from the branch it reports.
