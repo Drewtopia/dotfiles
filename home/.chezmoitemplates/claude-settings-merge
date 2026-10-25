@@ -270,7 +270,8 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "statusLine": {
     "type": "command",
     "command": "command -v ccstatusline >/dev/null 2>&1 && exec ccstatusline || exec bun x ccstatusline@2.2.29",
-    "padding": 0
+    "padding": 0,
+    "refreshInterval": 30
   },
   {{- /* enabledPlugins: merge profile-gated plugin tables from claude.toml */ -}}
   {{- $enabled := dict -}}
