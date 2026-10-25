@@ -1,5 +1,4 @@
 'use strict';
-/** Port safety net for block-dangerous-git.js. */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
@@ -23,6 +22,21 @@ const DANGEROUS = [
     'git push origin main',
     'git push origin develop',
     'git push origin HEAD:master',
+    'git worktree add ../x -b feat/x',
+    'git -C /repo worktree add .claude/worktrees/x origin/develop',
+    'git worktree remove --force .claude/worktrees/x',
+    'git worktree remove -f x',
+    'cd /repo && git push origin develop',
+    "bash -c 'git push origin main'",
+    "bash -lc 'git push origin main'",
+    'mise exec -- git push origin develop',
+    'out=$(git push origin main)',
+    'git push -u origin feat/x && git push origin develop',
+    'cd /repo && git reset --hard',
+    "bash -lc 'git clean -fd'",
+    'git branch -a | xargs git branch -D',
+    'git status && git checkout .',
+    'git --no-pager branch -D old',
 ];
 
 // Allowed regardless of current branch (explicit feature refspec, non-git, etc.)
@@ -35,6 +49,18 @@ const SAFE = [
     'git branch -d merged',
     'ls -la',
     'git reset HEAD file.ts',
+    'git switch -c feat/carry-changes',
+    'git worktree list',
+    'git worktree remove x',
+    'git checkout -b feat/x',
+    'git push -u origin feat/x && az repos pr create --target-branch develop',
+    'git push origin feat/x; git log origin/develop..HEAD',
+    'git push origin feat/x && pnpm install --force',
+    'git clean -n && ls -lf',
+    'git stash && git reset HEAD file.ts && echo --hard',
+    'git branch -vv && grep -D skip notes.txt',
+    'git status && rg "git\\s+reset(\\s+.*)?\\s+--hard" hooks/',
+    'git worktree list && rm -f stale.lock',
 ];
 
 for (const cmd of DANGEROUS) {
@@ -44,3 +70,51 @@ for (const cmd of SAFE) {
     test(`allows: ${cmd}`, () => assert.equal(code(cmd), 0));
 }
 test('empty allows', () => assert.equal(code(''), 0));
+
+// A bare push pushes the branch checked out where that push runs.
+const bare = (cmd, branches) =>
+    run({ tool_input: { command: cmd } }, { currentBranch: cwd => branches[cwd || ''] }).exitCode;
+
+test('blocks: bare push on develop', () => assert.equal(bare('git push', { '': 'develop' }), 2));
+test('blocks: bare push on develop followed by another command', () =>
+    assert.equal(bare('git push && echo done', { '': 'develop' }), 2));
+test('allows: bare push in a feature worktree reached by cd', () =>
+    assert.equal(bare('cd /wt && git push -u origin', { '': 'develop', '/wt': 'feat/x' }), 0));
+test('blocks: bare push in a develop checkout reached by cd', () =>
+    assert.equal(bare('cd /repo && git push', { '': 'feat/x', '/repo': 'develop' }), 2));
+
+// The hook reads the command before the shell expands it.
+const home = require('node:os').homedir();
+test('blocks: bare push in a directory named by a variable, judged by the session branch', () => {
+    assert.equal(bare('git -C $V push', { '': 'main' }), 2);
+    assert.equal(bare('cd "$X" && git push', { '': 'develop' }), 2);
+});
+test('resolves a variable assigned earlier in the same command', () => {
+    const branches = { '': 'feat/x', [`${home}/.claude-vault`]: 'main' };
+    assert.equal(bare('V=~/.claude-vault; git -C $V push', branches), 2);
+    assert.equal(bare('R=$HOME/.claude-vault && cd "${R}" && git push', branches), 2);
+});
+test('resolves ~ and $HOME in the push directory', () => {
+    assert.equal(bare('git -C ~/repo push', { '': 'feat/x', [`${home}/repo`]: 'main' }), 2);
+    assert.equal(bare('cd $HOME/wt && git push -u origin', { '': 'develop', [`${home}/wt`]: 'feat/x' }), 0);
+});
+
+const COMMIT_THEN_PUSH = [
+    "cd /wt && git commit -q -F - <<'EOF'",
+    "fix: the user's role no longer matters",
+    'EOF',
+    `git push -q -u origin fix/any-role 2>&1 | tail -1; gh pr create --base develop --json number -q '.number'`,
+].join('\n');
+
+test('allows: a feature push after a heredoc whose body holds an apostrophe', () =>
+    assert.equal(code(COMMIT_THEN_PUSH), 0));
+test('allows: a data heredoc body that mentions a protected push', () =>
+    assert.equal(code("cat > notes.md <<'EOF'\ngit push origin main\nEOF"), 0));
+test('blocks: a heredoc body fed to a shell', () =>
+    assert.equal(code("bash <<'EOF'\ngit push origin main\nEOF"), 2));
+test('blocks: a data heredoc piped into a shell', () =>
+    assert.equal(code("cat <<'EOF' | sh\ngit push origin main\nEOF"), 2));
+test('blocks: a command substitution in an unquoted data heredoc', () =>
+    assert.equal(code('cat > notes.md <<EOF\n$(git push origin main)\nEOF'), 2));
+test('blocks: a protected push after a heredoc', () =>
+    assert.equal(code("git commit -F - <<'EOF'\nit's done\nEOF\ngit push origin main"), 2));

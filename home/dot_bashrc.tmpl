@@ -1,10 +1,5 @@
-{{- /* WSL Ubuntu .bashrc — managed by chezmoi for WSL only. Tool installers
-       (atuin/deno/console-ninja/pnpm) may append lines after apply; that
-       drift is expected. The bail-early guard keeps non-interactive `bash -lc`
-       silent regardless of what installers add. */ -}}
-# ~/.bashrc: executed by bash(1) for non-login shells.
-
-# If not running interactively, don't do anything
+{{- /* WSL only. Installers may append lines after apply; the bail-early guard keeps
+       non-interactive `bash -lc` silent whatever they add. */ -}}
 case $- in
     *i*) ;;
       *) return;;
@@ -16,6 +11,5 @@ esac
 command -v atuin >/dev/null 2>&1 && eval "$(atuin init bash)"
 [[ -d "${HOME}/.console-ninja/.bin" ]] && PATH="${HOME}/.console-ninja/.bin:${PATH}"
 
-# worktrunk (wt) shell integration. `command wt` calls the binary, not the wt
-# shell function the integration defines (so `wt switch` can cd the parent shell).
+# `command wt`: bypass the wt shell function the integration defines.
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash)"; fi

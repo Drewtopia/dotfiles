@@ -1,5 +1,4 @@
 'use strict';
-/** Tests for notify.js (port of notify.sh). Run: node --test */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');

@@ -1,42 +1,30 @@
 'use strict';
-/**
- * PreToolUse(Bash) check: block destructive shell commands.
- *
- * Direct port of block-dangerous-commands.sh — patterns kept byte-for-byte
- * equivalent to the original grep -E / grep -iE rules (POSIX ERE -> JS RegExp:
- * [[:space:]] -> \s, literal / $ { } escaped). Do NOT "tighten" these patterns
- * without a matching test; a dropped \s is a hole a destructive command walks
- * through.
- *
- * run(input) -> { exitCode: 0 } allow | { exitCode: 2, stderr } block
- */
 
 const { getCommand } = require('../lib/hook-io');
 
 const RM_FLAGS = '(-[a-zA-Z]*r[a-zA-Z]*f|--recursive\\s+--force|-rf|-fr)';
+// The target must end here, so `/` or `~` as the start of a longer path is not root or home.
+const PATH_END = '/?(?=$|[\\s;&|)])';
 
-/**
- * Ordered rules. First match wins. `msg(cmd)` returns the exact stderr text the
- * original .sh emitted (emoji + Command line + tips preserved).
- */
+// First match wins.
 const RULES = [
     {
         id: 'rm-rf-sensitive-path',
         re: new RegExp(
-            `rm\\s+${RM_FLAGS}\\s+(/|~|\\.\\.|\\$HOME|\\$\\{HOME\\})`,
+            `rm\\s+${RM_FLAGS}\\s+(/|\\.\\.|(~|\\$HOME|\\$\\{HOME\\})(/[^/\\s;&|]+)?)${PATH_END}`,
         ),
         msg: cmd =>
-            `🛑 BLOCKED: Destructive rm command targeting root, home, or parent directory\nCommand: ${cmd}`,
+            `🛑 BLOCKED: Destructive rm command targeting root, home, a folder directly in home, or parent directory\nCommand: ${cmd}`,
     },
     {
         id: 'rm-rf-wildcard',
-        re: new RegExp(`rm\\s+${RM_FLAGS}\\s+(/\\*|~/\\*|/home)`),
+        re: new RegExp(`rm\\s+${RM_FLAGS}\\s+(/\\*|~/\\*|\\$HOME/\\*|\\$\\{HOME\\}/\\*|/home(/[^/\\s;&|]+)?${PATH_END})`),
         msg: cmd =>
             `🛑 BLOCKED: Destructive rm command with wildcard on sensitive path\nCommand: ${cmd}`,
     },
     {
         id: 'force-push-protected',
-        re: /git\s+push\s+.*(-f|--force)\s+.*(main|master|production|release)/,
+        re: /git\s+push\s+[^;&|\n]*(-f|--force)\s+[^;&|\n]*(main|master|production|release)/,
         msg: cmd =>
             `🛑 BLOCKED: Force push to protected branch\nCommand: ${cmd}\nTip: Create a PR instead of force pushing to main/master`,
     },
@@ -71,18 +59,25 @@ const RULES = [
             `🛑 BLOCKED: mkfs command (disk formatting)\nCommand: ${cmd}`,
     },
     {
+        // The Bash tool runs a command as `zsh -c "<command>"`, so a full-command-line
+        // match always finds the shell running it.
+        id: 'pkill-full-match',
+        re: /\bpkill\b[^;&|\n]*\s(?:-[a-zA-Z0-9]*f[a-zA-Z0-9]*|--full)(?=\s|$)/,
+        msg: cmd =>
+            `🛑 BLOCKED: pkill -f matches the shell running this command, and kills it\nCommand: ${cmd}\nTip: find the PID in one call (pgrep -af <pattern>), then kill <pid> in the next`,
+    },
+    {
         id: 'exfiltrate-sensitive',
-        re: /(curl|wget|nc|netcat)\s+.*\.(env|pem|key|secret)/,
+        re: /\b(curl|wget|nc|netcat)\s+[^;&|\n]*\.(env|pem|key|secret)/,
         msg: cmd =>
             `⚠️ BLOCKED: Command appears to exfiltrate sensitive files\nCommand: ${cmd}`,
     },
     {
         id: 'read-env-posix',
-        re: /(cat|less|head|tail|more|bat)\s+.*\.env/,
+        re: /\b(cat|less|head|tail|more|bat)\s+[^;&|\n]*\.env/,
         msg: cmd =>
             `⚠️ BLOCKED: Reading .env file via ${cmd}\nTip: Use environment variables instead of reading .env directly`,
     },
-    // --- PowerShell-native forms (case-insensitive) ---
     {
         id: 'ps-remove-item-recurse-force',
         re: /Remove-Item.*-Recurse.*-Force|Remove-Item.*-Force.*-Recurse/i,

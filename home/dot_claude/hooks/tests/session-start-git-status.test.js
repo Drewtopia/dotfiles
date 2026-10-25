@@ -1,9 +1,20 @@
 'use strict';
-/** Tests for session-start-git-status.js (port of the .sh). Run: node --test */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const sg = require('../session-start-git-status.js');
+
+test('outside a repo the hook writes nothing, not its stdin', () => {
+    const r = spawnSync(
+        process.execPath,
+        [path.join(__dirname, '../session-start-git-status.js')],
+        { cwd: os.tmpdir(), input: '{"session_id":"abc"}', encoding: 'utf8' },
+    );
+    assert.equal(r.stdout, '');
+});
 
 const base = {
     branch: 'feature/x',
@@ -12,7 +23,6 @@ const base = {
     commitsAhead: 0,
     dirtyCount: 0,
     behind: 0,
-    staleWorktrees: [],
 };
 
 test('clean state produces no warnings', () => {
@@ -47,16 +57,16 @@ test('protected branches suppress age/ahead warnings', () => {
     }
 });
 
-test('dirty / behind / stale worktrees each add a line', () => {
-    const w = sg.buildWarnings({
-        ...base,
-        dirtyCount: 4,
-        behind: 2,
-        staleWorktrees: ['/wt/a (9d)'],
-    });
+test('dirty / behind each add a line', () => {
+    const w = sg.buildWarnings({ ...base, dirtyCount: 4, behind: 2 });
     assert.match(w[0], /4 uncommitted change\(s\)/);
     assert.match(w[1], /2 commit\(s\) behind upstream/);
-    assert.match(w[2], /Stale worktrees \(>7d\): \/wt\/a \(9d\)/);
+});
+
+test('behind names the upstream to read code state from', () => {
+    const w = sg.buildWarnings({ ...base, behind: 11, upstream: 'origin/develop' });
+    assert.match(w[0], /11 commit\(s\) behind origin\/develop/);
+    assert.match(w[0], /git show origin\/develop:<path>/);
 });
 
 test('missing integration branch skips age/ahead but keeps dirty', () => {

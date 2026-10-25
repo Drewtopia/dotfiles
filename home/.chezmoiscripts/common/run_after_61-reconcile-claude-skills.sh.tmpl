@@ -1,0 +1,9 @@
+{{- if ne .chezmoi.os "windows" -}}
+{{- if .dev_computer -}}
+#!/usr/bin/env bash
+# run_after, not run_onchange: `npx skills update` relinks skills between
+# applies without changing any source, so this must fire on every apply.
+"$HOME/.local/bin/reconcile-claude-skills" -y \
+    || echo "[skills] reconcile failed (continuing)"
+{{- end }}
+{{- end }}

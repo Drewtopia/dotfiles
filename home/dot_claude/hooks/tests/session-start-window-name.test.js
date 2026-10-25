@@ -1,5 +1,4 @@
 'use strict';
-/** Safety net for session-start-window-name.js — pure windowName(). */
 
 const { test } = require('node:test');
 const assert = require('node:assert');

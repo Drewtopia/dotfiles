@@ -24,7 +24,8 @@ Ubuntu 22.04+.
 
 | Source | Used for | Where |
 |--------|----------|-------|
-| apt (Linux), Homebrew (macOS), winget and scoop (Windows) | The OS base: shells, git, tmux, system libraries, GUI apps, fonts on Windows | `linux/run_onchange_before_10-install-apt-packages`, `darwin/run_onchange_before_10-install-brew-packages`, `windows/run_onchange_before_08-install-winget-pkgs`, `.chezmoidata/scoop.toml` |
+| apt (Linux), Homebrew and mas (macOS), via `mise bootstrap packages` | The OS base: shells, git, tmux, system libraries, GUI apps, App Store apps | `.chezmoitemplates/mise-bootstrap.toml`, applied by `linux/run_onchange_before_10-install-apt-packages` and `darwin/run_onchange_before_10-install-brew-packages`, and written to `~/.config/mise/conf.d/bootstrap.toml` so `mise bootstrap packages status` shows drift. Third-party Homebrew taps stay in the darwin script's `brew bundle` (mise needs Ruby 3 to read them) |
+| winget and scoop (Windows) | The OS base and fonts on Windows | IDs in `.chezmoidata/winget.toml`, applied by `windows/run_onchange_before_08-install-winget-pkgs`: through `mise bootstrap packages` on machines that are not relocated, and through the script's own `--scope user --location` loop on relocated (work) machines, since mise's winget has no option for either. Scoop stays on `.chezmoidata/scoop.toml` everywhere (mise's scoop is user scope only) |
 | mise | Dev CLIs and language runtimes, dev machines only | `dot_config/mise/config.toml.tmpl` |
 | Direct download | Only what neither covers | `.chezmoiexternal.toml.tmpl` (fonts, `cue` on Ubuntu) |
 

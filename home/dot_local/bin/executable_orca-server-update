@@ -1,0 +1,91 @@
+#!/bin/sh
+# Updates the work-wsl Orca server to the latest stablyai/orca release: orca-server-update [--no-restart].
+# Why: the server runs from an extracted AppImage (no libfuse2 in WSL), which Orca's own updater
+# cannot replace, so it never updates itself. This downloads the release, checks its sha512,
+# extracts it beside the old one, repoints `current`, and kills the server so the
+# orca-serve-wsl.sh wrapper restarts it from `current`. topgrade runs it as a custom command.
+# Keeps the previous version for rollback: `ln -sfn <old> ~/.local/opt/orca/current`, then restart.
+set -eu
+
+BASE=${ORCA_HOME:-$HOME/.local/opt/orca}
+FEED=https://github.com/stablyai/orca/releases
+RESTART=1
+case "${1:-}" in
+  --no-restart) RESTART=0 ;;
+  '') ;;
+  *) echo "usage: orca-server-update [--no-restart]" >&2; exit 2 ;;
+esac
+
+say() { echo "orca-server-update: $*"; }
+
+latest=$(curl -fsSL "$FEED/latest/download/latest-linux.yml" | sed -n 's/^version: *//p')
+[ -n "$latest" ] || { say "could not read the latest version from $FEED" >&2; exit 1; }
+current=$(basename "$(readlink "$BASE/current" 2>/dev/null || echo none)")
+
+if [ "$latest" = "$current" ]; then
+  say "already on $current"
+  exit 0
+fi
+say "updating $current -> $latest"
+
+stage="$BASE/.$latest.partial"
+rm -rf "$stage"
+mkdir -p "$stage"
+trap 'rm -rf "$stage"' EXIT
+cd "$stage"
+curl -fsSLO "$FEED/download/v$latest/latest-linux.yml"
+curl -fSLO --progress-bar "$FEED/download/v$latest/orca-linux.AppImage"
+
+want=$(sed -n 's/^sha512: *//p' latest-linux.yml)
+got=$(openssl dgst -sha512 -binary orca-linux.AppImage | base64 -w0)
+[ -n "$want" ] && [ "$want" = "$got" ] || { say "sha512 mismatch for orca-linux.AppImage" >&2; exit 1; }
+
+chmod +x orca-linux.AppImage
+./orca-linux.AppImage --appimage-extract >/dev/null
+rm orca-linux.AppImage
+[ -x squashfs-root/resources/bin/orca-ide ] || { say "extracted AppImage has no resources/bin/orca-ide" >&2; exit 1; }
+
+cd "$BASE"
+rm -rf "${BASE:?}/${latest:?}"
+mv "$stage" "$BASE/$latest"
+trap - EXIT
+ln -sfn "$latest" "$BASE/current"
+
+# Keep only the new version and the one it replaced. Version dirs only: never `current`.
+for d in "$BASE"/[0-9]*; do
+  [ -d "$d" ] && [ ! -L "$d" ] || continue
+  v=$(basename "$d")
+  [ "$v" = "$latest" ] || [ "$v" = "$current" ] || { say "removing $v"; rm -rf "$d"; }
+done
+
+if [ "$RESTART" = 0 ]; then
+  say "installed $latest; restart the server to use it"
+  exit 0
+fi
+if ! pgrep -f orca-serve-wsl.sh >/dev/null; then
+  say "installed $latest, but the orca-serve-wsl.sh wrapper is not running, so nothing restarts it" >&2
+  exit 1
+fi
+
+# The CLI process (`serve --port`) and the Electron server it starts (`--serve-port`).
+pkill -f -- 'cli/index.js serve --port' || true
+pkill -f -- '--serve-port' || true
+
+# The wrapper launches through `current`, so the command line never names the version;
+# the resolved executable does.
+want_dir=$(readlink -f "$BASE/$latest")
+server_on_latest() {
+  for pid in $(pgrep -f -- 'cli/index.js serve --port'); do
+    case "$(readlink -f "/proc/$pid/exe" 2>/dev/null)" in
+      "$want_dir"/*) return 0 ;;
+    esac
+  done
+  return 1
+}
+i=0
+until server_on_latest; do
+  i=$((i + 1))
+  [ "$i" -lt 60 ] || { say "server not back on $latest after 60 s; check /var/log/orca-serve.log" >&2; exit 1; }
+  sleep 1
+done
+say "server restarted on $latest"

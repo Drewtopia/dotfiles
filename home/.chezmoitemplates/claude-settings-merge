@@ -64,6 +64,17 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
       "Bash(touch /tmp/claude-*)",
       "Bash(cat /tmp/claude-*)"
     ],
+    "ask": [
+      "mcp__azure-devops__wit_work_item_write",
+      "mcp__azure-devops__wit_work_item_comment_write",
+      "mcp__azure-devops__wit_work_item_link_write",
+      "mcp__azure-devops__wit_backlog",
+      "mcp__azure-devops__testplan_test_case_write",
+      "mcp__azure-devops__testplan_test_plan_write",
+      "mcp__azure-devops__testplan_test_suite_write",
+      "mcp__azure-devops__work_iteration_write",
+      "mcp__azure-devops__work_capacity_write"
+    ],
     "deny": [
       "Bash(> /dev/sda*)",
       "Read(**/.env)",
@@ -104,10 +115,44 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           {
             "type": "command",
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\""
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell|Monitor",
+        "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-worktree-convention.js\""
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/dcg-unattended-ask.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$HOME/.claude-vault/hooks/block-windows-root-files.cjs\"; [ ! -f \"$f\" ] || node \"$f\""
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "matcher": "edit-governance|audit-rules-and-skills|reorganize-memory",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\" --expansion"
           }
         ]
       }
@@ -123,11 +168,12 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
-        "matcher": "Read",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/warn-derived-artifact.js\""
+            "if": "Bash(*git*)",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-commit-clear-nudge.js\""
           }
         ]
       }
@@ -145,15 +191,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
     ],
     "SessionStart": [
 {{- if ne .chezmoi.os "windows" }}
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -name '*.sh' ! -executable -exec chmod +x {} + 2>/dev/null; find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -name '*.py' ! -executable -exec chmod +x {} + 2>/dev/null; true"
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
@@ -206,50 +243,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           }
         ]
       }
-    ],
-    "PermissionDenied": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/permission-denied-audit.js\""
-          }
-        ]
-      }
-    ],
-    "StopFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-failure-log.js\""
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/user-prompt-drift-check.js\""
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-compact-snapshot.js\""
-          }
-        ]
-      }
     ]{{- if ne .chezmoi.os "windows" }},
     "SessionEnd": [
       {
@@ -262,11 +255,12 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
-        "matcher": "",
+        "matcher": "prompt_input_exit|logout|other",
         "hooks": [
           {
             "type": "command",
-            "command": "id=$(jq -r '.session_id // empty'); [ -n \"$id\" ] && \"$HOME/.local/bin/claude-log-session\" \"$id\" >/dev/null 2>&1; \"$HOME/.local/bin/claude-board\" --no-open >/dev/null 2>&1 || true"
+            "command": "id=$(jq -r '.session_id // empty'); [ -n \"$id\" ] && \"$HOME/.local/bin/claude-log-session\" \"$id\" >/dev/null 2>&1 || true",
+            "timeout": 5
           }
         ]
       }
@@ -303,6 +297,9 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "verbose": true,
   "preferredNotifChannel": "auto",
   "agentPushNotifEnabled": false,
+  {{- /* NOTE: effectively never: also disables the orphaned-worktree sweep. Prune
+         transcripts with `claude purge`, worktrees with `wt step prune`. */}}
+  "cleanupPeriodDays": 99999,
   {{- /* Seeds, not pins: the floor merge lets runtime win per scalar, so these
          only reach a machine that has not set its own. */}}
   "tui": "fullscreen",
@@ -359,6 +356,23 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   | .hooks.Stop = ((.hooks.Stop // [])
       | map(.hooks |= map(select((.command | contains("stop-end-of-turn.js")) | not)))
       | map(select((.hooks | length) > 0)))
+  # Retire the unmatched SessionEnd log hook that also rebuilt claude-board: it
+  # fired on /clear and /resume too. Strip it (add-only merge keeps it).
+  | .hooks.SessionEnd = ((.hooks.SessionEnd // [])
+      | map(.hooks |= map(select((.command | contains("claude-board")) | not)))
+      | map(select((.hooks | length) > 0)))
+  # Retire removed hooks: strip their commands and drop emptied entries and events.
+  # The dcg hook is not managed here: each dcg run rewrites its own entry to its binary path.
+  | .hooks = ((.hooks // {}) | with_entries(.value |= (
+      map(.hooks |= map(select((.command // "") as $c | any(
+            "warn-worktree-convention.js", "warn-derived-artifact.js",
+            "permission-denied-audit.js", "stop-failure-log.js",
+            "user-prompt-drift-check.js", "pre-compact-snapshot.js",
+            "-name '\''*.sh'\'' ! -executable", "EnterWorktree without path",
+            "/shims/dcg";
+            . as $r | $c | contains($r)) | not)))
+      | map(select((.hooks | length) > 0))))
+      | with_entries(select((.value | length) > 0)))
   # Retire the bash -c wrapper form of managed hooks: shell-form hooks already run
   # under sh -c (Git Bash on Windows), and the add-only merge would keep both forms.
   | .hooks = ((.hooks // {}) | with_entries(.value |= (
@@ -377,10 +391,10 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # hookify has no rules anywhere but spawns python3 around every tool call;
   # a runtime `true` would otherwise outrank the managed `false`.
   | .enabledPlugins["hookify@claude-plugins-official"] = false
-  # Auto-memory stays off on every machine: declaring it in the managed floor
-  # cannot force-disable a machine where Claude already enabled it (runtime wins),
-  # so pin it here to re-assert false on every apply.
-  | .autoMemoryEnabled = false
+  # Retired plugins a runtime `true` would otherwise keep enabled.
+  | .enabledPlugins["session-report@claude-plugins-official"] = false
+  | .enabledPlugins["humanizer@humanizer"] = false
+  | .enabledPlugins["andrej-karpathy-skills@karpathy-skills"] = false
   # Attribution stays off in every form. sessionUrl defaults to true and the
   # deprecated includeCoAuthoredBy never covered it, so web and Remote Control
   # commits still carried a session trailer. Pin the whole object (runtime wins

@@ -1,9 +1,11 @@
 ---
 name: homelab-ops
-description: Use when changing services, configs, or storage on Drew's homelab — Proxmox LXCs, AdGuard/NPM/Caddy, Booklore/Grimmory, NFS/TrueNAS mounts, fstab edits. Covers rollback discipline, running-service config edits, and network-storage constraints.
+description: Use when inspecting or changing Drew's homelab — Proxmox LXCs, TrueNAS, UniFi, Headscale/Tailscale, AdGuard/NPM/Caddy, Booklore/Grimmory, NFS mounts, fstab edits. Covers how to reach each system, rollback discipline, running-service config edits, and network-storage constraints.
 ---
 
 # Homelab operations
+
+**Reach each system through the agent access map in `~/.claude/memory/domain/homelab.md` before opening a browser** (TrueNAS's API through the Proxmox guest agent, Headscale through `pct exec`, UniFi's limits). Per-system gotchas: `~/.claude/memory/tools/{truenas,unifi,headscale}.md`.
 
 Three disciplines. Blast radius on this homelab is real (whole-network DNS has gone down from a config edit) — when a step here feels skippable, flag it and let Drew decide instead of skipping.
 

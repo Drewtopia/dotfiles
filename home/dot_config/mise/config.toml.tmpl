@@ -52,12 +52,33 @@ chezmoi = "latest"
 # Installs under MISE_DATA_DIR (whitelisted on locked-down work machines),
 # unlike GitLens's bundled gk.exe at %APPDATA%\Code\User\globalStorage\...
 "github:gitkraken/gk-cli" = "latest"
+# dcg: Claude Code PreToolUse guard against destructive shell commands. Not in aqua-registry.
+# dcg owns its hook entry in ~/.claude/settings.json and points it at its own binary on each
+# hook call; one call after install moves it off the version an upgrade just pruned.
+{{- if ne .chezmoi.os "windows" }}
+"github:Dicklesworthstone/destructive_command_guard" = { version = "latest", postinstall = "printf '%s' '{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"true\"},\"hook_event_name\":\"PreToolUse\"}' | dcg >/dev/null 2>&1 || true" }
+{{- else }}
+# NOTE: mise runs a Windows postinstall under `cmd /c`, which has no printf.
+"github:Dicklesworthstone/destructive_command_guard" = { version = "latest", postinstall = 'echo {"tool_name":"Bash","tool_input":{"command":"true"},"hook_event_name":"PreToolUse"}| dcg >NUL 2>&1 & exit /b 0' }
+{{- end }}
 
 # npm-backed CLI tools (pure JS, cross-platform)
 "npm:defuddle" = "latest"
 # Claude Code status line. Installed here so each repaint runs a local binary
 # instead of resolving the package through `bun x` on every run.
 "npm:ccstatusline" = "latest"
+# Browser automation and library docs as CLIs (the playwright-cli and find-docs
+# skills), so sessions don't each start a Playwright MCP server.
+"npm:@playwright/cli" = "latest"
+"npm:ctx7" = "latest"
+"npm:typescript" = "latest"
+{{- if not (and (eq .chezmoi.os "windows") .work) }}
+# Codex isn't used on work Windows.
+"npm:@openai/codex" = "latest"
+{{- end }}
+{{- if ne .chezmoi.os "windows" }}
+"npm:@caveman-ai/cli" = "latest"
+{{- end }}
 
 # pipx-backed CLI tools (pure Python, cross-platform)
 # commit-check: policy engine for Conventional Commits + Conventional Branch +
@@ -117,6 +138,14 @@ GIT_CLIFF_TEMPLATES_DIR = "{{ joinPath .chezmoi.homeDir ".config" "git-cliff" "t
 
 [settings]
 experimental = true
+
+# Project configs under these folders load without a trust prompt, including
+# repos cloned there later. Only my own repos live there; anything else gets
+# a per-file `mise trust`. Global-only, so a repo can't set it for itself.
+trusted_config_paths = [
+    '{{ joinPath .chezmoi.homeDir "Developer" }}',
+    '{{ joinPath .chezmoi.homeDir "dev" }}',
+]
 idiomatic_version_file_enable_tools = ['node', 'pnpm']
 
 # Persist computed env to disk so cold mise spawns skip the full tool walk.

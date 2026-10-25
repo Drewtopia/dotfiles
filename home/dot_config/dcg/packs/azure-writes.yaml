@@ -1,0 +1,50 @@
+schema_version: 1
+id: drew.azure_writes
+name: Azure DevOps and Key Vault writes
+version: 1.1.0
+description: Board, test plan, PR, pipeline and shared Key Vault writes reach the whole team, so a human approves each one.
+keywords: [az, boards, repos, pipelines, devops, rest, keyvault]
+denial_banner: Azure write needs approval
+destructive_patterns:
+  - name: boards-work-item-write
+    pattern: '\baz\b.*?\bboards\s+work-item\s+(?:create|update|relation\s+(?:add|remove))\b'
+    severity: high
+    description: Creates or changes an Azure Boards work item the team sees.
+    explanation: Reads (show, query) stay allowed. Deletes are denied by platform.azure_devops.
+  - name: boards-planning-write
+    pattern: '\baz\b.*?\bboards\s+(?:iteration|area)\s+\S+\s+(?:create|update|add)\b'
+    severity: high
+    description: Changes Azure Boards iterations or areas.
+    explanation: Iteration and area changes move every work item planned against them.
+  - name: repos-pr-write
+    pattern: '\baz\b.*?\brepos\s+pr\s+(?:create|set-vote|reviewer\s+add|work-item\s+add)\b'
+    severity: high
+    description: Creates an Azure Repos pull request, votes on one, or adds reviewers or work items.
+    explanation: A PR create or vote notifies reviewers and can lead to a merge.
+  - name: repos-pr-state-change
+    # az accepts any unambiguous flag prefix (`--stat completed` runs), so each state
+    # flag matches by its shortest unique prefix among `az repos pr update` flags.
+    pattern: '\baz\b.*?\brepos\s+pr\s+update\b.*?\s--(?:st|au|ac|b|c|del|dr|m|sq|tr)'
+    severity: high
+    description: Completes, abandons, publishes or sets merge options on an Azure Repos pull request.
+    explanation: Editing only --title or --description passes; --status, --auto-complete, --acquire-policy-token, --bypass-policy, --change-reference, --delete-source-branch, --draft, --merge-commit-message, --squash and --transition-work-items (or any prefix of them) still need approval.
+  - name: pipelines-run
+    pattern: '\baz\b.*?\bpipelines\s+(?:run|build\s+queue)\b'
+    severity: high
+    description: Queues an Azure pipeline run.
+    explanation: A queued run uses shared agents and can deploy.
+  - name: devops-invoke-write
+    pattern: '\baz\b.*?\bdevops\s+invoke\b.*?--http-method[=\s]+(?i:post|put|patch|delete)\b'
+    severity: high
+    description: Raw Azure DevOps REST write through az devops invoke.
+    explanation: A POST, PUT, PATCH or DELETE can change any Azure DevOps resource. GET stays allowed.
+  - name: rest-write
+    pattern: '\baz\b.*?\brest\b(?=.*dev\.azure\.com|.*visualstudio\.com).*?(?:--method|-m)[=\s]+(?i:post|put|patch|delete)\b'
+    severity: high
+    description: Raw Azure DevOps REST write through az rest.
+    explanation: A POST, PUT, PATCH or DELETE can change any Azure DevOps resource. GET stays allowed.
+  - name: keyvault-secret-write
+    pattern: '\baz\b.*?\bkeyvault\s+(?:secret|key|certificate)\s+(?:set|import|delete|purge|recover|restore|set-attributes)\b'
+    severity: high
+    description: Writes or deletes a Key Vault secret, key or certificate.
+    explanation: Shared vaults feed every consumer's config; a new value reaches them on their next read. show and list stay allowed.

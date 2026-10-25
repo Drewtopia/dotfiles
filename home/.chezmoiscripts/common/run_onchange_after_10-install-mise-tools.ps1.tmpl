@@ -20,8 +20,30 @@ $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [En
 
 # mise is installed via winget in windows/run_onchange_before_00-install-mise.ps1.tmpl
 if (Get-Command mise -ErrorAction SilentlyContinue) {
-    if (Get-Command gh -ErrorAction SilentlyContinue) {
-        $env:GITHUB_TOKEN = (gh auth token 2>$null)
+    # Unauthenticated GitHub allows 60 API calls an hour, too few for a fresh
+    # install. winget installs gh without using that quota, unlike mise.
+    if (-not $env:GITHUB_TOKEN) {
+        $env:GITHUB_TOKEN = [Environment]::GetEnvironmentVariable('GITHUB_TOKEN', 'User')
+    }
+    if (-not $env:GITHUB_TOKEN) {
+        if (-not (Get-Command gh -ErrorAction SilentlyContinue) -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+            winget install --id GitHub.cli --exact --source winget --disable-interactivity --accept-source-agreements --accept-package-agreements
+            $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
+        }
+        $token = $null
+        if (Get-Command gh -ErrorAction SilentlyContinue) {
+            $token = (gh auth token 2>$null)
+            if (-not $token -and -not [Console]::IsInputRedirected) {
+                Write-Host "[Install] Log in to GitHub so mise can download tools without hitting the rate limit" -ForegroundColor Blue
+                gh auth login --hostname github.com --git-protocol https --web
+                $token = (gh auth token 2>$null)
+            }
+        }
+        if ($token) {
+            $env:GITHUB_TOKEN = $token
+        } else {
+            Write-Host "[WARN] No GitHub token; mise may hit the 60/hour rate limit. Run 'gh auth login' and re-apply." -ForegroundColor Yellow
+        }
     }
     # Consolidate mise XDG dirs under $miseDir (see mise.jdx.dev/directories.html).
     # Matches the Unix sibling (run_after_10-install-mise-tools.sh.tmpl): symlink
@@ -80,7 +102,9 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
     Link-MiseXdg (Join-Path $HOME '.local\state\mise') $miseDir   $linkFlag
     Link-MiseXdg (Join-Path $HOME '.cache\mise')       $miseCache $linkFlag
 
-    mise trust --all 2>$null
+    # No `mise trust --all`: the global config loads without trust, and --all
+    # walks every subdirectory of the working directory ($HOME here), which
+    # hung for minutes at full CPU on drew-pd. The sh script dropped it in 868f970.
     Write-Host "[Install] Installing mise tools..." -ForegroundColor Blue
     mise install --yes
     mise prune --yes 2>$null

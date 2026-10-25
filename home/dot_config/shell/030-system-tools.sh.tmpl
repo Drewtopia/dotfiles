@@ -1,25 +1,16 @@
 #!/usr/bin/env bash
 
-# System Management Tools
-# Tools for system administration, maintenance, and configuration
-
-## System Administration
-# topgrade and chezmoi - expected to be in PATH via brew/cargo/local bin
-# Chezmoi aliases removed - user prefers no automatic aliases
-
-## Terminal & Interface
 {{- if eq .chezmoi.os "darwin" }}
-# iTerm2 integration (macOS only)
 if [[ -f "${HOME}/.iterm2_shell_integration.zsh" ]]; then
     source "${HOME}/.iterm2_shell_integration.zsh"
 fi
 {{- end }}
 
-# pay-respects - Rust-based command correction (thefuck replacement)
 if command -v pay-respects >/dev/null 2>&1; then
     eval "$(pay-respects zsh --alias f)"
+    # p10k's PROMPT only expands inside p10k: "bad substitution" (iffse/pay-respects#133).
+    # shortcut: fixed prefix, until a release past 0.8.8 ships `--prompt-prefix '❯'`.
+    # The prefix sits in a variable: zsh mangles non-ASCII written into functions[].
+    _PR_PROMPT_PREFIX='❯'
+    [[ -n $ZSH_VERSION ]] && functions[__pr_base]=${functions[__pr_base]/'print -P "$PROMPT"'/'print -rn -- "$_PR_PROMPT_PREFIX"'}
 fi
-
-# System tool aliases removed - user prefers no automatic aliases
-
-# System tool completions are generated as files by configure-tools.sh script

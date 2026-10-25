@@ -1,0 +1,65 @@
+{
+  "version": 4,
+  "lines": [
+    [
+      {
+        "id": "1",
+        "type": "model",
+        "color": "cyan",
+        "rawValue": true
+      },
+      {
+        "id": "2",
+        "type": "separator"
+      },
+      {
+        "id": "ca58edc6-dc4d-4876-b513-99124491efba",
+        "type": "context-percentage-usable",
+        "color": "brightBlack",
+        "rawValue": true,
+        "metadata": {
+          "inverse": "false"
+        }
+      },
+      {
+        "id": "4",
+        "type": "separator"
+      },
+      {
+        "id": "worktrunk-statusline",
+        "type": "custom-command",
+        "commandPath": "\"$HOME/.local/bin/wt-statusline\"",
+        "timeout": 3000,
+        "preserveColors": true
+      }
+    ],
+    [
+      {
+        "id": "eod-statusline",
+        "type": "custom-command",
+        "commandPath": "command -v eod-statusline >/dev/null && exec eod-statusline",
+        "timeout": 3000,
+        "preserveColors": true
+      }
+    ]
+  ],
+  "flexMode": "full-minus-40",
+  "compactThreshold": 60,
+  "colorLevel": 2,
+  "inheritSeparatorColors": false,
+  "globalBold": false,
+  "minimalistMode": false,
+  "powerline": {
+    "enabled": false,
+    "separators": [
+      ""
+    ],
+    "separatorInvertBackground": [
+      false
+    ],
+    "startCaps": [],
+    "endCaps": [],
+    "autoAlign": false,
+    "continueThemeAcrossLines": false
+  }
+}

@@ -1,19 +1,16 @@
 .tmux.config
 
-# Old fzf configs (replaced by eval "$(fzf --zsh)")
 .fzf.zsh
 .fzf.bash
 
-# Prevent stale ~/.gitconfig from shadowing chezmoi-managed
-# ~/.config/git/config (git prefers ~/.gitconfig when both exist).
-# Git-for-Windows installer can re-create this on reinstall.
+# NOTE: git prefers ~/.gitconfig over ~/.config/git/config, and the
+# Git-for-Windows installer can re-create it.
 .gitconfig
 
-# Old custom.paths.sh (deleted from chezmoi source)
 .config/shell/paths/custom.paths.sh
 
 {{- if eq .chezmoi.os "linux" }}
-# Old chezmoi-external binaries now handled by mise
+# mise manages these now.
 .local/bin/age
 .local/bin/age-keygen
 .local/bin/croc
@@ -30,13 +27,9 @@
 .local/bin/carapace
 {{- end }}
 
-# .atuin already removed — don't re-prompt
-
-# Old PATH management files (consolidated into shell/000-paths.sh + .zshenv)
 .config/path-management.sh
 .config/shell/paths
 
-# Old unnumbered shell configs (replaced by numbered equivalents)
 .config/shell/060-common_aliases.sh
 .config/shell/cheatsheets.sh
 .config/shell/dev-tools.sh
@@ -44,13 +37,10 @@
 .config/shell/shell-tools.sh
 .config/shell/system-tools.sh
 
-# prd-to-issues replaced by to-issues (mattpocock renamed Apr 2026)
 .claude/skills/prd-to-issues
 
-# mattpocock/skills v1.0.0 (Jun 2026 "design skills" refactor) removed/renamed these.
-# Remove both the ~/.claude/skills symlink AND the ~/.agents/skills payload that
-# `npx skills` leaves behind (chezmoi doesn't manage the .agents store, so dropping
-# a skill from skills.yaml otherwise orphans the payload on every machine).
+# Skills gone upstream: remove the ~/.agents/skills payload too, since
+# dropping a skill from skills.yaml leaves it behind.
 .claude/skills/write-a-skill
 .claude/skills/diagnose
 .claude/skills/zoom-out
@@ -58,40 +48,21 @@
 .agents/skills/diagnose
 .agents/skills/zoom-out
 
-# mattpocock/skills v1.1.0 (Jul 2026): to-issues + to-prd unified upstream
-# into to-spec + to-tickets. Same dual-path removal as above.
 .claude/skills/to-issues
 .claude/skills/to-prd
 .agents/skills/to-issues
 .agents/skills/to-prd
 
-# writing-great-skills is upstream's retired name for writing-for-agents.
 .claude/skills/writing-great-skills
 .agents/skills/writing-great-skills
 
-# mattpocock/skills v1.2.0 (Jul 2026): the stable engineering/ + productivity/
-# skills moved from `npx skills` to the mattpocock-skills@mattpocock plugin
-# (see .chezmoidata/claude.toml). Sweep the Claude-side symlinks so they don't
-# shadow the plugin's namespaced versions with a stale duplicate. Mirrors the
-# names in upstream's .claude-plugin/plugin.json — misc/ and in-progress/ are
-# deliberately absent, they stay on the `npx skills` path for Claude.
-#
-# Symlink only, NOT the ~/.agents/skills payload: skills.yaml now installs the
-# whole repo for Codex, Cursor and GitHub Copilot, which read that store
-# directly. Deleting the payload here would uninstall it from them on every
-# apply.
-#
-# Aug 2026: wizard graduated in-progress/ → engineering/ and to-questionnaire
-# graduated into productivity/, so the plugin now covers both. Those two had to
-# be picked up with an uninstall+reinstall: upstream grew plugin.json while
-# still calling it 1.2.0, and `claude plugin update` compares only the version
-# string. Upstream has since added scripts/sync-plugin-version.mjs to stamp the
-# release version into plugin.json, so 1.2.2 (which added wait-what) updated
-# normally. If a future skill fails to appear, suspect that sync first.
+# Skills the mattpocock-skills plugin ships (its plugin.json): a bare symlink
+# would shadow the namespaced one. Symlink only; the ~/.agents/skills payload
+# still serves Codex, Cursor and Copilot.
 {{- $pluginSkills := list
   "ask-matt" "code-review" "codebase-design" "diagnosing-bugs" "domain-modeling"
-  "grill-with-docs" "implement" "improve-codebase-architecture" "prototype"
-  "research" "resolving-merge-conflicts" "setup-matt-pocock-skills" "tdd"
+  "grill-with-docs" "implement" "implement-spec" "improve-codebase-architecture"
+  "pr" "prototype" "research" "retro" "setup-matt-pocock-skills" "tdd"
   "to-spec" "to-tickets" "triage" "wayfinder" "wizard"
   "grill-me" "grilling" "handoff" "teach" "to-questionnaire" "wait-what"
   "writing-for-agents" }}
@@ -99,11 +70,49 @@
 .claude/skills/{{ . }}
 {{- end }}
 
-# blader/humanizer ships a .claude-plugin/ at its root, so the ~/.claude/skills
-# symlink made Claude Code register a marketplace-less "humanizer@skills-dir"
-# plugin that `claude plugin update` errors on. Claude takes it from the
-# humanizer@humanizer plugin instead.
-#
-# Symlink only, NOT the ~/.agents/skills payload: skills.yaml still installs the
-# repo for Codex, Cursor and GitHub Copilot, which read that store directly.
+# Claude takes humanizer from its plugin; the ~/.agents payload stays for other agents.
 .claude/skills/humanizer
+
+# Claude takes these from the pstack plugin; a bare symlink shadows the
+# namespaced skill. The ~/.agents payload stays for other agents.
+.claude/skills/unslop
+.claude/skills/technical-writing
+.claude/skills/bro
+.claude/skills/no-comments
+.claude/skills/blast-radius
+
+.claude/skills/open-brain
+.claude/skills/scaffold-exercises
+.claude/skills/writing-fragments
+.claude/skills/writing-beats
+.claude/skills/writing-shape
+.claude/skills/find-skills
+.agents/skills/find-skills
+.claude/hooks/user-prompt-drift-check.js
+.claude/hooks/warn-derived-artifact.js
+.claude/hooks/warn-worktree-convention.js
+.claude/hooks/collision-warn.cjs
+.claude/hooks/collision-map-build.cjs
+.claude/hooks/session-registry.cjs
+.claude/hooks/warn-edit-on-protected.js
+.claude/hooks/memory-pull.sh
+.claude/hooks/memory-push.sh
+.claude/hooks/permission-denied-audit.js
+.claude/hooks/stop-failure-log.js
+.claude/hooks/pre-compact-snapshot.js
+.claude/hooks/lib/hook-log.js
+.claude/hooks/tests/warn-derived-artifact.test.js
+.claude/hooks/tests/warn-worktree-convention.test.js
+.claude/hooks/tests/session-registry.test.js
+.claude/hooks/tests/warn-edit-on-protected.test.js
+.claude/hooks/tests/permission-denied-audit.test.js
+.claude/hooks/tests/stop-failure-log.test.js
+.claude/hooks/tests/pre-compact-snapshot.test.js
+
+# Retired: orca worktree ps / orca search cover it.
+.local/bin/claude-ls
+.local/bin/claude-ls.cmd
+
+# Retired: orca-new opens sessions; `orca reference add` links Azure PRs.
+.local/bin/wt-open
+.local/bin/orca-link-azure-pr
