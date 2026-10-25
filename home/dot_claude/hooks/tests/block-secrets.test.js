@@ -1,9 +1,4 @@
 'use strict';
-/**
- * Parity tests for block-secrets.js (port of block-secrets.py).
- * Every SECRET_TOKEN_PATTERN provider and each file-block path is exercised.
- * Run: node --test
- */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -40,8 +35,17 @@ test('blocks known sensitive filenames', () => {
     }
 });
 
+test('blocks mise local configs, which hold plaintext env secrets', () => {
+    for (const filePath of ['mise.local.toml', '/home/u/.config/mise/config.local.toml']) {
+        assert.equal(guard.run(fileInput('Read', filePath)).exitCode, 2, `${filePath} should block`);
+    }
+    const grep = guard.run(cmdInput('Bash', 'grep -n AZURE_TOKEN ~/.config/mise/config.local.toml'));
+    assert.equal(grep.exitCode, 2);
+    assert.equal(guard.run(cmdInput('Bash', 'rg -l AZURE_TOKEN ~/.config')).exitCode, 0);
+});
+
 test('blocks sensitive extensions', () => {
-    for (const ext of ['.pem', '.key', '.p12', '.crt']) {
+    for (const ext of ['.pem', '.key', '.p12', '.pfx']) {
         const res = guard.run(fileInput('Edit', `certs/server${ext}`));
         assert.equal(res.exitCode, 2, `${ext} should block`);
         assert.match(res.stderr, /private keys or certificates/);
@@ -50,11 +54,8 @@ test('blocks sensitive extensions', () => {
 
 test('blocks sensitive path substrings', () => {
     const cases = [
-        ['app/my-secret-config.ts', 'secret'],
         ['lib/credential-store.ts', 'credential'],
         ['keys/private_key.txt', 'private_key'],
-        // '/secrets/' is unreachable as a distinct reason — 'secret' (earlier in
-        // the list) always matches first. Parity with the .py list order.
         ['config/secrets/db.yaml', 'secret'],
         ['env/.env.production-notes', '.env.'],
     ];
@@ -70,8 +71,48 @@ test('blocks sensitive path substrings', () => {
     }
 });
 
-test('.env.example is blocked via .env. pattern (py parity quirk)', () => {
-    assert.equal(guard.run(fileInput('Read', 'docs/.env.example')).exitCode, 2);
+test('secret-named data files still block', () => {
+    for (const p of [
+        'Downloads/client_secret_123.apps.googleusercontent.com.json',
+        'app/.secret',
+        'k8s/db-secret.yaml',
+        'keys/jwt-secret.txt',
+    ]) {
+        assert.equal(guard.run(fileInput('Read', p)).exitCode, 2, p);
+    }
+});
+
+test('multi-part names match as path endings', () => {
+    for (const p of [
+        'repo/.git/config',
+        '/Users/x/.aws/credentials',
+        '/Users/x/.docker/config.json',
+    ]) {
+        const res = guard.run(fileInput('Read', p));
+        assert.equal(res.exitCode, 2, p);
+        assert.match(res.stderr, /known sensitive file/);
+    }
+});
+
+test('env templates stay readable', () => {
+    for (const name of ['.env.example', '.env.sample', '.env.template']) {
+        assert.equal(guard.run(fileInput('Read', `docs/${name}`)).exitCode, 0, name);
+    }
+});
+
+test('public keys, known hosts, certificates and git config stay readable', () => {
+    for (const p of [
+        '~/.ssh/id_rsa.pub',
+        '~/.ssh/id_ed25519.pub',
+        '~/.ssh/known_hosts',
+        '~/.ssh/authorized_keys',
+        '~/.gitconfig',
+        'certs/server.crt',
+        'certs/ca.cer',
+        'hooks/block-secrets.js',
+    ]) {
+        assert.equal(guard.run(fileInput('Read', p)).exitCode, 0, p);
+    }
 });
 
 test('blocks every provider token shape in a command', () => {
@@ -110,6 +151,61 @@ test('command referencing a sensitive filename falls through to file block', () 
     assert.match(res.stderr, /SECURITY HOOK BLOCKED/);
 });
 
+test('a sensitive name inside a longer word is not a file', () => {
+    for (const cmd of [
+        'grep -rn process.env src',
+        'git commit -m "read process.env once"',
+        'node -e "console.log(Object.keys(x))"',
+        'cat .env.example',
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+    }
+});
+
+test('a sensitive file named as a path token still blocks', () => {
+    for (const cmd of [
+        'cat apps/x/.env',
+        'source .env.local',
+        'cp .env.production /tmp/x',
+        'cat .env.custom',
+        'scp host:~/.ssh/id_rsa .',
+        'cat server.pem',
+        'x=$(<.env)',
+        'grep KEY .env;',
+        'cat .env*',
+        'cat {.env,README.md}',
+        'cp secrets.json.bak /tmp/x',
+        'cp .npmrc.bak /tmp/x',
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    }
+});
+
+test('code and data that only look like key or env files stay allowed', () => {
+    for (const cmd of [
+        "jq '.hooks|to_entries[]|{e:.key,n:.value}' settings.json",
+        "grep -iE '\\.key$|\\.pem$' files.txt",
+        "node - <<'EOF'\nconst v = tab.key === 'home' ? 'a' : 'b'\nconst e = data?.env\nEOF",
+        "python3 - <<'EOF'\nrows.sort(key=lambda r: sort.key)\nEOF",
+        "cat > register.ts <<'EOF'\nconst home = await $.env.get('HOME')\nEOF",
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+    }
+});
+
+test('a sensitive file named in a heredoc still blocks where the body can read it', () => {
+    for (const cmd of [
+        "python3 - <<'EOF'\nprint(open('.env').read())\nEOF",
+        "bash <<'EOF'\ncat .env\nEOF",
+        "cat <<'EOF' | sh\ncat server.key\nEOF",
+        "cat .env <<'EOF'\nignored\nEOF",
+        'cat > out.txt <<EOF\n$(cat .env)\nEOF',
+        "node - <<'EOF'\nfs.readFileSync(`${dir}/.env`)\nEOF",
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    }
+});
+
 test('unit: secretInCommand returns first provider only', () => {
     assert.deepEqual(guard.secretInCommand('no tokens here'), {
         matched: false,
@@ -142,4 +238,12 @@ test('empty / malformed input is allowed (fail-open parity)', () => {
             .exitCode,
         0,
     );
+});
+
+test('a crash blocks instead of allowing', () => {
+    const res = guard.runSafely({}, () => {
+        throw new Error('boom');
+    });
+    assert.equal(res.exitCode, 2);
+    assert.match(res.stderr, /block-secrets errored: boom/);
 });

@@ -9,15 +9,46 @@
 
 $ErrorActionPreference = "Stop"
 
+# Personal Windows symlinks ~/.claude/rules, which needs Developer Mode. Turn it
+# on now through one UAC prompt. Work boxes have no admin and don't need it.
+$devModeKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+$devMode = (Get-ItemProperty $devModeKey -ErrorAction SilentlyContinue).AllowDevelopmentWithoutDevLicense
+if ($devMode -ne 1) {
+    Write-Host "Turning on Developer Mode (needed for symlinks); approve the UAC prompt..."
+    # NOTE: New-Item -Force on an existing registry key deletes its values.
+    $enable = "if (-not (Test-Path '$devModeKey')) { New-Item -Path '$devModeKey' | Out-Null }; " +
+        "Set-ItemProperty -Path '$devModeKey' -Name AllowDevelopmentWithoutDevLicense -Type DWord -Value 1"
+    try {
+        Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList '-NoProfile', '-Command', $enable
+    } catch {
+        Write-Warning "Developer Mode not enabled ($($_.Exception.Message)). On a personal machine, turn it on in Settings > System > For developers before 'chezmoi apply'."
+    }
+}
+
+# winget puts chezmoi on PATH for new shells and upgrades it later. The
+# get.chezmoi.io script is the fallback for boxes without winget; it only
+# drops the binary, so its dir is added to User PATH here.
+if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue) -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Host "Installing chezmoi via winget..."
+    winget install --id twpayne.chezmoi --exact --source winget `
+        --disable-interactivity `
+        --accept-source-agreements `
+        --accept-package-agreements
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+}
+
 if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue)) {
     $binDir = Join-Path $env:LocalAppData "Programs\chezmoi\bin"
     Write-Host "Installing chezmoi to $binDir..."
     & ([scriptblock]::Create((Invoke-RestMethod -UseBasicParsing https://get.chezmoi.io/ps1))) -b $binDir
-    $env:PATH = "$binDir;$env:PATH"
-    $chezmoi = Join-Path $binDir "chezmoi.exe"
-} else {
-    $chezmoi = "chezmoi"
+    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    if (($userPath -split ';') -notcontains $binDir) {
+        [Environment]::SetEnvironmentVariable('Path', "$binDir;$userPath", 'User')
+    }
+    $env:Path = "$binDir;$env:Path"
 }
+
+$chezmoi = (Get-Command chezmoi).Source
 
 # Mirror install.sh: when run from a local clone (.\install.ps1) use that
 # source dir; when piped in (irm ... | iex) fall back to the GitHub user

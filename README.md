@@ -56,6 +56,14 @@ on macOS, Windows Hello on Windows).
     chezmoi update      # pull + apply latest from origin/main
     chezmoi apply       # re-apply current source state
 
+## Work-only files
+
+A file that differs between work and personal machines is a template branching on
+`.work`. A work-only file that names the employer is committed as `encrypted_*.age`
+(`chezmoi add --encrypt`) and listed in the work block of `.chezmoiignore.tmpl`, so the
+public repo holds only ciphertext. The age key is `~/.config/chezmoi/key.txt`, kept in
+1Password; until it is restored, chezmoi skips the encrypted files.
+
 ## Releases and changelog
 
 `CHANGELOG.md` is generated from Conventional Commits by git-cliff (`cliff.toml`).

@@ -14,18 +14,15 @@ Explicit invocation only (`/edit-governance`; `disable-model-invocation: true`).
 
 ## The guard (`~/.claude/hooks/edit-governance-guard.cjs`)
 
-PreToolUse hook on `Edit|Write|MultiEdit`, wired in `~/.claude/settings.json`. Denies edits whose `file_path` matches a governance pattern (CI/workflow files, `SKILL.md`, `.claude/`+`dot_claude/` rules/hooks/skills/settings, the vault, `CLAUDE.md`/`AGENTS.md`, `docs/adr/`, `CONTEXT*.md`) unless an unlock is active. Fails open on internal errors — a silent non-block is not permission.
+PreToolUse hook on `Edit|Write`, wired in `home/.chezmoitemplates/claude-settings-merge`. Denies edits whose `file_path` matches a governance pattern (CI/workflow files, `SKILL.md`, `.claude/`+`dot_claude/` rules/hooks/skills/settings, the settings merge template, the unlock markers, the vault, `CLAUDE.md`/`AGENTS.md`, `docs/adr/`, `CONTEXT*.md`) unless the calling session is unlocked. Denies on internal errors.
 
-**Unlock / lock:** `node ~/.claude/hooks/edit-governance-guard.cjs --unlock` / `--lock`
+The Bash check `bash-checks/gate-governance-writes.js` applies the same patterns and the same unlock to redirects, `tee`, `cp`, `mv`, `rm`, `touch`, and in-place `sed`/`perl`, including inside `sh -c`/`eval`/`xargs`. It is a tripwire, not a boundary: interpreter writes (`python -c`, `node -e`, `awk`, `git apply`, `patch`) pass unseen.
 
-- `--unlock` writes its own timestamped marker (`~/.claude/governance-unlock/active-<epoch>`, 2-hour TTL) so concurrent flows don't clobber each other, prunes only expired markers, and best-effort stamps `governanceUnlockUntil` into every live session entry of the convergence session registry (`<git-common-dir>/sessions/*.json` — owned by `session-registry.cjs`; parsed tolerantly, additive field only; registry v2 preserves the field across heartbeats).
-- `--lock` removes every marker on the machine — only use when no other governance flow is live; an un-locked window expires on its own at 2h.
-- The registry check consults both the edited file's repo and the cwd repo, so governed files outside any repo (`~/.claude/hooks/*`) can be vouched for by the session's cwd-repo record.
-
-**Known limit:** Bash sessions expose no session id, so the marker unlock is machine-global for its 2-hour window, not per-session. The registry stamp exists so registry-aware tooling can tighten this later.
+**Unlock:** the `UserPromptExpansion` hook (`edit-governance-guard.cjs --expansion`) writes `~/.claude/governance-unlock/session-<session_id>` when the user types `/edit-governance`, `/audit-rules-and-skills`, or `/reorganize-memory`. The marker unlocks that session only and expires after 2 hours. No agent command grants it.
 
 ## Files
 
 - `SKILL.md` — the skill (this directory)
 - `home/dot_claude/hooks/edit-governance-guard.cjs` — guard source (chezmoi); live copy at `~/.claude/hooks/`
-- Settings wiring: `hooks.PreToolUse` entry in `~/.claude/settings.json` (runtime-added; a fresh machine needs it re-added or templated)
+- `home/dot_claude/hooks/bash-checks/gate-governance-writes.js` — Bash write check, run by `pre-bash-dispatcher.js`
+- Settings wiring: `hooks.PreToolUse` and `hooks.UserPromptExpansion` entries in `home/.chezmoitemplates/claude-settings-merge`

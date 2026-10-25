@@ -1,29 +1,19 @@
 #!/usr/bin/env bash
 
-# Consolidated PATH setup (replaces path-management.sh + paths/ directory)
-# Loaded by shell-loader.sh before 010-mise.sh
-
-# System paths (homebrew + ~/.local/bin already set in .zshenv)
+# homebrew and ~/.local/bin are set in .zshenv.
 path=($path /usr/local/bin /usr/local/sbin /usr/bin /bin /usr/sbin /sbin)
 
 {{- if eq .chezmoi.os "darwin" }}
 path=($path /opt/homebrew/sbin /Library/Apple/usr/bin)
 {{- end }}
 
-# Completion paths (zsh only)
 if [[ -n "${ZSH_VERSION:-}" ]]; then
     fpath=("$HOME/.oh-my-zsh/completions" $fpath)
     [[ -d "/usr/local/share/zsh/site-functions" ]] && fpath=($fpath /usr/local/share/zsh/site-functions)
     [[ -d "/opt/homebrew/share/zsh/site-functions" ]] && fpath=($fpath /opt/homebrew/share/zsh/site-functions)
 fi
 
-# Manpaths
 {{- if eq .chezmoi.os "darwin" }}
 manpath=($manpath /opt/homebrew/share/man /usr/local/share/man)
 {{- end }}
 manpath=($manpath /usr/share/man "$HOME/.local/share/man")
-
-{{- if .is_wsl }}
-# WSL2: interop enabled but appendWindowsPath=false (set in /etc/wsl.conf), so
-# Windows executables are called by full /mnt/c path. op is the ~/.local/bin/op shim.
-{{- end }}

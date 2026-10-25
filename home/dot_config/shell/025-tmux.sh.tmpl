@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 
-# Tmux - Terminal Multiplexer helpers and workflows
-
 if command -v tmux >/dev/null 2>&1; then
-	# Smart tmux starter - the main command you'll use
 	# Usage: t [session-name | help]
 	t() {
-		# Show help
 		if [[ "$1" == "help" || "$1" == "-h" || "$1" == "--help" ]]; then
 			local dim=$'\e[2m'
 			local reset=$'\e[0m'
@@ -36,27 +32,22 @@ EOF
 		fi
 
 		if [[ -n "$TMUX" ]]; then
-			# Inside tmux - trigger sessionx (prefix+o equivalent)
 			tmux run-shell -b "~/.config/tmux/plugins/tmux-sessionx/scripts/sessionx.sh"
 		elif [[ $# -eq 0 ]]; then
-			# Outside tmux, no args - attach to existing or create "main"
 			tmux attach 2>/dev/null || tmux new-session -s main
 		else
-			# Outside tmux, with session name
 			tmux new-session -A -s "$1"
 		fi
 	}
 
-	# Quick aliases
-	alias ta='tmux attach -t'         # Attach to named session
-	alias tl='tmux list-sessions'     # List sessions
-	alias tk='tmux kill-session -t'   # Kill named session
-	alias tka='tmux kill-server'      # Kill ALL sessions
-	alias tn='tmux new-session -s'    # New named session
-	alias th='t $(basename "$PWD")'   # Tmux here - session named after current dir
-	alias tq='tmux kill-session'      # Kill current session (switches to another)
+	alias ta='tmux attach -t'
+	alias tl='tmux list-sessions'
+	alias tk='tmux kill-session -t'
+	alias tka='tmux kill-server'
+	alias tn='tmux new-session -s'
+	alias th='t $(basename "$PWD")'
+	alias tq='tmux kill-session'
 
-	# Project launcher - creates session with standard layout
 	# Usage: tp [directory] [session-name]
 	tp() {
 		local dir="${1:-.}"
@@ -67,17 +58,14 @@ EOF
 			return 1
 		fi
 
-		# Create session in directory with standard layout
 		tmux new-session -d -s "$name" -c "$dir"
 		tmux rename-window -t "$name:1" "code"
 		tmux split-window -h -t "$name" -c "$dir" -l 40%
 		tmux select-pane -t "$name:1.0"
 
-		# Attach
 		tmux attach -t "$name"
 	}
 
-	# Quick reference for essential tmux keybindings
 	tmuxkeys() {
 		local dim=$'\e[2m'
 		local reset=$'\e[0m'
@@ -108,7 +96,6 @@ ${dim}Shell: t (start) · ta (attach) · tl (list) · tn (new) · tk (kill)${res
 EOF
 	}
 
-	# Common tmux workflows and patterns
 	tmuxflow() {
 		local dim=$'\e[2m'
 		local reset=$'\e[0m'
@@ -161,7 +148,6 @@ ${dim}Tip: ^A = Ctrl+A (your prefix key)${reset}
 EOF
 	}
 
-	# Show all tmux help (keys + workflows)
 	thelp() {
 		tmuxkeys
 		echo ""

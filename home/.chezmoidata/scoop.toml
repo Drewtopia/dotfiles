@@ -1,22 +1,11 @@
-# Scoop buckets and packages for run_onchange_before_10-install-scoop.
-# Cannot use template syntax here — chezmoidata loads before the template
-# engine. Work-only gating happens in the install script.
-#
-# Why this exists: some work environments restrict executables to a
-# whitelisted directory tree. Once dev tools are relocated there,
-# scoop becomes the canonical installer for Windows-native binaries
-# that can't live in mise. The [scoop.work] section is expected to grow.
+# Read by run_onchange_before_10-install-scoop, which does the work gating
+# (chezmoidata cannot hold template syntax). Scoop covers Windows-native
+# binaries that mise can't, installed inside the whitelisted tools tree.
 
 [scoop]
-# Known scoop buckets (those listed in `scoop bucket known`).
 buckets = ["extras", "nerd-fonts"]
 
-# Installed on every Windows dev machine.
-# CLI/shell tools (bat, fd, rg, delta, eza, gh, glow, jq, lazygit,
-# carapace, fzf, zoxide, neovim) moved to mise — only Windows-specific
-# or non-mise-able tools belong here.
-# mise itself is bootstrapped via winget portable (see
-# windows/run_onchange_before_00-install-mise.ps1.tmpl).
+# Only Windows-specific or non-mise-able tools belong here.
 packages = [
   "kanata",
   "Meslo-NF",
@@ -24,25 +13,16 @@ packages = [
   "JetBrainsMono-NF",     # installs as "JetBrainsMono Nerd Font"
 ]
 
-# URLs for buckets not in scoop's "known" list. Looked up by name when
-# the install script adds a bucket; absent entries default to no URL
-# (which works for known buckets like extras/nerd-fonts).
+# URLs for buckets not in `scoop bucket known`.
 [scoop.bucket_urls]
 
-# Work-only additions (gated by `{{ if .work }}` in the install script).
-# Add restricted-tree-friendly tooling here as you discover the need.
 [scoop.work]
 buckets = []
-# zed lives here (not in [winget.personal]) on work because winget's
-# Zed manifest is Inno/machine-scope only; --location is rejected so
-# the binary can't be relocated into the whitelisted tools_root. Scoop
-# installs to %SCOOP%\apps\zed which already sits under tools_root on
-# relocated work setups.
+# zed via scoop on work: winget's Zed manifest is machine-scope only and
+# rejects --location, so it can't land under the whitelisted tools_root.
 packages = [
   "zed",
   "wezterm",
 ]
-# admin_packages install at machine scope and require UAC. Handled
-# by run_onchange_before_15-install-scoop-admin, which self-elevates
-# only when an entry here is missing.
+# Machine scope; run_onchange_before_15-install-scoop-admin self-elevates for these.
 admin_packages = []

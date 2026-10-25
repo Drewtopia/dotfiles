@@ -1,3 +1,6 @@
 {{ range (gitHubKeys "Drewtopia") -}}
 {{   .Key }}
 {{ end -}}
+{{ if and .work .is_wsl -}}
+command="/usr/bin/rrsync -ro {{ .chezmoi.homeDir }}/",restrict {{ onepasswordRead (printf "op://%s/TrueNAS Backup Key/public key" .opVault) | trim }}
+{{ end -}}

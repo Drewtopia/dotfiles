@@ -54,6 +54,16 @@ $envVars = [ordered]@{
 {{- end }}
 }
 
+# Run from a WSL repo (Orca does this for `gh`), Windows mise shims load that repo's
+# mise config, whose Linux-only templates fail under cmd.exe and abort the shim.
+# Needs one entry per distro: a bare \\wsl.localhost prefix does not match.
+if (Get-Command wsl.exe -ErrorAction SilentlyContinue) {
+    $distros = @((& wsl.exe -l -q 2>$null) -replace "`0", '' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    if ($distros) {
+        $envVars['MISE_IGNORED_CONFIG_PATHS'] = ($distros | ForEach-Object { "\\wsl.localhost\$_" }) -join ';'
+    }
+}
+
 foreach ($kv in $envVars.GetEnumerator()) {
     $current = [Environment]::GetEnvironmentVariable($kv.Key, 'User')
     if ($current -ne $kv.Value) {

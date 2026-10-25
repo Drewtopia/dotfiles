@@ -1,4 +1,4 @@
-{{ if ne .chezmoi.os "windows" }}
-.local/bin/claude-ls.cmd
-.local/bin/claude-triage.cmd
+{{ if ne .hostname "drew-mini" }}
+.local/bin/t3-serve-tailnet
+Library/LaunchAgents/com.drew.t3-serve.plist
 {{ end }}

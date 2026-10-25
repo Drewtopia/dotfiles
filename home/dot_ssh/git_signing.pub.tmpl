@@ -1,0 +1,3 @@
+{{- if and (lookPath "op") .opVault -}}
+{{   onepasswordRead (printf "op://%s/Git Signing Key/public key" .opVault) | trim }}
+{{ end -}}

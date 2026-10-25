@@ -2,9 +2,7 @@
 # `<name>@latest` and removes undeclared ones. pnpm itself comes from mise, so
 # a self-installed pnpm or @pnpm/exe global counts as undeclared.
 # Use topgrade or `pnpm update -g` to bump versions.
-pnpm_globals:
-  - "@openai/codex"
-  - "@playwright/cli"
-  - "@playwright/mcp"
-  - typescript
-  - turbo
+# Empty on purpose: global CLIs moved to `npm:` tools in dot_config/mise, so
+# the reconciler's next run removes every pnpm global. Delete this file and
+# both run_onchange_after_15-pnpm-globals scripts once every machine has run it.
+pnpm_globals: []

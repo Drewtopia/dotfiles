@@ -2,99 +2,10 @@
 
 set -eufo pipefail
 
-{{ $brews := list
-    "btop"
-    "curl"
-    "dockutil"
-    "ffmpeg"
-    "git"
-    "git-lfs"
-    "gnu-units"
-    "gnupg"
-    "kanata"
-    "mas"
-    "pkgconf"
-    "shellcheck"
-    "tmux"
-    "wget"
-    "xz" -}}
-{{ $casks := list
-	"1password@beta"
-    "1password-cli"
-	"arc"
-    "betterdisplay"
-    "bruno"
-    "chatgpt"
-    "discord"
-	"fmail3"
-    "firefox@developer-edition"
-    "font-fira-code"
-    "font-fira-code-nerd-font"
-    "font-fira-mono-nerd-font"
-    "font-jetbrains-mono"
-    "font-jetbrains-mono-nerd-font"
-    "font-monaspace"
-    "font-symbols-only-nerd-font"
-    "ghostty"
-    "git-credential-manager"
-    "hammerspoon"
-    "hazel"
-    "home-assistant"
-    "iina"
-    "iterm2"
-    "jdownloader"
-    "jump-desktop-connect"
-    "keka"
-    "keyclu"
-    "muzzle"
-    "obsidian"
-    "orion"
-    "plex"
-    "raindropio"
-    "rectangle-pro"
-    "setapp"
-    "spotify"
-    "soundsource"
-    "syntax-highlight"
-    "tailscale-app"
-    "telegram"
-    "transmission"
-    "unclack"
-    "visual-studio-code"
-    "wezterm"
-    "zen"
-    "qlmarkdown"
-    "quicklook-video"
-    "autodesk-fusion"
-    "bambu-studio"
-    "excalidrawz"
-    "localsend"
-    "navigator"
-    "rcmd"
-    "steam"
-    "supasidebar" -}}
-{{ $mas := list
-    "Actions;1586435171"
-    "CloudMounter;1130254674"
-    "Dato;1470584107"
-    "Day Progress;6450280202"
-    "Hyperduck;6444667067"
-    "Just Press Record;1033342465"
-    "Kagi Search;1622835804"
-    "keymapp;6472865291"
-    "Noir;1592917505"
-    "Obsidian Web Clipper;6720708363"
-    "Pandan;1569600264"
-    "Parachute;6748614170"
-    "Raycast Companion;6738274497"
-    "Refined GitHub;1519867270"
-    "Sink It;6449873635"
-    "SponsorBlock;1573461917"
-    "StopTheMadness Pro;6471380298"
-    "uBlock Origin Lite;6745342698" -}}
+echo "🍎 Installing system packages..."
 
-echo "🍎 Installing system packages via Homebrew..."
-
+# Third-party taps stay on brew bundle: mise needs Ruby 3 to evaluate tap
+# definitions that publish no API metadata.
 brew bundle --file=- <<EOF
 tap "ognistik/formulae"
 brew "ognistik/formulae/macrowhisper", trusted: true
@@ -104,16 +15,26 @@ tap "nikitabobko/tap"
 cask "nikitabobko/tap/aerospace", trusted: true
 tap "stablyai/orca", trusted: true
 cask "stablyai/orca/orca", trusted: true
-{{ range ($brews | sortAlpha | uniq) -}}
-brew "{{ . }}"
-{{ end -}}
-{{ range ($casks | sortAlpha | uniq) -}}
-cask "{{ . }}"
-{{ end -}}
-{{ range ($mas | sortAlpha | uniq) -}}
-{{ $m := splitList ";" . -}}
-mas "{{ index $m 0 }}", id: {{ index $m 1 }}
-{{ end -}}
 EOF
 
-echo "✅ Homebrew packages installed!"
+# Everything else is declared in .chezmoitemplates/mise-bootstrap.toml. This
+# script runs before chezmoi writes ~/.config/mise/conf.d/bootstrap.toml, so it
+# applies an inline copy; the copy also retriggers run_onchange when the list changes.
+# It goes in as a trusted project mise.toml in a temp dir: pointing
+# MISE_GLOBAL_CONFIG_FILE at it instead demotes the real global config to an
+# untrusted project file, which mise refuses on Windows and warns about here.
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+config="$tmpdir/mise.toml"
+cat > "$config" <<'EOF'
+{{ template "mise-bootstrap.toml" . }}
+EOF
+# before_00 may have just installed mise, possibly to ~/.local/bin, off this PATH.
+mise_bin="$(command -v mise || echo "$HOME/.local/bin/mise")"
+if ! "$mise_bin" bootstrap packages --help >/dev/null 2>&1; then
+    echo "❌ $mise_bin has no 'bootstrap packages' (needs mise 2026.7.4+); run: brew upgrade mise" >&2
+    exit 1
+fi
+(cd "$tmpdir" && MISE_TRUSTED_CONFIG_PATHS="$tmpdir" "$mise_bin" bootstrap packages apply --yes)
+
+echo "✅ System packages installed!"
