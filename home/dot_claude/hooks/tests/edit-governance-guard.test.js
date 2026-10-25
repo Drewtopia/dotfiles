@@ -45,6 +45,11 @@ test('denies vault rules, mods and git hooks in the checkout and in a worktree',
     }
 });
 
+test("governs moon's workspace tasks but not a project's moon.yml", () => {
+    assert.match(decide(edit('/repo/.moon/tasks/all.yml'), () => false), /Governance surface/);
+    assert.equal(decide(edit('/repo/packages/x/moon.yml'), () => false), null);
+});
+
 test('allows a governance path with a fresh unlock', () => {
     assert.equal(
         decide(edit('/repo/.claude/skills/x/SKILL.md'), () => true),
