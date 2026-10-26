@@ -77,9 +77,6 @@ chezmoi = "latest"
 # Codex isn't used on work Windows.
 "npm:@openai/codex" = "latest"
 {{- end }}
-{{- if ne .chezmoi.os "windows" }}
-"npm:@caveman-ai/cli" = "latest"
-{{- end }}
 
 # pipx-backed CLI tools (pure Python, cross-platform)
 # commit-check: policy engine for Conventional Commits + Conventional Branch +
