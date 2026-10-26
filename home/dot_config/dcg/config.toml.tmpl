@@ -32,6 +32,7 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 [policy.packs]
 "drew.azure_writes" = "ask"
 "drew.homelab" = "ask"
+"drew.git_policy" = "deny"
 
 # NOTE: these rules cannot see what a variable expands to, so they fire on every
 # `> $VAR/file` write to a scratch dir. Ask puts the call to a human instead of a

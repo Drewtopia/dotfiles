@@ -51,6 +51,20 @@ test('python, go, rust and shell keep their PATH formatters', () => {
     assert.equal(fmt.formattersFor('run.sh', '', repo([]))[0].bin, 'shfmt');
 });
 
+test('shell files are linted by shellcheck on PATH, with or without a repo', () => {
+    for (const root of ['', '/r']) {
+        const [l] = fmt.lintersFor('run.sh', root, repo([]));
+        assert.equal(l.bin, 'shellcheck');
+        assert.deepEqual(
+            l.parse('run.sh:3:5: warning: Quote this. [SC2086]\nrun.sh:9:1: note: Ok [SC2148]\nrun.sh:12:2: error: Bad [SC1073]'),
+            [
+                { line: 3, text: 'run.sh:3:5: warning: Quote this. [SC2086]' },
+                { line: 12, text: 'run.sh:12:2: error: Bad [SC1073]' },
+            ],
+        );
+    }
+});
+
 test('unknown / extensionless files get no tools', () => {
     for (const file of ['Makefile', 'a.lock', '']) {
         assert.deepEqual(fmt.formattersFor(file, '/r', repo([])), []);
