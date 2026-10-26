@@ -180,17 +180,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       }
     ],
-    "Notification": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/notify.js\""
-          }
-        ]
-      }
-    ],
     "SessionStart": [
 {{- if ne .chezmoi.os "windows" }}
       {
@@ -342,7 +331,7 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
             "-name '\''*.sh'\'' ! -executable", "EnterWorktree without path",
             "/shims/dcg",
             "session-start-git-status.js", "session-start-window-name.js",
-            "post-commit-clear-nudge.js", "check-onboard-drift",
+            "post-commit-clear-nudge.js", "check-onboard-drift", "hooks/notify.js",
             "tmux set-option -w automatic-rename on";
             . as $r | $c | contains($r)) | not)))
       | map(select((.hooks | length) > 0))))
