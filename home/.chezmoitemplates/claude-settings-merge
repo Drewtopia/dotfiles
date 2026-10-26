@@ -307,6 +307,14 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "theme": "dark",
   "worktree": {
     "baseRef": "fresh"
+  },
+  {{- /* A CLAUDE.local.md stops AGENTS.md loading under the default; this loads both. */}}
+  "pluginConfigs": {
+    "cc-plugin-agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md-and-agents-md"
+      }
+    }
   }
 }
 CHEZMOI_SETTINGS_EOF
