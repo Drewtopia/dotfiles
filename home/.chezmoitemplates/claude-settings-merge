@@ -168,6 +168,18 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       }
     ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-verify.js\"",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "*",
