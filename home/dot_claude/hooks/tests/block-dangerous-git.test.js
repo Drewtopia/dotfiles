@@ -4,40 +4,11 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { run } = require('../bash-checks/block-dangerous-git');
 
-const code = cmd => run({ tool_input: { command: cmd } }).exitCode;
+// The checkout is never a primary one with worktrees here; the branch-move cases below say otherwise.
+const code = cmd => run({ tool_input: { command: cmd } }, { isPrimaryOfMany: () => false }).exitCode;
 
-// Pattern-based blocks (no git state needed)
-const DANGEROUS = [
-    'git push --force origin feature/x',
-    'git push --force-with-lease',
-    'git push -f origin feature/x',
-    'git reset --hard HEAD~1',
-    'git reset --hard',
-    'git clean -fd',
-    'git clean -f',
-    'git checkout .',
-    'git restore .',
-    'git branch -D oldbranch',
-    'git branch --delete --force old',
-    'git push origin main',
-    'git push origin develop',
-    'git push origin HEAD:master',
-    'git worktree add ../x -b feat/x',
-    'git -C /repo worktree add .claude/worktrees/x origin/develop',
-    'git worktree remove --force .claude/worktrees/x',
-    'git worktree remove -f x',
-    'cd /repo && git push origin develop',
-    "bash -c 'git push origin main'",
-    "bash -lc 'git push origin main'",
-    'mise exec -- git push origin develop',
-    'out=$(git push origin main)',
-    'git push -u origin feat/x && git push origin develop',
-    'cd /repo && git reset --hard',
-    "bash -lc 'git clean -fd'",
-    'git branch -a | xargs git branch -D',
-    'git status && git checkout .',
-    'git --no-pager branch -D old',
-];
+// Force-pushes, pushes naming a protected branch and the destructive git commands are dcg's
+// (core.git and ~/.config/dcg/packs/git-policy.yaml); this guard only sees what needs git state.
 
 // Allowed regardless of current branch (explicit feature refspec, non-git, etc.)
 const SAFE = [
@@ -63,13 +34,46 @@ const SAFE = [
     'git worktree list && rm -f stale.lock',
 ];
 
-for (const cmd of DANGEROUS) {
-    test(`blocks: ${cmd}`, () => assert.equal(code(cmd), 2));
-}
 for (const cmd of SAFE) {
     test(`allows: ${cmd}`, () => assert.equal(code(cmd), 0));
 }
 test('empty allows', () => assert.equal(code(''), 0));
+
+// A primary checkout that has worktrees keeps its branch (git state faked through deps).
+const moves = (cmd, { primary = true, refs = ['feat/x'] } = {}) =>
+    run(
+        { tool_input: { command: cmd } },
+        { isPrimaryOfMany: () => primary, isRef: (_, name) => refs.includes(name) },
+    ).exitCode;
+
+test('blocks moving the branch of a primary checkout', () => {
+    for (const cmd of [
+        'git switch feat/x',
+        'git switch -c feat/new',
+        'git checkout feat/x',
+        'git checkout -b feat/new',
+        'git -C /repo checkout feat/x',
+        'git branch -f feat/x origin/develop',
+        'cd /repo && git switch develop',
+    ]) {
+        assert.equal(moves(cmd), 2, cmd);
+    }
+});
+
+test('allows file restores, listings and linked worktrees', () => {
+    for (const cmd of [
+        'git checkout -- src/a.ts',
+        'git checkout feat/x -- src/a.ts',
+        'git checkout src/a.ts',
+        'git branch',
+        'git branch -d old',
+        'git branch -m new-name',
+        'git status',
+    ]) {
+        assert.equal(moves(cmd), 0, cmd);
+    }
+    assert.equal(moves('git switch feat/x', { primary: false }), 0);
+});
 
 // A bare push pushes the branch checked out where that push runs.
 const bare = (cmd, branches) =>
@@ -110,11 +114,3 @@ test('allows: a feature push after a heredoc whose body holds an apostrophe', ()
     assert.equal(code(COMMIT_THEN_PUSH), 0));
 test('allows: a data heredoc body that mentions a protected push', () =>
     assert.equal(code("cat > notes.md <<'EOF'\ngit push origin main\nEOF"), 0));
-test('blocks: a heredoc body fed to a shell', () =>
-    assert.equal(code("bash <<'EOF'\ngit push origin main\nEOF"), 2));
-test('blocks: a data heredoc piped into a shell', () =>
-    assert.equal(code("cat <<'EOF' | sh\ngit push origin main\nEOF"), 2));
-test('blocks: a command substitution in an unquoted data heredoc', () =>
-    assert.equal(code('cat > notes.md <<EOF\n$(git push origin main)\nEOF'), 2));
-test('blocks: a protected push after a heredoc', () =>
-    assert.equal(code("git commit -F - <<'EOF'\nit's done\nEOF\ngit push origin main"), 2));
