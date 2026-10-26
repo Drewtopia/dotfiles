@@ -11,7 +11,7 @@ Always use plan mode — show the user what you intend to change before changing
 
 **Global memory** — `~/.claude/memory/` (vault-managed; knowledge Claude accumulates)
 
-- No index file: the folder layout is the index. Agents find a topic with `rg -il <term> ~/.claude/memory`, and `rg '^description:' ~/.claude/memory` lists every file's description.
+- An Open Knowledge Format v0.2 bundle: every file opens with `type`, `title` and `description` frontmatter (`type` is `Tool` in `tools/`, `Domain` in `domain/`). `python3 -I .githooks/memory-bundle.py`, run in the vault repo, writes the `index.md` in the root, `tools/` and `domain/` from that frontmatter; never hand-edit those three. Agents find a topic with `rg -il <term> ~/.claude/memory`, and `index.md` lists every file's description.
 - `general.md` — cross-project conventions and quality gates. Stay lean — always-on behavioral rules go in `~/.agents/AGENTS.md`, path-scoped ones in `~/.claude/rules/`, not here.
 - `tools/{tool}.md` — one file per tool. Lazy-loaded.
 - `domain/{topic}.md` — domain knowledge per product/area (create lazily). Lazy-loaded.
@@ -42,19 +42,19 @@ Always use plan mode — show the user what you intend to change before changing
    - **Duplicates** — same meaning in multiple files. Recommend merge to one source.
    - **Merge candidates** — separate files, same topic. **Split candidates** — one file, multiple topics.
    - **Re-sort** — entries within a file ordered by content date (latest last) where dates exist.
-   - **Missing description** — a topic file without `description:` frontmatter, so `rg '^description:'` cannot list it.
+   - **Missing frontmatter** — a file without `type`, `title` or `description`; `python3 -I .githooks/memory-bundle.py --check` in the vault repo lists them. Flag a missing `type` first: without it the bundle does not conform.
 
 4. **Present the proposal** as a single ordered list with current → proposed per change. Use AskUserQuestion (multiSelect) so the user can approve a subset.
 
 5. **Apply approved changes**: rule writes are governance surfaces, unlocked for 2h when the user typed `/reorganize-memory` (step 4's approval is the review gate) and use the vault branch → ff-merge flow. Memory writes need no unlock. Write/Edit for content; Bash for `mv`/`rm`; confirm any delete not already approved.
 
-6. **Update indexes**: refresh `projects.md` if it changed; if `~/.claude/CLAUDE.md` enumerates topic files, update it (and the chezmoi source `home/dot_claude/CLAUDE.md.tmpl` if it differs) — show folders, don't enumerate files.
+6. **Update indexes**: run `python3 -I .githooks/memory-bundle.py` in the vault repo; refresh `projects.md` if it changed; if `~/.claude/CLAUDE.md` enumerates topic files, update it (and the chezmoi source `home/dot_claude/CLAUDE.md.tmpl` if it differs) — show folders, don't enumerate files.
 
 7. **Summary** — concise list of what changed, plus a `cvault status` reminder so Drew can push the vault.
 
 ## Constraints
 
 - Never delete or modify an existing entry without explicit user confirmation, even if the user previously asked for the file.
-- Preserve entry frontmatter (`name`, `description`, `type`) when merging or splitting.
+- Preserve entry frontmatter (`type`, `title`, `description`) when merging or splitting; a new file gets all three.
 - Never re-sort by mtime — only by content dates (frontmatter or in-body `**Last seen YYYY-MM-DD**` markers). No date → alphabetical.
 - Don't propose changes to WIP/scratch areas (e.g. files explicitly marked draft).

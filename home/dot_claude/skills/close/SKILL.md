@@ -55,7 +55,7 @@ Skip ephemeral debugging steps, retracted ideas, and anything obvious from the d
 | Domain knowledge for a product, area, or codebase | `domain/{topic}.md` |
 | Project-specific learnings | the project's own repo docs (see `projects.md`) |
 
-A new file under `tools/` or `domain/` opens with `name:` and `description:` frontmatter; there is no index, so agents find it with `rg -il <term> ~/.claude/memory`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
+A new file under `tools/` or `domain/` opens with `type:` (`Tool` or `Domain`), `title:` and a one-sentence `description:` frontmatter. Then run `python3 -I .githooks/memory-bundle.py` in the vault repo (`~/.claude-vault`) to regenerate the indexes; its pre-commit hook refuses a missing field or a stale index. Agents find a topic with `rg -il <term> ~/.claude/memory`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
 ### 3. The status block
 
@@ -118,7 +118,7 @@ Drop any segment whose step didn't run rather than printing `0`. Then a `/rename
 
 ## Self-check before reporting done
 
-- Every new memory file opens with a `description:` frontmatter line.
+- Every new memory file opens with `type:`, `title:` and `description:` frontmatter, and the vault's indexes were regenerated.
 - Counter line reflects actual counts, not aspirational ones.
 - The reply ends on the status block: one line per unfinished item, the first item last with `(+<N> more above)` when others sit above it, and every `Parked:` line opens with a runnable command.
 - No `/tmp` or scratch handoff file was written for this repo; the remember slot is empty.
