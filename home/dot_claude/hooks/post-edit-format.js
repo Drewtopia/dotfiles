@@ -4,6 +4,7 @@
 // from the config at the file's git root and run only from that repo's node_modules,
 // so a repo's own versions and plugins apply and a repo without a config is untouched.
 // Only a linter error on a line changed since HEAD blocks: exit 2 feeds it to Claude.
+// Shell files go to shellcheck on PATH (warnings and errors), with or without a repo.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -19,6 +20,8 @@ const MAX_LINES = 60;
 const JS_EXT = new Set(['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'mts', 'cts']);
 const PRETTIER_EXT = new Set([...JS_EXT, 'json', 'md', 'yaml', 'yml', 'css', 'scss', 'html']);
 const BIOME_EXT = new Set([...JS_EXT, 'json', 'jsonc', 'css']);
+
+const SHELL_EXT = new Set(['sh', 'bash']);
 
 const OXFMT_CONFIGS = ['.oxfmtrc.json', '.oxfmtrc.jsonc'];
 const PRETTIER_CONFIGS = [
@@ -84,7 +87,10 @@ function formattersFor(file, root, repo = fsRepo) {
 }
 
 function lintersFor(file, root, repo = fsRepo) {
-    if (!file || !root || !JS_EXT.has(extOf(file))) return [];
+    if (!file) return [];
+    if (SHELL_EXT.has(extOf(file)))
+        return [{ bin: 'shellcheck', args: ['--format=gcc', '--severity=warning', file], parse: parseGcc }];
+    if (!root || !JS_EXT.has(extOf(file))) return [];
     const oxlint = repoTool(root, 'oxlint', OXLINT_CONFIGS, repo);
     const eslint = repoTool(root, 'eslint', ESLINT_CONFIGS, repo);
     return [
@@ -99,6 +105,14 @@ function lintersFor(file, root, repo = fsRepo) {
 function parseUnix(out) {
     return out.split('\n').flatMap(text => {
         const m = text.match(/^.+?:(\d+):\d+: .*\[Error\//);
+        return m ? [{ line: Number(m[1]), text }] : [];
+    });
+}
+
+/** Findings as { line, text } from shellcheck `--format=gcc`: `file:line:col: warning|error: msg [SCnnnn]`. */
+function parseGcc(out) {
+    return out.split('\n').flatMap(text => {
+        const m = text.match(/^.+?:(\d+):\d+: (?:warning|error): /);
         return m ? [{ line: Number(m[1]), text }] : [];
     });
 }
@@ -167,7 +181,7 @@ function run(input, deps = {}) {
             errors.push(raw);
             continue;
         }
-        if (changed === undefined) changed = changedLines(file, root, deps.git || git);
+        if (changed === undefined) changed = root ? changedLines(file, root, deps.git || git) : null;
         errors.push(...found.filter(e => !changed || changed.has(e.line)).map(e => e.text));
     }
     if (errors.length === 0) return { exitCode: 0 };
