@@ -114,6 +114,14 @@ encryption = "age"
 [age]
     identity = "{{ .chezmoi.homeDir }}/.config/chezmoi/key.txt"
     recipient = "age13xrdnan0ugxq6cgjqjdmm7v8rwzj5kyf89cqr7389ygu43majyrsdja39t"
+{{- if $is_wsl }}
+
+# On WSL, op is the shim to op.exe, which reads through the unlocked Windows app with no
+# session. chezmoi's default `op signin --raw` first waits on an approval and timed out
+# (78 s, 2026-10-27), failing every onepasswordRead; reads without it take about 4 s.
+[onepassword]
+    prompt = false
+{{- end }}
 
 # Make mise-managed tools visible to chezmoi templates (lookPath, etc.)
 [env]
