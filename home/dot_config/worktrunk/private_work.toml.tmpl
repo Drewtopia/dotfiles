@@ -1,0 +1,192 @@
+# chezmoi:template:left-delimiter="[[" right-delimiter="]]"
+[[- $w := includeTemplate "work-config" . | fromJson -]]
+# Worktrunk lifecycle hooks — https://worktrunk.dev/hook/
+# Personal: loaded as WORKTRUNK_SYSTEM_CONFIG_PATH (~/.zshenv); chezmoi fills the header from 1Password.
+# The work repo's address appears only in the table header below; the hooks and aliases read the
+# work names with `fnox get WORK_*` (~/.config/fnox/work.toml).
+
+[projects."dev.azure.com/[[ $w.azure_org ]]/[[ $w.azure_project ]]/_git/[[ $w.repo ]]"]
+
+# Ordered stages; build must not start until install finishes.
+# Install workspace deps before the worktree is usable (blocks post-start).
+# `mise exec --` pins the correct pnpm; --config.confirmModulesPurge=false
+# avoids ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY in the non-interactive hook.
+# Then build the workspace libraries so their dist/ exists. copy-ignored deliberately
+# excludes dist/ (too heavy to copy), and without a build any app importing a
+# @vec-automation/* package fails at runtime with ERR_MODULE_NOT_FOUND — which
+# blocks Playwright before a single test runs. moon caches, so this is a no-op
+# on a warm cache. Blocking rather than post-start: the worktree is not usable
+# until it completes.
+pre-start = [
+  { install = "mise exec -- pnpm install --frozen-lockfile --config.confirmModulesPurge=false" },
+  { build = "mise exec -- moon run '#library:build'" },
+]
+
+# Background setup once the worktree exists, in ordered stages.
+# Stage 1: copy gitignored machine-local files (e.g. env overrides) from the
+# primary worktree. Scope per-developer with a .worktreeinclude; the excludes
+# below are a safety net so a missing .worktreeinclude never copies heavy dirs.
+# Stage 2 (after copy completes): trust whatever mise config files were copied
+# so mise will load them. No-op when nothing was copied.
+post-start = [
+  { copy = "wt step copy-ignored" },
+  { trust = "mise trust --all 2>/dev/null || true" },
+]
+
+# A merged worktree's Orca card goes to completed as it is removed, by `wt remove`, `wt step prune`
+# or `wt step land` alike; a parked, unmerged worktree keeps its status.
+pre-remove.orca-completed = """
+git merge-base --is-ancestor {{ branch }} origin/{{ default_branch }} 2>/dev/null || exit 0
+orca worktree set --worktree path:{{ worktree_path }} --workspace-status completed >/dev/null 2>&1 || true
+"""
+
+# Never bulk-copy heavy gitignored dirs, even if a .worktreeinclude is absent.
+step.copy-ignored.exclude = [
+    "node_modules/",
+    "**/node_modules/",
+    "dist/",
+    "**/dist/",
+    ".moon/cache/",
+    ".global-cache/",
+    ".turbo/",
+]
+
+# `wt step ship` pushes and opens the PR to develop for review; once a PR is open it only pushes.
+# Description: the file named by PR_BODY, written with the mattpocock-skills:pr skill. A new PR
+# is refused without it; given to an open PR, it replaces that PR's description. A body that
+# writes a tracker issue as #N, names the tracker or a GitHub URL, or runs past Azure's 4000
+# characters is refused before the push. Before pushing it warns, never refuses, when another open
+# PR into develop changes the same files: whichever merges second meets the conflict.
+# Title of a new PR: `--title="<title>"`, else the subject `wt step squash --dry-run` generates
+# from every commit on the branch (llm-commits squash template).
+# `wt step sync` brings a stream branch level with develop after its PR merges.
+# Both set the worktree's Orca card status from any shell through the Orca CLI, which in WSL talks
+# to the Orca server there. ship also links the PR to the card (orca reference add): Orca's sidebar
+# shows no Azure PR badge for this repo otherwise, as its `upstream` issues remote makes it a GitHub project.
+aliases.ship = """
+REPO=$(fnox get WORK_REPO)
+PR=$(az repos pr list --repository "$REPO" --source-branch {{ branch }} --status active --query '[0].pullRequestId' -o tsv)
+if [ -n "${PR_BODY:-}" ] && [ ! -s "$PR_BODY" ]; then
+  echo "Refused: PR_BODY ($PR_BODY) is missing or empty" >&2
+  exit 1
+fi
+if [ -n "${PR_BODY:-}" ]; then
+  if grep -nE '(^|[^A-Za-z0-9/&-])#[0-9]+' "$PR_BODY" >&2; then
+    echo "Refused: tracker issues are GH-N in Azure text; #N links an unrelated Azure work item (docs/agents/issue-tracker.md, Azure PR references)" >&2
+    exit 1
+  fi
+  TRACKER=$(fnox get WORK_TRACKER_REPO)
+  if grep -niE "github[.]com|${TRACKER#*/}" "$PR_BODY" >&2; then
+    echo "Refused: no tracker repo name or GitHub URL in Azure text; write GH-N (docs/agents/issue-tracker.md)" >&2
+    exit 1
+  fi
+  if [ "$(wc -m < "$PR_BODY")" -gt 4000 ]; then
+    echo "Refused: PR_BODY is over Azure's 4000-character description limit" >&2
+    exit 1
+  fi
+fi
+if [ -z "$PR" ] && [ -z "${PR_BODY:-}" ]; then
+  echo "Refused: a new PR needs a description. Write it with the mattpocock-skills:pr skill, then: PR_BODY=<file> wt step ship --title=TITLE" >&2
+  exit 1
+fi
+TITLE={{ title | default('') }}
+if [ -z "$PR" ] && [ -z "$TITLE" ]; then
+  TITLE=$(wt step squash --dry-run 2>/dev/null | sed -n '/^MESSAGE$/{n;s/^  //;p;q;}')
+fi
+if [ -z "$PR" ] && [ -z "$TITLE" ]; then
+  echo "Refused: no title generated; pass one: wt step ship --title=TITLE" >&2
+  exit 1
+fi
+git fetch -q origin
+MINE=$(mktemp)
+git diff --name-only origin/{{ default_branch }}...HEAD > "$MINE"
+az repos pr list --repository "$REPO" --target-branch {{ default_branch }} --status active \
+  --query "[?sourceRefName!='refs/heads/{{ branch }}'].[pullRequestId,sourceRefName]" -o tsv |
+while read -r ID REF; do
+  BOTH=$(git diff --name-only "origin/{{ default_branch }}...origin/${REF#refs/heads/}" 2>/dev/null | grep -Fxf "$MINE")
+  [ -z "$BOTH" ] || printf 'Warning: open PR %s (%s) also changes:\n%s\n' "$ID" "${REF#refs/heads/}" "$(printf '%s\n' "$BOTH" | sed 's/^/  /')" >&2
+done
+rm -f "$MINE"
+git push -u origin HEAD
+if [ -n "$PR" ]; then
+  if [ -n "${PR_BODY:-}" ]; then
+    az repos pr update --id "$PR" --description "$(cat "$PR_BODY")" >/dev/null
+  fi
+  echo "PR $PR updated"
+else
+  OUT=$(az repos pr create --repository "$REPO" --source-branch {{ branch }} \
+    --target-branch {{ default_branch }} --title "$TITLE" \
+    --description "$(cat "$PR_BODY")" \
+    --query '{id:pullRequestId,title:title}' -o tsv)
+  printf '%s\n' "$OUT"
+  PR=$(printf '%s' "$OUT" | cut -f1)
+fi
+orca worktree set --worktree path:{{ worktree_path }} --workspace-status in-review >/dev/null 2>&1 || true
+[ -z "$PR" ] || orca reference add "$(fnox get WORK_REPO_URL)/pullrequest/$PR" --worktree path:{{ worktree_path }} >/dev/null 2>&1 || true
+"""
+# A card already in Done stays there: sync after a merge must not pull it back to in progress.
+aliases.sync = """
+git fetch origin && git merge --no-edit origin/{{ default_branch }}
+S=$(orca worktree show --worktree path:{{ worktree_path }} --json 2>/dev/null | jq -r '.result.worktree.workspaceStatus // empty' || true)
+[ "$S" = completed ] || orca worktree set --worktree path:{{ worktree_path }} --workspace-status in-progress >/dev/null 2>&1 || true
+"""
+# `wt step land` finishes a stream once Azure has merged its PR and deleted the remote branch:
+# closes the card's linked issue (or an old branch's gh<n>) and removes the worktree (the pre-remove hook marks its Orca
+# card completed), or keeps it as a completed card with `--keep=1`. A stream with more slices runs `sync` instead.
+# An issue with sub-issues stays open: one merged slice does not finish its parent
+# (~/.claude/skills/_lib/closing-merged-issues.md). Removal is refused while a Claude session
+# runs inside the worktree, as it would keep running in a deleted directory.
+aliases.land = """
+set -- $(az repos pr list --repository "$(fnox get WORK_REPO)" --source-branch {{ branch }} --status completed --query '[0].[pullRequestId,lastMergeCommit.commitId]' -o tsv)
+PR=${1:-}
+SHA=${2:-}
+if [ -z "$PR" ]; then
+  echo "Refused: {{ branch }} has no merged PR. Not merged yet: wait, or wt step ship to update it" >&2
+  exit 1
+fi
+git fetch --prune origin
+# A stream branch carries one PR per slice: an earlier slice's merge says nothing about later commits.
+if ! git merge-base --is-ancestor HEAD "$SHA"; then
+  echo "Refused: {{ branch }} has commits after PR $PR merged. Ship them, or sync to keep going" >&2
+  exit 1
+fi
+KEEP={{ keep | default('') }}
+WT={{ worktree_path }}
+if [ -z "$KEEP" ]; then
+  LIVE=""
+  for P in $(pgrep -x claude); do
+    case "$(readlink "/proc/$P/cwd" 2>/dev/null)/" in "$WT"/*) LIVE="$LIVE $P" ;; esac
+  done
+  if [ -n "$LIVE" ]; then
+    echo "Refused: Claude sessions still run in $WT (pids$LIVE). Close them, or keep the worktree: wt step land --keep=1" >&2
+    exit 1
+  fi
+fi
+echo "PR $PR merged as $(printf '%s' "$SHA" | cut -c1-9)"
+N=$(printf '%s' {{ branch }} | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
+# Branches no longer carry the issue number; the Orca card's linked issue does.
+[ -n "$N" ] || N=$(orca worktree show --worktree "path:$WT" --json 2>/dev/null | jq -r '.result.worktree.linkedIssue // empty' || true)
+R=$(fnox get WORK_TRACKER_REPO)
+if [ -n "$N" ]; then
+  set -- $(gh api "repos/$R/issues/$N" --jq '[.state, .sub_issues_summary.total] | map(tostring) | join(" ")')
+  if [ "${1:-}" = open ] && [ "${2:-0}" -gt 0 ]; then
+    echo "GH-$N stays open: it has $2 sub-issues; close it by hand once they are done"
+  elif [ "${1:-}" = open ]; then
+    gh issue close "$N" --repo "$R" --comment "Closed by merged PR $PR ($(fnox get WORK_REPO_URL)/pullrequest/$PR), merge commit $SHA."
+  fi
+fi
+if [ -n "$KEEP" ]; then
+  orca worktree set --worktree path:"$WT" --workspace-status completed >/dev/null 2>&1 || true
+  echo "Kept $WT as a completed card. Remove it later: wt remove {{ branch }}"
+else
+  wt remove {{ branch }}
+fi
+"""
+
+# Read by the squash prompt that titles a new PR (`wt step ship`) and by `wt step commit`.
+# Rules from commitlint.config.ts: PR titles are `type(scope): subject`, headers up to 100 chars.
+commit.generation.template-append = """
+- Subject is `type(scope): summary`, scoped to the app or package the change touches
+- Subject may run to 100 characters
+- The subject covers every commit in <commits>, not only the last one
+"""

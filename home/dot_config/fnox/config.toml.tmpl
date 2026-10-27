@@ -1,6 +1,6 @@
 {{- /* Import the work names only where chezmoi installs work.toml (the same condition as the
      work-only block in .chezmoiignore.tmpl): a missing import breaks every fnox command. */ -}}
-{{- if and .work (stat (joinPath .chezmoi.homeDir ".config/chezmoi/key.txt")) -}}
+{{- if .work -}}
 import = ["./work.toml"]
 
 {{ end -}}

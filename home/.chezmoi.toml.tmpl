@@ -107,13 +107,8 @@
 {{- $vscode_ext_dir := printf "%s/.vscode/extensions" $tools_root -}}
 {{- $vscode_global_storage_dir := printf "%s/.vscode/globalStorage" $tools_root -}}
 
-# Work-only files that name the employer are committed as encrypted_*.age. The key
-# lives only on work machines (backed up in 1Password); .chezmoiignore skips those
-# files elsewhere, so a machine without the key never decrypts.
-encryption = "age"
-[age]
-    identity = "{{ .chezmoi.homeDir }}/.config/chezmoi/key.txt"
-    recipient = "age13xrdnan0ugxq6cgjqjdmm7v8rwzj5kyf89cqr7389ygu43majyrsdja39t"
+# Work-only files are templates filled from the 1Password item "Work config" (see
+# .chezmoitemplates/work-config); this repo holds no ciphertext, so chezmoi needs no age key.
 {{- if $is_wsl }}
 
 # On WSL, op is the shim to op.exe, which reads through the unlocked Windows app with no

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Refuses a commit whose staged plain-text changes name the work organization, project, repo or
-# tracker. This repo is public; work names belong in age-encrypted files (*.age), which pass.
+# tracker. This repo is public; work names live in the 1Password item "Work config".
 # The names come from fnox (~/.config/fnox/work.toml), so this file holds none of them. On a
 # machine without them, it says so and lets the commit through.
 set -uo pipefail
@@ -12,8 +12,8 @@ if [ -z "$org" ] || [ -z "$proj" ] || [ -z "$repo" ] || [ -z "$tracker" ]; then
   exit 0
 fi
 
-# Added lines only, in text files that are not age-encrypted.
-added=$(git diff --cached -U0 --no-color -- . ':(exclude)*.age' | grep -E '^\+[^+]' || true)
+# Added lines only.
+added=$(git diff --cached -U0 --no-color | grep -E '^\+[^+]' || true)
 [ -n "$added" ] || exit 0
 
 # The short project name is matched as a whole word and case-sensitively, so ordinary words
@@ -22,6 +22,6 @@ hits=$( { grep -inE "$org|$repo|${tracker#*/}" <<<"$added"; grep -nwE "$proj" <<
 if [ -n "$hits" ]; then
   echo "pre-commit: refused — staged changes name work in a public repo:" >&2
   printf '%s\n' "$hits" | cut -c1-200 >&2
-  echo "Read the name with fnox get WORK_* at run time, or move the file under chezmoi encryption (chezmoi add --encrypt)." >&2
+  echo "Read the name with fnox get WORK_* at run time, or in a chezmoi template with includeTemplate work-config (see README)." >&2
   exit 1
 fi

@@ -1,0 +1,9 @@
+{{- /* The work names from the 1Password item "Work config", as JSON keyed by field label:
+       azure_org, azure_project, repo, tracker_repo, git_username, azure_tenant_id.
+       Use: $w := includeTemplate "work-config" . | fromJson. chezmoi caches the read, so
+       one apply asks 1Password once however many files use it. */ -}}
+{{- $w := dict -}}
+{{- range (onepassword "Work config" .opVault).fields -}}
+{{-   if hasKey . "label" }}{{ $_ := set $w .label (.value | default "") }}{{ end -}}
+{{- end -}}
+{{- $w | toJson -}}

@@ -52,8 +52,8 @@ Library
 .local/bin/session-done
 {{ end }}
 
-# Work-only encrypted files: skipped off work machines and until the age key is restored.
-{{ if or (not .work) (not (stat (joinPath .chezmoi.homeDir ".config/chezmoi/key.txt"))) }}
+# Work-only files: templates filled from the 1Password item "Work config"; skipped off work machines.
+{{ if not .work }}
 .config/worktrunk/work.toml
 .config/fnox/work.toml
 .config/git/azrepos.inc

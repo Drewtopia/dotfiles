@@ -1,0 +1,4 @@
+{{- $w := includeTemplate "work-config" . | fromJson -}}
+[credential "azrepos:org/{{ $w.azure_org }}"]
+	username = {{ $w.git_username }}
+	azureAuthority = https://login.microsoftonline.com/{{ $w.azure_tenant_id }}

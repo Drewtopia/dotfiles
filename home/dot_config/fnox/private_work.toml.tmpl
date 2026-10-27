@@ -1,0 +1,12 @@
+{{- $w := includeTemplate "work-config" . | fromJson -}}
+# Work names, defined once. Not secret, but private: chezmoi fills them from the 1Password item
+# "Work config" on work machines only; config.toml imports this file there. Scripts and worktrunk
+# aliases read them with `fnox get <NAME>`.
+[secrets]
+WORK_AZ_ORG = { default = "{{ $w.azure_org }}" }
+WORK_AZ_PROJECT = { default = "{{ $w.azure_project }}" }
+WORK_REPO = { default = "{{ $w.repo }}" }
+WORK_REPO_URL = { default = "https://dev.azure.com/${WORK_AZ_ORG}/${WORK_AZ_PROJECT}/_git/${WORK_REPO}" }
+# Where this work's issues are tracked. A GitHub repo for now (a pilot); may move to the Azure
+# board. The work repo's GH_ISSUE_TRACKER_REPO reads this through mise exec(), so it is set once.
+WORK_TRACKER_REPO = { default = "{{ $w.tracker_repo }}" }

@@ -59,14 +59,14 @@ on macOS, Windows Hello on Windows).
 ## Work-only files
 
 A file that differs between work and personal machines is a template branching on
-`.work`. A work-only file that names the employer is committed as `encrypted_*.age`
-(`chezmoi add --encrypt`) and listed in the work block of `.chezmoiignore.tmpl`, so the
-public repo holds only ciphertext. The age key is `~/.config/chezmoi/key.txt`, kept in
-1Password; until it is restored, chezmoi skips the encrypted files.
+`.work`. A work-only file that names the employer is a template that reads the names from
+the 1Password item "Work config" (`includeTemplate "work-config" . | fromJson`) and is
+listed in the work block of `.chezmoiignore.tmpl`. The repo holds neither the names nor
+ciphertext; `chezmoi apply` needs 1Password unlocked, as it already does for the SSH keys.
 
-Scripts never spell out a work name: they read it with `fnox get WORK_*` from the encrypted
-`~/.config/fnox/work.toml`. The pre-commit hook in `.githooks/` refuses a staged plain-text
-line that names work.
+Scripts never spell out a work name: they read it at run time with `fnox get WORK_*` from
+`~/.config/fnox/work.toml`, which chezmoi fills from that item. The pre-commit hook in
+`.githooks/` refuses a staged plain-text line that names work.
 
 ## Who owns what
 
