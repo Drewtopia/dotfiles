@@ -1,0 +1,9 @@
+{{- if or .personal .work -}}
+#!/bin/bash
+# Points this repo's git at its versioned hooks (.githooks/), so the work-name check runs on
+# every clone and worktree.
+
+set -eufo pipefail
+
+git -C "${CHEZMOI_WORKING_TREE}" config core.hooksPath .githooks
+{{- end -}}
