@@ -65,12 +65,14 @@ for p in "${paths[@]}"; do
   case $p in /tmp/* | /dev/* | /proc/*) continue ;; esac
   n=$(name_of "$p")
   # Generic names say nothing about one decision.
-  case $n in '' | config.toml | settings.json | SKILL.md | README.md | AGENTS.md | CLAUDE.md | work.toml) continue ;; esac
+  case $n in '' | config.toml | settings.json | SKILL.md | README.md | AGENTS.md | CLAUDE.md | work.toml | index.md | pre-commit | commit-msg) continue ;; esac
   [ ${#n} -ge 5 ] || continue
   grep -qxF "$n" "$seen" 2>/dev/null && continue
   names+=("$n")
 done
 [ ${#names[@]} -gt 0 ] || exit 0
+# A command that names one file twice gets one section for it.
+mapfile -t names < <(printf '%s\n' "${names[@]}" | sort -u)
 
 mapfile -t files < <(find "$HOME/.claude/projects" -name '*.jsonl' -mmin -2880 -not -name "$sid.jsonl" \
   -not -path "*/$sid/*" 2>/dev/null)
