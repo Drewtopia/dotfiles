@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+# Prechecks for Orca automations on the WSL server.
+# Exit 0 = there is work, so the agent runs. Non-zero = Orca records a skipped run.
+# Usage: orca-pre <automation-name>
+# Each run's report lives in ~/.local/state/orca-automations/<name>/; a recent report is a cooldown.
+set -uo pipefail
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin"
+name=${1:?usage: orca-pre <automation-name>}
+state="$HOME/.local/state/orca-automations/$name"
+# The work repo is named in fnox (~/.config/fnox/work.toml), not here.
+work_repo=$(fnox get WORK_REPO) || { echo "orca-pre: fnox has no WORK_REPO" >&2; exit 1; }
+repo="$HOME/dev/$work_repo"
+mkdir -p "$state"
+
+# True when the newest report is younger than $1 minutes.
+cooling() { [ -n "$(find "$state" -maxdepth 1 -name '*.md' -mmin "-$1" 2>/dev/null | head -1)" ]; }
+
+# Exit 0 when stdin differs from what the last run saw (and remember it), else 1.
+# An empty input is "nothing to look at": skip, and forget nothing.
+changed() {
+  local out fp
+  out=$(sort)
+  [ -n "$out" ] || exit 1
+  printf '%s\n' "$out" > "$state/current"
+  fp=$(printf '%s\n' "$out" | sha1sum)
+  [ "$fp" != "$(cat "$state/fp" 2>/dev/null)" ] || exit 1
+  echo "$fp" > "$state/fp"
+  exit 0
+}
+# Rows of a mise task's table (lines starting with an id).
+rows() { (cd "$repo" && mise run "$@" 2>/dev/null) | grep -E '^[0-9]+ '; }
+# The Orca card comment of worktree $1 (empty when none).
+card_comment() {
+  orca worktree list 2>/dev/null |
+    awk -v wt="$1" '/^[0-9a-f-]+::/ {p = $NF} /^comment:/ && p == wt {sub(/^comment: ?/, ""); print; exit}'
+}
+# True when worktree $1 has uncommitted changes or commits that are not on origin/develop.
+has_work() {
+  [ -n "$(git -C "$1" status --porcelain 2>/dev/null)" ] ||
+    [ "$(git -C "$1" rev-list --count origin/develop..HEAD 2>/dev/null || echo 0)" -gt 0 ]
+}
+
+# True when pid $1 is a live Claude whose session record still names session id $2.
+session_open() {
+  [ "$(cat "/proc/$1/comm" 2>/dev/null)" = claude ] &&
+    [ "$(jq -r .sessionId "$HOME/.claude/sessions/$1.json" 2>/dev/null)" = "$2" ]
+}
+# True when vm marker $1 is a live session's to debug: the session that ran vm, or one whose
+# worktree is on the run's branch. develop is the main checkout's, which holds no stream.
+marker_owned() {
+  local sid pid branch p cwd
+  IFS=$'\t' read -r sid pid branch < <(jq -r '[.session.id // "-", .session.pid // 0, .branch // "-"] | @tsv' "$1")
+  session_open "$pid" "$sid" && return 0
+  case $branch in develop | -) return 1 ;; esac
+  for p in $(pgrep -x claude); do
+    cwd=$(jq -r '.cwd // empty' "$HOME/.claude/sessions/$p.json" 2>/dev/null)
+    [ -n "$cwd" ] && [ "$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)" = "$branch" ] && return 0
+  done
+  return 1
+}
+# True when vm marker $1 lists its failed tests and an earlier trace-debug or runs-watch report
+# triaged every one KNOWN (`Triaged: <file> > <title> | KNOWN | <bug>`).
+marker_known() {
+  local k n=0 triaged
+  triaged=$(cat "$state"/*.md "$HOME/.local/state/orca-automations/runs-watch"/*.md 2>/dev/null)
+  while IFS= read -r k; do
+    n=$((n + 1))
+    grep -qF "Triaged: $k | KNOWN |" <<<"$triaged" || return 1
+  done < <(jq -r '.failed // [] | .[] | "\(.file) > \(.title)"' "$1")
+  [ "$n" -gt 0 ]
+}
+
+case "$name" in
+idle-sleep)
+  # The work is the precheck itself, so no agent ever starts: sleep worktrees idle three hours.
+  orca-sleep-idle --go --idle-min 180 | grep -E '^(slept|failed)' |
+    sed "s/^/$(date +%FT%R) /" >> "$state/log"
+  exit 1
+  ;;
+capacity-guard)
+  cooling 60 && exit 1
+  n=$(pgrep -xc claude || true)
+  avail=$(awk '/MemAvailable/ {print int($2 / 1048576)}' /proc/meminfo)
+  [ "${n:-0}" -gt 12 ] || [ "$avail" -lt 3 ]
+  ;;
+run-watchdog)
+  for r in $(orca orchestration run-list --json 2>/dev/null | jq -r '.result.runs[]?.id'); do
+    c=$(orca orchestration worker-list --run "$r" --terminal-state reclaimable --json 2>/dev/null |
+      jq '.result.workers | length')
+    [ "${c:-0}" -gt 0 ] && exit 0
+  done
+  exit 1
+  ;;
+merge-closeout)
+  last=$(cat "$state/stamp" 2>/dev/null || echo 1970-01-01T00:00:00)
+  newest=$(cd "$repo" && az repos pr list --status completed --top 1 --query '[0].closedDate' -o tsv 2>/dev/null)
+  [ -n "$newest" ] && [[ "$newest" > "$last" ]]
+  ;;
+clean-workspace)
+  cd "$repo" && git fetch -q origin 2>/dev/null
+  # Captured first: grep -q exits on the first match, and under pipefail the SIGPIPE fails the check.
+  out=$(wt-reap 2>/dev/null)
+  grep -q '^would remove' <<<"$out"
+  ;;
+vm-doctor)
+  cooling 180 && exit 1
+  ! (cd "$repo" && mise run vm:doctor >/dev/null 2>&1)
+  ;;
+runs-watch)
+  # Failed runs on develop: run id per line.
+  rows runs --branch develop --top 15 | awk '/ failed /{print $1}' | changed
+  ;;
+bug-verify)
+  # Resolved bugs that a spec still marks test.fail.
+  rows bugs | awk '$2 == "Resolved" && / test\.fail /{print $1}' | changed
+  ;;
+plan-watch)
+  # Cases in the automated plan with a failed outcome in any configuration.
+  rows plan | awk '/ failed /{print $1}' | changed
+  ;;
+pr-review)
+  # Active non-Renovate PRs and their head commits: a new PR or a new push changes it.
+  (cd "$repo" && az repos pr list --repository "$work_repo" --status active \
+    --query "[?!starts_with(sourceRefName,'refs/heads/renovate/')].[pullRequestId,lastMergeSourceCommit.commitId]" -o tsv 2>/dev/null) | changed
+  ;;
+trace-debug)
+  # A failed vm run left a marker. The agent cannot move markers (dcg refuses mv under ~/.local),
+  # so it names each one it finished on a `Handled: <file>` line of its report and this moves
+  # them. A marker a live session owns is left for it; one whose failed tests were all triaged
+  # KNOWN before is moved without starting a run.
+  failed="${XDG_STATE_HOME:-$HOME/.local/state}/vm/failed"
+  mkdir -p "$failed/done"
+  for m in $(grep -ho '^Handled: [A-Za-z0-9._-]*\.json' "$state"/*.md 2>/dev/null | cut -d' ' -f2 | sort -u); do
+    [ -f "$failed/$m" ] && mv "$failed/$m" "$failed/done/"
+  done
+  for m in "$failed"/*.json; do
+    [ -f "$m" ] || continue
+    marker_owned "$m" && continue
+    if marker_known "$m"; then
+      mv "$m" "$failed/done/" && echo "$(date -Is) $(basename "$m"): every failed test triaged KNOWN before" >> "$state/auto-done.log"
+      continue
+    fi
+    echo "$m"
+  done | changed
+  ;;
+set-focus-refresh)
+  [ -f "${XDG_STATE_HOME:-$HOME/.local/state}/focus/$work_repo.json" ]
+  ;;
+retro)
+  # Sessions logged to SESSION_TAILS.md since the last retro. The run reviews `current`
+  # and, once its report is written, moves `pending-line` over `line`; a failed run
+  # leaves `line` alone, so its sessions come round again.
+  tails="$HOME/.claude/memory/SESSION_TAILS.md"
+  done_to=$(cat "$state/line" 2>/dev/null || echo 0)
+  total=$(wc -l < "$tails")
+  [ "$total" -gt "$done_to" ] || exit 1
+  tail -n +"$((done_to + 1))" "$tails" | grep '^- ' > "$state/current" || exit 1
+  echo "$total" > "$state/pending-line"
+  ;;
+triage-idle)
+  # Idle Claude sessions (60+ min) in worktrees with work left, one worktree path per line.
+  # Skips the main checkout (automation runs live there), stream worktrees (they have their
+  # own automation) and `waiting:` cards. The agent reads each one before nudging it.
+  cooling 50 && exit 1
+  now=$(date +%s%3N)
+  for f in "$HOME"/.claude/sessions/*.json; do
+    pid=$(basename "$f" .json)
+    [ -d "/proc/$pid" ] || continue
+    IFS=$'\t' read -r status upd < <(jq -r '[.status // "null", .statusUpdatedAt // 0] | @tsv' "$f" 2>/dev/null)
+    [ "$status" = idle ] && [ $(( (now - upd) / 60000 )) -ge 60 ] || continue
+    git -C "$(readlink "/proc/$pid/cwd")" rev-parse --show-toplevel 2>/dev/null
+  done | sort -u | while read -r wt; do
+    [ "$wt" = "$repo" ] && continue
+    grep -qxF "$wt" "$HOME"/.local/state/orca-automations/stream-*/path 2>/dev/null && continue
+    [[ "$(card_comment "$wt")" == waiting:* ]] && continue
+    has_work "$wt" && echo "$wt"
+  done > "$state/current"
+  [ -s "$state/current" ]
+  ;;
+stream-*)
+  # One automation per stream worktree; its path is in $state/path.
+  wt=$(cat "$state/path" 2>/dev/null) && [ -d "$wt" ] || exit 1
+  [[ "$(card_comment "$wt")" == waiting:* ]] && exit 1
+  # Not while any session in the worktree (Drew's tab or this automation's) is busy or asking.
+  for f in "$HOME"/.claude/sessions/*.json; do
+    pid=$(basename "$f" .json)
+    [ -d "/proc/$pid" ] || continue
+    case "$(readlink "/proc/$pid/cwd")/" in "$wt"/*) ;; *) continue ;; esac
+    case "$(jq -r '.status // ""' "$f" 2>/dev/null)" in busy|waiting) exit 1 ;; esac
+  done
+  git -C "$wt" fetch -q origin 2>/dev/null
+  has_work "$wt"
+  ;;
+*)
+  echo "orca-pre: unknown automation $name" >&2
+  exit 2
+  ;;
+esac
