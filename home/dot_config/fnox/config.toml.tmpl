@@ -1,0 +1,28 @@
+{{- /* Import the work names only where chezmoi installs work.toml (the same condition as the
+     work-only block in .chezmoiignore.tmpl): a missing import breaks every fnox command. */ -}}
+{{- if and .work (stat (joinPath .chezmoi.homeDir ".config/chezmoi/key.txt")) -}}
+import = ["./work.toml"]
+
+{{ end -}}
+default_provider = "pass"
+
+# Memory-only secret cache. fnox resolves every declared secret eagerly, so a
+# config with many declarations pays a Key Vault round-trip each on load — one
+# app config with 21 declarations measured 13-18s cold against 5.3s for 5. mise's
+# own env cache hides that until anything touches the config's mtime, at which
+# point the full cost returns. Machine-local, so it lives here and not in a repo.
+[daemon]
+enabled = true
+# Bound how long a daemon stranded on a deleted spawn-dir (worktree/scratchpad)
+# keeps erroring every secret resolution with "Failed to get current directory".
+# A per-user, per-profile daemon inherits the cwd it was spawned in and resolves
+# config against its OWN cwd per request — delete that dir and it strands until
+# idle-out. Default idle is long (docs example 8h); 30m self-heals strays fast.
+# `fnoxup` reaps them immediately; this is the passive backstop.
+idle_timeout = "30m"
+
+[providers.pass]
+type = "password-store"
+
+# [secrets]
+# "" = { provider = "pass" }   # removed — empty secret name broke bulk-export
