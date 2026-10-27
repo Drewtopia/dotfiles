@@ -13,7 +13,7 @@ Quick close runs every time and stays short: a heavy closeout is a closeout that
 Where things live after a close:
 
 - **Everything this session leaves unfinished** → the closing status block (step 3), one line per item. The block in the session's transcript is the record. The `open-loops` mod, when it saves for the session, also copies the last line to the worktree's Orca card and lists it at every new session start; that copy is a convenience, not the record.
-- **What happened** → the remember plugin's own history and `SESSION_TAILS.md`, both written automatically.
+- **What happened** → the remember plugin's own history and the session's transcript, both written automatically.
 
 Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`git -C ~/.claude-vault fetch . <branch>:main`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
@@ -31,7 +31,7 @@ Not inside a git repo → skip to step 2. Clean tree → say so in one line and 
 
 Dirty tree → read the full diff (`git diff HEAD`): hunks, not filenames.
 
-- On `main`, `master`, or `develop`, the work belongs on its stream's branch — the `gate-commit-not-protected` hook hard-blocks commits there. Find the stream with `wt list`, or name a new `<type>/<topic>` branch. Carry the changes over with `git stash push -u -m <branch>`, then `orca-new <branch>`; never switch this checkout's branch. That stream's tab pops the stash and commits: tell Drew which tab (card and tab title) and that it runs `git stash pop` first, then skip to step 2 here.
+- On `main`, `master`, or `develop`, the work belongs on its stream's branch — the `gate-commit-not-protected` hook hard-blocks commits there. Find the stream with `wt list`, or name a new `<type>/<topic>` branch. Carry the changes over with `git stash push -u -m <branch>`, then `wt switch --create <branch> --no-cd` and `orca agent launch --agent claude --worktree branch:<branch>`; never switch this checkout's branch. That stream's tab pops the stash and commits: tell Drew which tab (card and tab title) and that it runs `git stash pop` first, then skip to step 2 here.
 - Group hunks by **purpose**, not by file. A single file can span two commits; two files can belong to one. One logical change → one commit; don't manufacture splits.
 - For each group: state the paths/hunks and the commit message (English imperative, conventional-commit prefix when it fits), confirm with Drew, stage only those paths (`git add -p` when hunks in one file split), commit.
 - Do **not** push. Do **not** use `git add -A`.
@@ -55,7 +55,7 @@ Skip ephemeral debugging steps, retracted ideas, and anything obvious from the d
 | Domain knowledge for a product, area, or codebase | `domain/{topic}.md` |
 | Project-specific learnings | the project's own repo docs (see `projects.md`) |
 
-A new file under `tools/` or `domain/` opens with `name:` and `description:` frontmatter; there is no index, so agents find it with `rg -il <term> ~/.claude/memory`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
+A new file under `tools/` or `domain/` opens with `type:` (`Tool` or `Domain`), `title:` and a one-sentence `description:` frontmatter. Then run `python3 -I .githooks/memory-bundle.py` in the vault repo (`~/.claude-vault`) to regenerate the indexes; its pre-commit hook refuses a missing field or a stale index. Agents find a topic with `rg -il <term> ~/.claude/memory`. Live work state belongs in the project's own tracker (for this repo: GitHub issues).
 
 ### 3. The status block
 
@@ -67,8 +67,8 @@ The report (below) ends on that list, one line per item, each naming its branch,
 
 | Next step | Status line |
 |---|---|
-| Start a tracker issue | `Parked: orca-new <the branch the focus working document names, else the ticket's area stream>, then /implement GH-<n>` |
-| Continue a tracker issue this session left half-done | `Parked: orca-new <branch>` |
+| Start a tracker issue | `Parked: wt switch --create <the branch the focus working document names, else the ticket's area stream> --no-cd, then orca agent launch --agent claude --worktree branch:<branch>, then /implement GH-<n>` |
+| Continue a tracker issue this session left half-done | `Parked: orca agent launch --agent claude --worktree branch:<branch>` |
 | A spec with two or more `ready-for-agent` tickets | `Parked: /implement-spec GH-<spec>` |
 | A slice with no issue yet ("PR 4", "the follow-up") | `Parked: /to-tickets GH-<parent>`, then `/implement` per ticket |
 | Ship | `Parked: /pr, then PR_BODY=<file> wt step ship` |
@@ -118,7 +118,7 @@ Drop any segment whose step didn't run rather than printing `0`. Then a `/rename
 
 ## Self-check before reporting done
 
-- Every new memory file opens with a `description:` frontmatter line.
+- Every new memory file opens with `type:`, `title:` and `description:` frontmatter, and the vault's indexes were regenerated.
 - Counter line reflects actual counts, not aspirational ones.
 - The reply ends on the status block: one line per unfinished item, the first item last with `(+<N> more above)` when others sit above it, and every `Parked:` line opens with a runnable command.
 - No `/tmp` or scratch handoff file was written for this repo; the remember slot is empty.

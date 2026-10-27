@@ -1,0 +1,63 @@
+{{- /* WSL agents drive Windows through powershell.exe interop, so it gets the Windows packs too. */ -}}
+{{- $windows := or (eq .chezmoi.os "windows") .is_wsl -}}
+[general]
+log_file = "~/.local/share/dcg/blocked.log"
+# Default 1000. A long compound command (grep/sed/knip chains) can take longer to
+# evaluate; dcg then asks, which stalls an unattended Orca worker at the prompt.
+hook_timeout_ms = 3000
+
+[packs]
+enabled = [
+  "platform.azure_devops",
+  "platform.github",
+  "cicd.github_actions",
+  "cloud.azure",
+  "remote.ssh",
+  "remote.rsync",
+  "system.services",
+  "system.permissions",
+  "containers.docker",
+  "containers.compose",
+  "secrets.onepassword",
+  "package_managers",
+  "careful_company_running_windows.guardrails",
+{{- if $windows }}
+  "windows.misc",
+  "windows.system",
+  "windows.powershell",
+{{- end }}
+]
+custom_paths = ["~/.config/dcg/packs/*.yaml"]
+
+[policy.packs]
+"drew.azure_writes" = "ask"
+"drew.homelab" = "ask"
+"drew.git_policy" = "deny"
+
+# NOTE: these rules cannot see what a variable expands to, so they fire on every
+# `> $VAR/file` write to a scratch dir. Ask puts the call to a human instead of a
+# dead-end deny. The redirect rule warns instead: writes to dotfiles, .git internals
+# and ~/.config are still denied by their own rules, and it was most of all prompts.
+# branch-dynamic-token stays ask because warn would let `git branch -D $B` run.
+[policy.rules]
+"core.filesystem:redirect-truncate-dynamic-path" = "warn"
+"core.filesystem:mv-dynamic-path" = "ask"
+"core.git:branch-dynamic-token" = "ask"
+# The rules that lose data stay deny; the rest of drew.homelab asks. Unattended
+# sessions get no ask at all: hooks/dcg-unattended-ask.js turns it into a deny.
+"drew.homelab:proxmox-guest-destroy" = "deny"
+"drew.homelab:zfs-destroy" = "deny"
+"drew.homelab:zpool-destroy" = "deny"
+# NOTE: these also match the bare words in grep patterns, heredoc prose and `jq … settings.json` reads.
+"system.services:reboot" = "ask"
+"system.services:shutdown" = "ask"
+"careful_company_running_windows.guardrails:agent-hook-config-tamper" = "ask"
+# NOTE: powershell.exe and `ssh host 'pwsh -Command …'` strings holding `$` expressions are
+# unparseable to dcg and denied outright.
+"heredoc.shell:launcher-unverified" = "ask"
+{{- if $windows }}
+"windows.powershell:force-stop-or-restart-computer" = "ask"
+{{- end }}
+
+[history]
+enabled = true

@@ -1,0 +1,28 @@
+schema_version: 1
+id: drew.git_policy
+name: Git branch and worktree policy
+version: 1.0.0
+description: Pushes to protected branches, lease-forced pushes and hand-made worktrees. What the command text alone can show; state-based git checks stay in the Claude Code hooks.
+keywords: [git, push, worktree, main, master, develop]
+denial_banner: Git policy
+destructive_patterns:
+  - name: push-protected-branch
+    pattern: '\bgit\b(?:\s+\S+)*?\s+push\b[^\n;&|]*[\s:/]\+?(?:main|master|develop)(?=[\s''")`]|$)'
+    severity: critical
+    description: Pushes straight to main, master or develop.
+    explanation: Open a pull request from a feature branch instead.
+  - name: push-force-with-lease
+    pattern: '\bgit\b(?:\s+\S+)*?\s+push\b[^\n;&|]*\s--force-with-lease\b'
+    severity: high
+    description: Force-pushes with a lease.
+    explanation: A lease still rewrites the remote branch. core.git allows it; this pack does not.
+  - name: worktree-add
+    pattern: '\bgit\b(?:\s+\S+)*?\s+worktree\s+add\b'
+    severity: high
+    description: Makes a worktree by hand.
+    explanation: Use wt switch --create <branch>; it runs the hooks that install dependencies, copy gitignored env files and trust mise.
+  - name: worktree-remove-force
+    pattern: '\bgit\b(?:\s+\S+)*?\s+worktree\s+remove\b[^\n;&|]*\s(?:--force|-f)(?=\s|$)'
+    severity: high
+    description: Force-removes a worktree.
+    explanation: Use wt remove <branch>; git worktree remove --force skips the pre-remove hooks and loses gitignored files.

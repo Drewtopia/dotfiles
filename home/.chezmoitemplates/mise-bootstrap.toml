@@ -131,7 +131,6 @@
      "btop"
      "git-lfs"
      "pkg-config"
-     "shellcheck"
      "units"
      "wget" -}}
 {{- if .dev_computer -}}

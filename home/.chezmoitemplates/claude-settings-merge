@@ -119,6 +119,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
+        "matcher": "Bash|PowerShell|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/dcg-unattended-ask.js\""
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write",
         "hooks": [
           {
@@ -157,25 +166,16 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-edit-format.js\""
           }
         ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "if": "Bash(*git*)",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/post-commit-clear-nudge.js\""
-          }
-        ]
       }
     ],
-    "Notification": [
+    "Stop": [
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/notify.js\""
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-verify.js\"",
+            "timeout": 600
           }
         ]
       }
@@ -190,39 +190,8 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/worktree-guidance-topup.sh\""
           }
         ]
-      },
-{{- end }}
-      {
-        "matcher": "startup",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-git-status.js\"",
-            "timeout": 30
-          }
-        ]
-      }
-{{- if ne .chezmoi.os "windows" }},
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-window-name.js\""
-          }
-        ]
       }
 {{- end }}
-      ,
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c 'h=$(ls -d \"$HOME\"/.claude/plugins/cache/superpowers-extended-cc-marketplace/superpowers-extended-cc/*/hooks/check-onboard-drift 2>/dev/null | sort -V | tail -1); [ -x \"$h\" ] && exec \"$h\"; exit 0'"
-          }
-        ]
-      }
     ],
     "CwdChanged": [
       {
@@ -234,34 +203,13 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           }
         ]
       }
-    ]{{- if ne .chezmoi.os "windows" }},
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ -n \"$TMUX\" ] && tmux set-option -w automatic-rename on || true"
-          }
-        ]
-      },
-      {
-        "matcher": "prompt_input_exit|logout|other",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "id=$(jq -r '.session_id // empty'); [ -n \"$id\" ] && \"$HOME/.local/bin/claude-log-session\" \"$id\" >/dev/null 2>&1 || true",
-            "timeout": 5
-          }
-        ]
-      }
     ]
-{{- end }}
   },
   "statusLine": {
     "type": "command",
     "command": "command -v ccstatusline >/dev/null 2>&1 && exec ccstatusline || exec bun x ccstatusline@2.2.29",
-    "padding": 0
+    "padding": 0,
+    "refreshInterval": 30
   },
   {{- /* enabledPlugins: merge profile-gated plugin tables from claude.toml */ -}}
   {{- $enabled := dict -}}
@@ -297,6 +245,14 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "theme": "dark",
   "worktree": {
     "baseRef": "fresh"
+  },
+  {{- /* A CLAUDE.local.md stops AGENTS.md loading under the default; this loads both. */}}
+  "pluginConfigs": {
+    "cc-plugin-agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md-and-agents-md"
+      }
+    }
   }
 }
 CHEZMOI_SETTINGS_EOF
@@ -360,7 +316,10 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
             "permission-denied-audit.js", "stop-failure-log.js",
             "user-prompt-drift-check.js", "pre-compact-snapshot.js",
             "-name '\''*.sh'\'' ! -executable", "EnterWorktree without path",
-            "/shims/dcg";
+            "/shims/dcg",
+            "session-start-git-status.js", "session-start-window-name.js",
+            "post-commit-clear-nudge.js", "check-onboard-drift", "hooks/notify.js",
+            "tmux set-option -w automatic-rename on";
             . as $r | $c | contains($r)) | not)))
       | map(select((.hooks | length) > 0))))
       | with_entries(select((.value | length) > 0)))

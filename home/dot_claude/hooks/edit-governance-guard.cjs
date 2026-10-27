@@ -12,10 +12,10 @@ const UNLOCKING = new Set(['edit-governance', 'audit-rules-and-skills', 'reorgan
 
 const GOVERNED = [
     /\/\.github\/workflows\//,
+    /\/\.azuredevops\//,
     /\/azure-pipelines[^/]*\.ya?ml$/,
     /\/lefthook[^/]*\.ya?ml$/,
     /\/\.moon\//,
-    /\/moon\.yml$/,
     /\/SKILL\.md$/,
     /\/(dot_claude|\.claude)\/(rules|hooks|skills|commands|mods)\//,
     /\/(dot_claude|\.claude)\/[^/]*settings[^/]*\.json(\.tmpl)?$/,
