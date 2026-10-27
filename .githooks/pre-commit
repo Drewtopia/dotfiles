@@ -3,7 +3,19 @@
 # tracker. This repo is public; work names belong in age-encrypted files (*.age), which pass.
 # The names come from fnox (~/.config/fnox/work.toml), so this file holds none of them. On a
 # machine without them, it says so and lets the commit through.
+# Also refuses a newly added script or Claude hook that does not say which gap it fills.
 set -uo pipefail
+
+# Native first: a new script names the native command it checked, in a `# gap:` line near its top.
+missing=$(git diff --cached --name-only --diff-filter=A -- 'home/dot_local/bin/*' 'home/dot_claude/hooks/*' |
+  grep -vE '/(tests|lib)/|\.(json|md)$' | while IFS= read -r f; do
+    git show ":$f" | head -20 | grep -qiE '^[[:space:]]*(#|//)[[:space:]]*gap:' || echo "  $f"
+  done)
+if [ -n "$missing" ]; then
+  echo "pre-commit: refused — new scripts must say which gap they fill (a '# gap: <native command checked>' line in the first 20):" >&2
+  printf '%s\n' "$missing" >&2
+  exit 1
+fi
 
 get() { fnox get "$1" 2>/dev/null; }
 org=$(get WORK_AZ_ORG) proj=$(get WORK_AZ_PROJECT) repo=$(get WORK_REPO) tracker=$(get WORK_TRACKER_REPO)
