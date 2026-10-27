@@ -45,6 +45,20 @@ test('denies vault rules, mods and git hooks in the checkout and in a worktree',
     }
 });
 
+test("governs moon's workspace tasks but not a project's moon.yml", () => {
+    assert.match(decide(edit('/repo/.moon/tasks/all.yml'), () => false), /Governance surface/);
+    assert.equal(decide(edit('/repo/packages/x/moon.yml'), () => false), null);
+});
+
+test('denies Azure DevOps pipeline and template files', () => {
+    for (const p of [
+        '/repo/.azuredevops/pipelines/pr-validation.yml',
+        '/repo/.azuredevops/templates/e2e-steps.yml',
+    ]) {
+        assert.match(decide(edit(p), () => false), /Governance surface/, p);
+    }
+});
+
 test('allows a governance path with a fresh unlock', () => {
     assert.equal(
         decide(edit('/repo/.claude/skills/x/SKILL.md'), () => true),

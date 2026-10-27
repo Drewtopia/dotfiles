@@ -2,7 +2,7 @@
 
 const os = require('node:os');
 const { getCommand } = require('../lib/hook-io');
-const { currentBranch } = require('../lib/git');
+const { git, currentBranch } = require('../lib/git');
 const { WRAPPER, unquote, segments, cdBefore } = require('../lib/shell');
 
 const PROTECTED = 'main|master|develop';
@@ -61,13 +61,9 @@ function gitCalls(cmd, outerCwd = '') {
     });
 }
 
+// Force-pushes, pushes naming a protected branch and the destructive git commands are dcg's
+// (core.git and ~/.config/dcg/packs/git-policy.yaml); this guard keeps what needs git state.
 function checkPush({ args, cwd }, branchOf) {
-    if (/(^|\s)(--force(=\S*)?|--force-with-lease\S*|-f)(\s|$)/.test(args)) {
-        return `force-push detected in 'git push ${args}'.`;
-    }
-    if (new RegExp(`(^|[\\s:/])(${PROTECTED})(\\s|$)`).test(args)) {
-        return `push targets a protected branch (${PROTECTED}) in 'git push ${args}'.`;
-    }
     // Bare push (no explicit refspec) pushes the branch checked out in `cwd`.
     const refspec = args
         .split(/\s+/)
@@ -81,35 +77,50 @@ function checkPush({ args, cwd }, branchOf) {
     return null;
 }
 
-function checkCall({ sub, text }) {
-    if (sub === 'reset' && /\s--hard(\s|$)/.test(text)) return `git reset --hard in '${text}'.`;
-    if (sub === 'clean' && /\s-[a-zA-Z]*f/.test(text)) return `git clean -f in '${text}'.`;
-    if (/^git\s+(checkout|restore)\s+\.(\s|$)/.test(text)) {
-        return `bulk working-tree discard in '${text}'.`;
+/** A repo's primary checkout while linked worktrees exist: its branch stays put. */
+function isPrimaryOfMany(cwd) {
+    const at = cwd ? ['-C', cwd] : [];
+    const dir = git([...at, 'rev-parse', '--absolute-git-dir']);
+    const common = git([...at, 'rev-parse', '--path-format=absolute', '--git-common-dir']);
+    if (!dir || dir !== common) return false;
+    return git([...at, 'worktree', 'list', '--porcelain']).split('\n').filter(l => l.startsWith('worktree ')).length > 1;
+}
+
+const isRef = (cwd, name) =>
+    Boolean(git([...(cwd ? ['-C', cwd] : []), 'rev-parse', '--verify', '--quiet', `${name}^{commit}`]));
+
+/** Whether a git call moves the checked-out branch or a branch pointer. */
+function movesBranch({ sub, args, cwd }, deps) {
+    const toks = args.split(/\s+/).filter(Boolean);
+    const beforePaths = toks.slice(0, toks.includes('--') ? toks.indexOf('--') : undefined);
+    const positional = beforePaths.filter(t => !t.startsWith('-'));
+    if (sub === 'switch') return !toks.includes('--help');
+    if (sub === 'checkout') {
+        if (beforePaths.some(t => /^(-b|-B|--orphan)$/.test(t))) return true;
+        return !toks.includes('--') && positional.length === 1 && deps.isRef(cwd, positional[0]);
     }
-    if (sub === 'branch' && /\s-D(\s|$)/.test(text)) {
-        return `git branch -D (force delete) in '${text}'. Use 'wt remove <branch>': it deletes a branch whose changes are merged, even under new SHAs, and runs the worktree hooks.`;
-    }
-    if (sub === 'branch' && /(--delete\s+--force|--force\s+--delete)/.test(text)) {
-        return `force branch delete in '${text}'.`;
-    }
-    if (sub === 'worktree' && /\sworktree\s+add(\s|$)/.test(text)) {
-        return `raw worktree create in '${text}'. Use 'wt switch --create <branch>': it runs the worktree hooks (deps, gitignored env files, mise trust).`;
-    }
-    if (sub === 'worktree' && /\sworktree\s+remove\b.*\s(--force|-f)(\s|$)/.test(text)) {
-        return `forced worktree removal in '${text}'. Use 'wt remove <branch>'.`;
-    }
-    return null;
+    return (
+        sub === 'branch' &&
+        toks.some(t => /^(-f|--force|-B)$/.test(t)) &&
+        !toks.some(t => /^(-d|-D|--delete)$/.test(t))
+    );
 }
 
 function run(input, deps = {}) {
     const branchOf = deps.currentBranch || currentBranch;
+    const primary = deps.isPrimaryOfMany || isPrimaryOfMany;
+    const refCheck = { isRef: deps.isRef || isRef };
     const cmd = getCommand(input);
     if (!cmd.includes('git')) return { exitCode: 0 };
 
     for (const call of gitCalls(cmd)) {
-        const reason = call.sub === 'push' ? checkPush(call, branchOf) : checkCall(call);
+        const reason = call.sub === 'push' ? checkPush(call, branchOf) : null;
         if (reason) return block(reason);
+        if (movesBranch(call, refCheck) && primary(call.cwd)) {
+            return block(
+                `'${call.text}' would move the branch of a primary checkout that has worktrees. Open the branch in its own worktree: 'wt switch --create <branch> --no-cd', then 'orca agent launch --agent claude --worktree branch:<branch>' (stash first to carry uncommitted work).`,
+            );
+        }
     }
     return { exitCode: 0 };
 }

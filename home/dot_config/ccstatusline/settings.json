@@ -5,57 +5,37 @@
       {
         "id": "1",
         "type": "model",
-        "color": "cyan"
+        "color": "cyan",
+        "rawValue": true
       },
       {
         "id": "2",
         "type": "separator"
       },
       {
+        "id": "worktrunk-statusline",
+        "type": "custom-command",
+        "commandPath": "\"$HOME/.local/bin/wt-statusline\"",
+        "timeout": 3000,
+        "preserveColors": true
+      }
+    ],
+    [
+      {
         "id": "3",
         "type": "context-length",
-        "color": "brightBlack"
-      },
-      {
-        "id": "0d6f8d6a-aa4e-4df7-ae38-4a2b60241b04",
-        "type": "separator"
-      },
-      {
-        "id": "070bb72b-5eab-4f55-8367-28d9bfa5fb31",
-        "type": "current-working-dir",
-        "metadata": {
-          "segments": "1"
-        }
+        "color": "brightBlack",
+        "rawValue": true
       },
       {
         "id": "4",
         "type": "separator"
       },
       {
-        "id": "5",
-        "type": "git-branch",
-        "color": "magenta",
-        "metadata": {
-          "hide": "no-git"
-        }
-      },
-      {
-        "id": "6",
-        "type": "separator"
-      },
-      {
-        "id": "7",
-        "type": "git-changes",
-        "color": "yellow",
-        "metadata": {
-          "hide": "no-git"
-        }
-      }
-    ],
-    [
-      {
         "id": "ca58edc6-dc4d-4876-b513-99124491efba",
         "type": "context-percentage-usable",
+        "color": "brightBlack",
+        "rawValue": true,
         "metadata": {
           "inverse": "false"
         }
@@ -66,16 +46,9 @@
       },
       {
         "id": "334f2185-a441-4308-b6a5-cc3f8d512be2",
-        "type": "session-cost"
-      }
-    ],
-    [
-      {
-        "id": "worktrunk-statusline",
-        "type": "custom-command",
-        "commandPath": "wt list statusline --format=claude-code | R=$(basename \"$(git remote get-url origin 2>/dev/null)\") perl -pe 's{\\e\\]8;;(\\S*?)\\e\\\\.*?\\e\\]8;;\\e\\\\}{index($1,\"/_git/\")<0 || index($1,\"/_git/$ENV{R}/\")>=0 ? $& : \"\"}ge'",
-        "timeout": 5000,
-        "preserveColors": true
+        "type": "session-cost",
+        "color": "brightBlack",
+        "rawValue": true
       }
     ]
   ],
@@ -88,7 +61,7 @@
   "powerline": {
     "enabled": false,
     "separators": [
-      ""
+      ""
     ],
     "separatorInvertBackground": [
       false

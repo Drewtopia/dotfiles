@@ -1,21 +1,9 @@
 {{- if and .work .is_wsl -}}
-{{- $localappdata := output "/mnt/c/Windows/System32/cmd.exe" "/c" "echo %LOCALAPPDATA%" | trim -}}
-{{- $localappdata = output "wslpath" "-u" $localappdata | trim -}}
-# Included only by Azure DevOps repos: work identity plus signing via 1Password's
-# Windows-side signer. Signer path comes from %LOCALAPPDATA% so a relocated
-# profile or non-C: drive still resolves.
-[gpg]
-	format = ssh
-[gpg "ssh"]
-	program = "{{ joinPath $localappdata "Microsoft" "WindowsApps" "op-ssh-sign-wsl.exe" }}"
-	# Without this every signed commit verifies as "N"; signing works either way.
-	allowedSignersFile = "{{ joinPath .chezmoi.homeDir ".config" "git" "allowed_signers" }}"
+# Included only by Azure DevOps repos: work identity, and signed tags as well as
+# commits. Signing itself (key file, ssh-keygen) comes from the main config.
 [user]
 	name = {{ .name | quote }}
 	email = {{ .email | quote }}
-	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMhN9/EmrCcRRlwlG+vR5dBRHNPDGSmqy1+TZMoBp6am
-[commit]
-	gpgsign = true
 [tag]
 	gpgsign = true
 {{- end -}}

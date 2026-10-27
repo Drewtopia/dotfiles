@@ -150,13 +150,21 @@
 {{- if .personal }}
 [url "git@github.com:Drewtopia/"]
 	insteadOf = https://github.com/Drewtopia/
+{{- end }}
+
+{{- /* Same gate as dot_ssh/private_git_signing.tmpl: no key file, no signing. */}}
+{{- if and (lookPath "op") .opVault }}
+# Signs with the key file chezmoi writes from 1Password, through plain ssh-keygen.
+# A private-key path keeps ssh-keygen off the 1Password agent, so commits still
+# sign while 1Password is locked or WSL interop is down.
 [gpg]
 	format = ssh
 [gpg "ssh"]
+	program = ssh-keygen
 	# Windows backslashes parse as escapes in a config value and break every git command.
 	allowedSignersFile = "{{ joinPath .chezmoi.homeDir ".config" "git" "allowed_signers" | replace .chezmoi.pathSeparator "/" }}"
 [user]
-	signingkey = ~/.ssh/id_ed25519.pub
+	signingkey = "{{ joinPath .chezmoi.homeDir ".ssh" "git_signing" | replace .chezmoi.pathSeparator "/" }}"
 [commit]
 	gpgsign = true
 {{- end }}
@@ -164,8 +172,9 @@
 {{- if and .work .is_wsl }}
 # NOTE: SSH transport stays on native Linux ssh; Windows ssh.exe fails every push
 # whenever WSL interop drops.
+# Git for Windows moved GCM from mingw64/ to ucrt64/; check this path after a Git update.
 [credential]
-	helper = /mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe
+	helper = /mnt/c/Program\\ Files/Git/ucrt64/bin/git-credential-manager.exe
 # Headless fallback when GCM cannot show its sign-in dialog: mints an AAD token
 # from the cached `az` session. After GCM so GCM stays primary; no `helper =`
 # reset, which would wipe GCM from the Azure chain.

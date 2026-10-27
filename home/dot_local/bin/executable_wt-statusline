@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# wt-statusline — worktrunk status cells for ccstatusline's custom-command widget.
+#   docs/agents-coding-standards  !–💬  @+52 -23  <PR link>
+# ccstatusline renders the model and context itself, so this prints only the branch and
+# worktrunk's status cells. `wt list statusline` reaches the network (gh/az) whenever its CI
+# cache is stale: 3+ s on WSL, past the widget timeout, which showed as [Timeout]. So a
+# render only reads a per-directory cache, and a stale cache is refreshed in the background.
+# Reads Claude Code's status JSON on stdin for the session's directory.
+set -uo pipefail
+
+ttl=15
+cache_dir=${XDG_CACHE_HOME:-$HOME/.cache}/wt-statusline
+
+refresh() {
+  local cwd=$1 cache=$2 tmp=$2.tmp.$$ repo
+  # Drops an Azure DevOps PR link that belongs to another repository; other links pass.
+  repo=$(basename "$(git -C "$cwd" remote get-url origin 2>/dev/null)")
+  wt -C "$cwd" list statusline --format=json 2>/dev/null \
+    | jq -r '.items[0].display.statusline // empty' \
+    | R=$repo perl -pe 's{\e\]8;;(\S*?)\e\\.*?\e\]8;;\e\\}{index($1,"/_git/")<0 || index($1,"/_git/$ENV{R}/")>=0 ? $& : ""}ge' \
+    > "$tmp" && mv "$tmp" "$cache"
+  rm -f "$tmp"
+  rmdir "$cache.lock" 2>/dev/null
+}
+
+if [ "${1:-}" = --refresh ]; then refresh "$2" "$3"; exit; fi
+
+cwd=$(jq -r '.workspace.current_dir // .cwd // empty' 2>/dev/null)
+[ -n "$cwd" ] || cwd=$PWD
+mkdir -p "$cache_dir"
+cache=$cache_dir/$(printf '%s' "$cwd" | cksum | cut -d' ' -f1)
+
+mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
+now=$(date +%s)
+# A refresh killed mid-run leaves its lock behind; past a minute it is dead.
+[ $(( now - $(mtime "$cache.lock") )) -gt 60 ] && rmdir "$cache.lock" 2>/dev/null
+if [ $(( now - $(mtime "$cache") )) -gt "$ttl" ] && mkdir "$cache.lock" 2>/dev/null; then
+  detach='nohup'; command -v setsid >/dev/null && detach='setsid'
+  "$detach" "$BASH" "$0" --refresh "$cwd" "$cache" </dev/null >/dev/null 2>&1 &
+fi
+[ -f "$cache" ] && cat "$cache"
+exit 0

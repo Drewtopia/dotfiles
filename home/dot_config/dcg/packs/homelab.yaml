@@ -1,0 +1,58 @@
+schema_version: 1
+id: drew.homelab
+name: Homelab destructive ops
+version: 1.1.0
+description: Proxmox, ZFS and tailnet operations that destroy guests, pools or nodes, cut a guest's network, restart a network-wide service, or rewrite its config.
+keywords: [qm, pct, zfs, zpool, pvesm, vzdump, headscale, tailscale, smartctl, systemctl, service, /etc/]
+denial_banner: Homelab destructive operation needs approval
+destructive_patterns:
+  - name: proxmox-guest-destroy
+    pattern: '\b(?:qm|pct)\s+(?:destroy|rollback|delsnapshot)\b'
+    severity: critical
+    description: Destroys or rolls back a Proxmox VM or container.
+    explanation: destroy removes the guest and its disks; rollback discards everything since the snapshot.
+  - name: proxmox-guest-stop
+    pattern: '\b(?:qm|pct)\s+(?:stop|shutdown|reboot|reset|migrate)\b'
+    severity: high
+    description: Stops, restarts or moves a Proxmox guest.
+    explanation: A homelab guest can be the storage, DNS or tailnet every other device depends on.
+  - name: proxmox-storage-remove
+    pattern: '\bpvesm\s+(?:remove|free|set)\b'
+    severity: high
+    description: Removes or frees Proxmox storage.
+    explanation: pvesm free deletes a volume; remove detaches a storage every guest on it needs.
+  - name: zfs-destroy
+    pattern: '\bzfs\s+(?:destroy|rollback)\b'
+    severity: critical
+    description: Destroys or rolls back a ZFS dataset or snapshot.
+    explanation: Data newer than the snapshot is gone; a destroyed dataset cannot be recovered.
+  - name: zpool-destroy
+    pattern: '\bzpool\s+(?:destroy|labelclear|detach|offline|replace|remove|export)\b'
+    severity: critical
+    description: Destroys or degrades a ZFS pool.
+    explanation: These change pool membership or remove the pool; a wrong device id loses the pool.
+  - name: headscale-node-remove
+    pattern: '\bheadscale\s+(?:nodes?|users?|routes?)\s+(?:delete|expire|logout|disable|destroy)\b'
+    severity: high
+    description: Removes or expires a tailnet node, user or route.
+    explanation: The node drops off the tailnet until re-registered, which may need physical access.
+  - name: tailscale-down
+    pattern: '\btailscale\s+(?:down|logout)\b'
+    severity: high
+    description: Takes this or a remote host off the tailnet.
+    explanation: Run over ssh, it can cut the only path back to the host.
+  - name: proxmox-guest-network
+    pattern: '\b(?:qm|pct)\s+set\s+\d+\b[^\n]*\s--?net\d'
+    severity: high
+    description: Changes a Proxmox guest's network interface.
+    explanation: A wrong IP, bridge or VLAN takes the guest off the network, and with it whatever it serves.
+  - name: network-service-restart
+    pattern: '\bsystemctl\b(?:\s+-\S+(?:\s+[^-\s]\S*)?)*\s+(?:stop|restart|try-restart|reload-or-restart|disable|mask|kill|isolate)\b[^\n;&|]*\b(?:headscale|AdGuardHome|keepalived|nginx|npm|caddy|tailscaled|pveproxy|pvedaemon|pve-cluster)\b|\bservice\s+(?:headscale|AdGuardHome|keepalived|nginx|npm|caddy|tailscaled|pveproxy|pvedaemon|pve-cluster)\s+(?:stop|restart)\b'
+    severity: high
+    description: Stops or restarts a service the whole network depends on.
+    explanation: DNS, the reverse proxy, the tailnet and the Proxmox API go down with it, and a bad config keeps it down.
+  - name: homelab-config-write
+    pattern: '\b(?:sed|perl)\b[^\n;&|]*\s-(?:[a-zA-Z]*i|-in-place)[^\n;&|]*/etc/(?:headscale|pve)/|\b(?:cp|mv|rm|tee|truncate|install|dd|ln)\b[^\n;&|]*/etc/(?:headscale|pve)/|>\s*\S*/etc/(?:headscale|pve)/'
+    severity: high
+    description: Rewrites tailnet coordinator or Proxmox cluster config in place.
+    explanation: The coordinator reads its config at start and /etc/pve is the live cluster filesystem; a bad edit breaks the next restart or every guest.

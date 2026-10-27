@@ -39,6 +39,7 @@ chezmoi = "latest"
 "aqua:dundee/gdu" = "latest"
 "aqua:golangci/golangci-lint" = "latest"
 "aqua:gitleaks/gitleaks" = "latest"
+"aqua:koalaman/shellcheck" = "latest"
 "aqua:topgrade-rs/topgrade" = "latest"
 "aqua:mikefarah/yq" = "latest"
 "aqua:alexpasmantier/television" = "latest"
@@ -58,7 +59,8 @@ chezmoi = "latest"
 {{- if ne .chezmoi.os "windows" }}
 "github:Dicklesworthstone/destructive_command_guard" = { version = "latest", postinstall = "printf '%s' '{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"true\"},\"hook_event_name\":\"PreToolUse\"}' | dcg >/dev/null 2>&1 || true" }
 {{- else }}
-"github:Dicklesworthstone/destructive_command_guard" = "latest"
+# NOTE: mise runs a Windows postinstall under `cmd /c`, which has no printf.
+"github:Dicklesworthstone/destructive_command_guard" = { version = "latest", postinstall = 'echo {"tool_name":"Bash","tool_input":{"command":"true"},"hook_event_name":"PreToolUse"}| dcg >NUL 2>&1 & exit /b 0' }
 {{- end }}
 
 # npm-backed CLI tools (pure JS, cross-platform)
@@ -74,9 +76,6 @@ chezmoi = "latest"
 {{- if not (and (eq .chezmoi.os "windows") .work) }}
 # Codex isn't used on work Windows.
 "npm:@openai/codex" = "latest"
-{{- end }}
-{{- if ne .chezmoi.os "windows" }}
-"npm:@caveman-ai/cli" = "latest"
 {{- end }}
 
 # pipx-backed CLI tools (pure Python, cross-platform)
