@@ -4,7 +4,10 @@
 import = ["./work.toml"]
 
 {{ end -}}
-default_provider = "pass"
+# Secrets stored with `fnox set` are age-encrypted with the chezmoi key, so nothing extra
+# needs setting up on a new machine. fnox needs at least one provider even when every
+# value is a plain default.
+default_provider = "age"
 
 # Memory-only secret cache. fnox resolves every declared secret eagerly, so a
 # config with many declarations pays a Key Vault round-trip each on load — one
@@ -21,8 +24,7 @@ enabled = true
 # `fnoxup` reaps them immediately; this is the passive backstop.
 idle_timeout = "30m"
 
-[providers.pass]
-type = "password-store"
-
-# [secrets]
-# "" = { provider = "pass" }   # removed — empty secret name broke bulk-export
+[providers.age]
+type = "age"
+recipients = ["age13xrdnan0ugxq6cgjqjdmm7v8rwzj5kyf89cqr7389ygu43majyrsdja39t"]
+key_file = "~/.config/chezmoi/key.txt"
