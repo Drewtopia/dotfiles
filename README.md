@@ -64,6 +64,29 @@ A file that differs between work and personal machines is a template branching o
 public repo holds only ciphertext. The age key is `~/.config/chezmoi/key.txt`, kept in
 1Password; until it is restored, chezmoi skips the encrypted files.
 
+Scripts never spell out a work name: they read it with `fnox get WORK_*` from the encrypted
+`~/.config/fnox/work.toml`. The pre-commit hook in `.githooks/` refuses a staged plain-text
+line that names work.
+
+## Who owns what
+
+One tool per job. A new script fills a gap none of these covers, and says which.
+
+| Tool | Owns |
+|---|---|
+| chezmoi | Installing files on each machine; encrypting the private ones in this repo |
+| fnox | Every value: secrets as 1Password references, work names in `work.toml` |
+| mise | Tools, non-secret environment, a project's environments and tasks |
+| worktrunk | Worktree lifecycle, hooks, and the work repo's `ship` / `land` / `sync` |
+| Orca | Agent sessions, the board, sleep, automations |
+| `closeout-tab`, `session-done` | Whether a stream is finished, so its tab may close |
+| `orca-sleep` | Sleep from a script (Orca's CLI has no sleep command) |
+| `orca-weekend` | Pausing and resuming coordinators over a weekend |
+
+Board columns, one writer each: a new worktree goes to in progress, `ship` to in review,
+`closeout-tab` or `land` to completed; `sync` leaves a completed card where it is. A card
+leaves the board when its worktree is removed.
+
 ## Releases and changelog
 
 `CHANGELOG.md` is generated from Conventional Commits by git-cliff (`cliff.toml`).
