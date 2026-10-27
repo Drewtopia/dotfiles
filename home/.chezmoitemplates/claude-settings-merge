@@ -203,20 +203,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           }
         ]
       }
-    ]{{- if ne .chezmoi.os "windows" }},
-    "SessionEnd": [
-      {
-        "matcher": "prompt_input_exit|logout|other",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "id=$(jq -r '.session_id // empty'); [ -n \"$id\" ] && \"$HOME/.local/bin/claude-log-session\" \"$id\" >/dev/null 2>&1 || true",
-            "timeout": 5
-          }
-        ]
-      }
     ]
-{{- end }}
   },
   "statusLine": {
     "type": "command",
