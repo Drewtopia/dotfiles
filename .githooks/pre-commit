@@ -16,9 +16,9 @@ fi
 added=$(git diff --cached -U0 --no-color -- . ':(exclude)*.age' | grep -E '^\+[^+]' || true)
 [ -n "$added" ] || exit 0
 
-# The short project name is matched as a whole word and case-sensitively, so ordinary words
-# that contain it do not trip the check; the longer names are matched anywhere, any case.
-hits=$( { grep -inE "$org|$repo|${tracker#*/}" <<<"$added"; grep -nwE "$proj" <<<"$added"; } | sort -u)
+# The short project name is matched as a whole word in any case (it is also a package scope,
+# such as @<name>-automation), so words containing it pass; the longer names match anywhere.
+hits=$( { grep -inE "$org|$repo|${tracker#*/}" <<<"$added"; grep -inwE "$proj" <<<"$added"; } | sort -u)
 if [ -n "$hits" ]; then
   echo "pre-commit: refused — staged changes name work in a public repo:" >&2
   printf '%s\n' "$hits" | cut -c1-200 >&2
