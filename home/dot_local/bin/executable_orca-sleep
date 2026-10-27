@@ -1,0 +1,19 @@
+#!/bin/sh
+# Sleeps an Orca worktree: orca-sleep <worktree-path>.
+# Sleep stops the worktree's terminals and agents but keeps their tabs and resume records, so
+# opening the worktree later resumes each agent (`claude --resume`). Close drops those records.
+# Why a script: the server has `worktree.sleep` (the app and phone use it) but the CLI has no
+# command for it, so this calls the RPC through Orca's own runtime client, as orca-link-azure-pr does.
+set -eu
+
+[ $# -eq 1 ] || { echo "usage: orca-sleep <worktree-path>" >&2; exit 2; }
+
+APP=${ORCA_APP:-$HOME/.local/opt/orca/current/squashfs-root/orca-ide}
+[ -x "$APP" ] || { echo "orca-sleep: no Orca app at $APP (set ORCA_APP)" >&2; exit 1; }
+
+ORCA_ASAR="$(dirname "$APP")/resources/app.asar" WT=$1 ELECTRON_RUN_AS_NODE=1 "$APP" -e '
+const { RuntimeClient } = require(process.env.ORCA_ASAR + "/out/cli/runtime-client.js");
+new RuntimeClient(undefined, undefined, null, null)
+  .call("worktree.sleep", { worktree: "path:" + process.env.WT })
+  .then(() => process.exit(0), (e) => { console.error("orca-sleep: " + e.message); process.exit(1); });
+'

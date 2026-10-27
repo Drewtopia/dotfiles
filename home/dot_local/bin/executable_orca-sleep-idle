@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# orca-sleep-idle [--go] [--idle-min N] — sleep each Orca worktree whose Claude sessions are all
+# idle for N minutes (default 60), freeing their memory while keeping them resumable.
+# Dry run by default; --go sleeps. Prints one line per worktree that has a Claude session:
+# "slept", "would sleep", "keep" (with the busiest session's state) or "failed".
+# A session counts as idle only when Claude recorded status "idle" at least N minutes ago, so a
+# session waiting on a question or permission prompt ("waiting") is never slept.
+# Orca has no idle auto-sleep of its own (checked through 1.4.237); the idle-sleep automation's
+# precheck runs this.
+set -uo pipefail
+
+go=0 idle_min=60
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --go) go=1 ;;
+    --idle-min) idle_min=${2:?--idle-min needs minutes}; shift ;;
+    *) echo "usage: orca-sleep-idle [--go] [--idle-min N]" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+cutoff=$(( $(date +%s) * 1000 - idle_min * 60000 ))
+declare -A busy pids
+
+for pid in $(pgrep -x claude); do
+  cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
+  top=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || continue
+  pids[$top]+="$pid "
+  rec="$HOME/.claude/sessions/$pid.json"
+  if ! jq -e --argjson cutoff "$cutoff" \
+    '.status == "idle" and (.statusUpdatedAt // 0) <= $cutoff' "$rec" >/dev/null 2>&1; then
+    state=$(jq -r '.status // "unknown"' "$rec" 2>/dev/null || echo "no record")
+    busy[$top]="pid $pid $state"
+  fi
+done
+
+for top in "${!pids[@]}"; do
+  if [ -n "${busy[$top]:-}" ]; then
+    echo "keep         $top  (${busy[$top]})"
+  elif [ "$go" -eq 0 ]; then
+    echo "would sleep  $top  (pids ${pids[$top]% })"
+  elif out=$(orca-sleep "$top" 2>&1); then
+    echo "slept        $top  (pids ${pids[$top]% })"
+  else
+    echo "failed       $top  ($out)"
+  fi
+done | sort
