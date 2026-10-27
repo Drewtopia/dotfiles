@@ -1,0 +1,6 @@
+# Use only uv-managed Python. The default ("managed") falls back to system
+# Python when no managed one matches, so tools and venvs got built on Homebrew
+# python@3.x; `brew autoremove` later deleted it and broke those tools.
+# Windows reads %APPDATA%\uv\uv.toml instead, so this file has no effect there.
+# https://docs.astral.sh/uv/reference/settings/#python-preference
+python-preference = "only-managed"
