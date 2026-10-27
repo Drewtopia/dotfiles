@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# session-done <worktree-path> — is this stream finished, so a closer may close or remove it?
+# Exit 0, "done: <why>": merged into the trunk, clean, nothing waiting on Drew. Safe to close.
+# Exit 3, "parked: <why>": Drew or its last session parked it (Orca status `parked`, or a
+#   closing `Parked:` line). The EOD sweep stops chasing it, but it is unfinished: sleep, never close.
+# Exit 1, "not-done:": one "- <reason>" line per blocker. Exit 2 on bad use.
+# Closers (closeout-tab, capacity-guard, eod-apply) close only on exit 0.
+# Read-only. Fetch first: merge state is read from the remote-tracking trunk as it is.
+set -uo pipefail
+
+[ $# -eq 1 ] || { echo "usage: session-done <worktree-path>" >&2; exit 2; }
+wt=$(cd "$1" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null) \
+  || { echo "session-done: $1 is not a git worktree" >&2; exit 2; }
+
+reasons=() parked=""
+card=$(orca worktree list --json 2>/dev/null \
+  | jq -c --arg p "$wt" '[.. | objects | select(.path? == $p)][0] // {}')
+status=$(jq -r '.workspaceStatus // ""' <<<"$card")
+comment=$(jq -r '.comment // ""' <<<"$card")
+
+[ "$status" = parked ] && parked="Orca status parked"
+
+case "$comment" in
+  waiting:*|NEEDS-DREW:*) reasons+=("card says: ${comment:0:120}") ;;
+esac
+
+while IFS=$'\t' read -r state kind msg; do
+  [ -n "$state" ] && reasons+=("live agent $state${kind:+ ($kind)}: ${msg:0:120}")
+done < <(orca worktree ps --json 2>/dev/null | jq -r --arg p "$wt" '
+  .result.worktrees[]? | select(.path == $p) | .agents[]?
+  | select(.state == "waiting" or .programStatus.state? == "blocked")
+  | [.state, (.programStatus.kind // ""), ((.programStatus.message // .lastAssistantMessage // "") | gsub("\n"; " "))]
+  | @tsv')
+
+# The newest transcript started in this worktree says how its last session ended.
+proj="$HOME/.claude/projects/$(sed 's/[^A-Za-z0-9]/-/g' <<<"$wt")"
+transcript=$(ls -t "$proj"/*.jsonl 2>/dev/null | head -1)
+if [ -n "$transcript" ]; then
+  # The last assistant entry: its final text line, and whether it ended on an unanswered AskUserQuestion.
+  read -r ask last < <(jq -rs '
+    (map(select(.type == "assistant")) | last) as $a
+    | (. | last) as $end
+    | [ (($a.message.content // []) | any(.type == "tool_use" and .name == "AskUserQuestion")
+          and ($end.type == "assistant") | tostring),
+        ([$a.message.content[]? | select(.type == "text") | .text] | join("\n")
+          | split("\n") | map(select(test("\\S"))) | last // "" | gsub("\t"; " ")) ]
+    | @tsv' "$transcript" 2>/dev/null | tr '\t' ' ')
+  [ "$ask" = true ] && reasons+=("last session ended on an unanswered question ($(basename "$transcript" .jsonl))")
+  case "$last" in
+    "Waiting on you:"*) reasons+=("last session: ${last:0:120}") ;;
+    "Parked:"*) parked=${parked:-"last session: ${last:0:120}"} ;;
+    *\?) reasons+=("last session ended on a question: ${last: -120}") ;;
+  esac
+fi
+
+[ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ] && reasons+=("uncommitted changes")
+
+trunk=$(git -C "$wt" rev-parse --abbrev-ref origin/HEAD 2>/dev/null)
+for t in "$trunk" origin/develop origin/main; do
+  [ -n "$t" ] && git -C "$wt" rev-parse -q --verify "$t" >/dev/null && { trunk=$t; break; }
+done
+if [ -z "$trunk" ]; then
+  reasons+=("no remote trunk to compare against")
+elif ! git -C "$wt" merge-base --is-ancestor HEAD "$trunk" 2>/dev/null; then
+  reasons+=("$(git -C "$wt" rev-list --count "$trunk..HEAD") commit(s) not in $trunk")
+fi
+
+if [ ${#reasons[@]} -eq 0 ]; then echo "done: merged into $trunk, clean, nothing waiting"; exit 0; fi
+if [ -n "$parked" ]; then
+  echo "parked: $parked"; printf -- '- %s\n' "${reasons[@]}"; exit 3
+fi
+echo "not-done:"
+printf -- '- %s\n' "${reasons[@]}"
+exit 1
