@@ -110,6 +110,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/prior-decision-check.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Bash|PowerShell",
         "hooks": [
           {
