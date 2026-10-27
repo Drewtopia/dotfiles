@@ -56,6 +56,7 @@ Library
 # Work-only encrypted files: skipped off work machines and until the age key is restored.
 {{ if or (not .work) (not (stat (joinPath .chezmoi.homeDir ".config/chezmoi/key.txt"))) }}
 .config/worktrunk/work.toml
+.config/fnox/work.toml
 .local/bin/orca-pre
 .config/git/azrepos.inc
 {{ end }}
