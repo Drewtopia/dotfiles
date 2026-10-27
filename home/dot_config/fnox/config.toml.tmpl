@@ -4,10 +4,10 @@
 import = ["./work.toml"]
 
 {{ end -}}
-# Secrets stored with `fnox set` are age-encrypted with the chezmoi key, so nothing extra
-# needs setting up on a new machine. fnox needs at least one provider even when every
-# value is a plain default.
-default_provider = "age"
+# Secrets live in 1Password; this file holds only references (`fnox set NAME "Item/field"`),
+# never values. op reaches the 1Password app, so a secret resolves only while the app is
+# unlocked. The plain WORK_* defaults in work.toml need no provider and resolve unattended.
+default_provider = "op"
 
 # Memory-only secret cache. fnox resolves every declared secret eagerly, so a
 # config with many declarations pays a Key Vault round-trip each on load — one
@@ -24,7 +24,6 @@ enabled = true
 # `fnoxup` reaps them immediately; this is the passive backstop.
 idle_timeout = "30m"
 
-[providers.age]
-type = "age"
-recipients = ["age13xrdnan0ugxq6cgjqjdmm7v8rwzj5kyf89cqr7389ygu43majyrsdja39t"]
-key_file = "~/.config/chezmoi/key.txt"
+[providers.op]
+type = "1password"
+vault = "{{ .opVault }}"
