@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# orca-weekend [--go] [--wait-min N] — pause work on the Orca server before a weekend.
+# 1. Tells each live orchestration coordinator to wind its Run down (finish, release workers),
+#    waits up to N minutes (default 90) for it to go idle with no active workers, then records its
+#    Run, worktree and Claude session in ~/.local/state/orca-weekend/pending.jsonl and closes its
+#    tab. orca-weekend-resume (the weekend-resume automation's precheck) reopens it.
+# 2. Sleeps every other worktree whose Claude sessions are idle (orca-sleep), so opening it later
+#    resumes them. A coordinator that did not finish, and its workers' worktrees, stay awake.
+# Dry run by default. --go detaches and logs to ~/.local/state/orca-weekend/<timestamp>.log, so the
+# weekend automation's agent can start it and close its own tab before the sleep pass.
+# Why coordinators are closed, not slept: the server is headless, and slept agents wake only when a
+# desktop app opens the worktree, so a Monday automation could not wake them.
+set -uo pipefail
+export PATH="$HOME/.local/bin:$PATH"
+
+go=0 wait_min=90
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --go) go=1 ;;
+    --wait-min) wait_min=${2:?--wait-min needs minutes}; shift ;;
+    *) echo "usage: orca-weekend [--go] [--wait-min N]" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+O="$HOME/.local/bin/orca"
+STATE="$HOME/.local/state/orca-weekend"
+mkdir -p "$STATE"
+
+if [ "$go" -eq 1 ] && [ -z "${ORCA_WEEKEND_DETACHED:-}" ]; then
+  log="$STATE/$(date +%F-%H%M%S).log"
+  ORCA_WEEKEND_DETACHED=1 setsid nohup "$0" --go --wait-min "$wait_min" >"$log" 2>&1 </dev/null &
+  echo "orca-weekend: running detached (pid $!); log $log"
+  exit 0
+fi
+# Let the automation agent that started us close its tab first.
+[ -n "${ORCA_WEEKEND_DETACHED:-}" ] && sleep 20
+
+WIND="Weekend wind-down: start no new workers. Wait for running workers to report done and release them; stop any that cannot finish within the hour. Then write the Run id and the remaining tasks to a handoff note, end any background waits, and stop."
+
+terms=$("$O" terminal list --json </dev/null) || { echo "orca-weekend: orca terminal list failed" >&2; exit 1; }
+runs=$("$O" orchestration run-list --json </dev/null) || { echo "orca-weekend: orca orchestration run-list failed" >&2; exit 1; }
+
+# run, coordinator handle, worktree path, tab title — only Runs whose coordinator tab is live Claude.
+coords=$(jq -rn --argjson t "$terms" --argjson r "$runs" '
+  ($t.result.terminals
+    | map(select((.orphaned | not) and .agentIdentity == "claude") | {key: .handle, value: .})
+    | from_entries) as $live
+  | $r.result.runs[]
+  | select(.coordinator_handle != null and $live[.coordinator_handle] != null)
+  | [.id, .coordinator_handle, $live[.coordinator_handle].worktreePath,
+     ($live[.coordinator_handle].title // "coordinator")] | @tsv')
+
+# Prints "pid<TAB>sessionId<TAB>cwd" for the Claude process running in a terminal handle.
+session_for() {
+  local pid
+  for pid in $(pgrep -x claude); do
+    tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "ORCA_TERMINAL_HANDLE=$1" || continue
+    jq -er --arg p "$pid" '[$p, .sessionId, .cwd] | @tsv' "$HOME/.claude/sessions/$pid.json" 2>/dev/null && return 0
+  done
+  return 1
+}
+active_workers() {
+  "$O" orchestration worker-list --run "$1" --terminal-state active --json </dev/null \
+    | jq -r '.result.workers[] | .resource.worktreeId // "" | split("::")[1] // ""'
+}
+idle_since() { # pid, epoch ms
+  jq -e --argjson t "$2" '.status == "idle" and (.statusUpdatedAt // 0) >= $t' \
+    "$HOME/.claude/sessions/$1.json" >/dev/null 2>&1
+}
+
+declare -A c_handle c_wt c_title c_pid c_sid c_cwd
+order=()
+while IFS=$'\t' read -r run handle wt title; do
+  [ -n "$run" ] || continue
+  if ! s=$(session_for "$handle"); then
+    echo "skip         $run  (no Claude process for coordinator $handle)"
+    continue
+  fi
+  IFS=$'\t' read -r pid sid cwd <<<"$s"
+  c_handle[$run]=$handle c_wt[$run]=$wt c_title[$run]=$title c_pid[$run]=$pid c_sid[$run]=$sid c_cwd[$run]=$cwd
+  order+=("$run")
+  n=$(active_workers "$run" | grep -c . || true)
+  echo "coordinator  $run  $wt  (session $sid, $n active workers)"
+done <<<"$coords"
+
+if [ "$go" -eq 0 ]; then
+  [ ${#order[@]} -gt 0 ] && echo "would send the wind-down prompt to each coordinator above, wait up to $wait_min min, then close it"
+  orca-sleep-idle --idle-min 0
+  exit 0
+fi
+
+# 1. Wind down coordinators.
+sent_at=$(( $(date +%s) * 1000 ))
+for run in "${order[@]}"; do
+  if "$O" terminal send --terminal "${c_handle[$run]}" --text "$WIND" --enter --wait-submit 15 --json </dev/null >/dev/null; then
+    echo "sent         $run  wind-down prompt"
+  else
+    echo "failed       $run  could not send the wind-down prompt; leaving it awake"
+    unset 'c_handle[$run]'
+  fi
+done
+
+declare -A keep_awake
+deadline=$(( $(date +%s) + wait_min * 60 ))
+pending=("${order[@]}")
+while [ ${#pending[@]} -gt 0 ]; do
+  still=()
+  for run in "${pending[@]}"; do
+    [ -n "${c_handle[$run]:-}" ] || continue
+    if [ -z "$(active_workers "$run")" ] && idle_since "${c_pid[$run]}" "$sent_at"; then
+      jq -nc --arg run "$run" --arg wt "${c_wt[$run]}" --arg cwd "${c_cwd[$run]}" \
+        --arg session "${c_sid[$run]}" --arg title "${c_title[$run]}" --arg at "$(date -Is)" \
+        '{run: $run, worktree: $wt, cwd: $cwd, session: $session, title: $title, at: $at}' >>"$STATE/pending.jsonl"
+      "$O" terminal close --terminal "${c_handle[$run]}" </dev/null >/dev/null \
+        && echo "closed       $run  recorded for orca-weekend-resume" \
+        || echo "failed       $run  recorded, but closing its tab failed: close it by hand"
+    else
+      still+=("$run")
+    fi
+  done
+  pending=("${still[@]}")
+  [ ${#pending[@]} -eq 0 ] && break
+  if [ "$(date +%s)" -ge "$deadline" ]; then
+    for run in "${pending[@]}"; do
+      echo "awake        $run  not wound down after $wait_min min; it and its workers stay awake"
+      keep_awake[${c_wt[$run]}]=1
+      while read -r w; do [ -n "$w" ] && keep_awake[$w]=1; done < <(active_workers "$run")
+    done
+    break
+  fi
+  sleep 60
+done
+for run in "${order[@]}"; do [ -n "${c_handle[$run]:-}" ] || keep_awake[${c_wt[$run]}]=1; done
+
+# 2. Sleep every idle worktree that is not held awake.
+orca-sleep-idle --idle-min 0 | while IFS= read -r line; do
+  case "$line" in
+    "would sleep  "*)
+      top=${line#would sleep  }; top=${top%%  (*}
+      if [ -n "${keep_awake[$top]:-}" ]; then
+        echo "awake        $top  (unfinished orchestration)"
+      elif out=$(orca-sleep "$top" 2>&1); then
+        echo "slept        $top"
+      else
+        echo "failed       $top  ($out)"
+      fi ;;
+    *) echo "$line" ;;
+  esac
+done
+echo "orca-weekend: done at $(date -Is)"

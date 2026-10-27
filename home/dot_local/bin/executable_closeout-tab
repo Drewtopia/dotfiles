@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# closeout-tab <session-name>... — run /close in each named Claude tab through Orca, wait until the
+# tab's transcript ends on /close's status line (Done. / Parked: / Waiting on you:), then close the
+# tab only if that line is Done. and `session-done` passes for its worktree. A closed tab's card moves
+# to completed and its worktree stays, so finished work shows in Orca's Done column. Any other tab stays
+# open and is reported with the sleep command: closing drops Orca's resume record, so unfinished
+# work is slept, never closed. --dry-run lists only.
+set -uo pipefail
+dry=0; timeout_s=${CLOSEOUT_TIMEOUT:-600}
+[[ ${1:-} == --dry-run ]] && { dry=1; shift; }
+[[ $# -gt 0 ]] || { echo "usage: closeout-tab [--dry-run] <session-name>..." >&2; exit 2; }
+
+for name in "$@"; do
+  pid="" sid=""
+  for f in ~/.claude/sessions/*.json; do
+    p=$(basename "$f" .json)
+    [[ -d /proc/$p ]] || continue
+    if [[ $(jq -r .name "$f" 2>/dev/null) == "$name" ]]; then pid=$p; sid=$(jq -r .sessionId "$f"); break; fi
+  done
+  [[ -n $pid ]] || { echo "$name: not running"; continue; }
+  handle=$(tr '\0' '\n' < "/proc/$pid/environ" | sed -n 's/^ORCA_TERMINAL_HANDLE=//p')
+  [[ -n $handle ]] || { echo "$name: no Orca terminal, left open"; continue; }
+  # The open-loops mod doesn't save for every session, so read the tab's own transcript: /close
+  # ends its reply with a status block whose last line is Done. / Parked: / Waiting on you:.
+  transcript=$(ls -t ~/.claude/projects/*/"$sid".jsonl 2>/dev/null | head -1)
+  [[ -n $transcript ]] || { echo "$name: no transcript found, left open"; continue; }
+  since=$(date -u +%Y-%m-%dT%H:%M:%S)
+  if (( dry )); then echo "$name: would /close then close $handle (transcript $transcript)"; continue; fi
+
+  orca terminal send --terminal "$handle" --text "/close" --enter --wait-submit 10 --json >/dev/null \
+    || { echo "$name: /close not delivered, left open"; continue; }
+  waited=0 status=""
+  while (( waited < timeout_s )); do
+    status=$(jq -r --arg since "$since" 'select(.type=="assistant" and .timestamp >= $since)
+        | [.message.content[]? | select(.type=="text") | .text] | join("\n")' "$transcript" 2>/dev/null \
+      | grep -v '^\s*$' | tail -1 | grep -E '^(Done\.|Parked:|Waiting on you:)' | cut -c1-200)
+    [[ -n $status ]] && break
+    sleep 10; waited=$((waited + 10))
+  done
+  wt=$(git -C "$(readlink "/proc/$pid/cwd")" rev-parse --show-toplevel 2>/dev/null)
+  # A merged stream's tab can only say "press Land". The repo's own `land` alias decides whether the
+  # branch is merged; with --keep=1 it marks the card completed and keeps the worktree, so the tab can
+  # stay open while it runs and the card stays in the Done column. Only when Land is the whole ask:
+  # "paste X, then press Land" or "(+N more above)" keeps the tab open, because closing it hides the
+  # other asks before Drew reads them. A refused land falls through and leaves the tab open.
+  if [[ $status =~ ^Waiting\ on\ you:\ [Pp]ress\ Land && $status != *"(+"* && -n $wt \
+    && -z $(git -C "$wt" status --porcelain) ]] && landed=$(wt -C "$wt" step land --keep=1 2>&1); then
+    orca terminal close --terminal "$handle" --json >/dev/null && echo "$name: closed — landed; $(tail -1 <<<"$landed")" \
+      || echo "$name: landed but close failed, left open"
+    continue
+  fi
+  if [[ -n $status && $status != Done.* ]]; then
+    echo "$name: left open — $status (sleep instead: orca-sleep $wt)"
+  elif [[ -n $status ]] && ! done=$(session-done "$wt" 2>&1); then
+    echo "$name: left open — session said Done. but its worktree is not: $(tr '\n' ' ' <<<"$done") (sleep instead: orca-sleep $wt)"
+  elif [[ -n $status ]]; then
+    # The card goes to Done and the worktree stays, so it shows there until it is removed.
+    orca worktree set --worktree "path:$wt" --workspace-status completed >/dev/null 2>&1 \
+      || echo "$name: card not marked completed"
+    orca terminal close --terminal "$handle" --json >/dev/null && echo "$name: closed — $status" \
+      || echo "$name: status saved ($status) but close failed, left open"
+  else
+    echo "$name: no status saved after ${timeout_s}s, left open"
+  fi
+done
