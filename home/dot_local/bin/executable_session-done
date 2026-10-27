@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # session-done <worktree-path> — is this stream finished, so a closer may close or remove it?
 # Exit 0, "done: <why>": merged into the trunk, clean, nothing waiting on Drew. Safe to close.
-# Exit 3, "parked: <why>": Drew or its last session parked it (Orca status `parked`, or a
-#   closing `Parked:` line). The EOD sweep stops chasing it, but it is unfinished: sleep, never close.
+# Exit 3, "parked: <why>": its last session ended on a `Parked:` line. The EOD sweep stops chasing
+#   it, but it is unfinished: sleep, never close.
 # Exit 1, "not-done:": one "- <reason>" line per blocker. Exit 2 on bad use.
-# Closers (closeout-tab, capacity-guard, eod-apply) close only on exit 0.
+# Closers (closeout-tab, eod-apply) close only on exit 0.
 # Read-only. Fetch first: merge state is read from the remote-tracking trunk as it is.
 set -uo pipefail
 
@@ -15,10 +15,7 @@ wt=$(cd "$1" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null) \
 reasons=() parked=""
 card=$(orca worktree list --json 2>/dev/null \
   | jq -c --arg p "$wt" '[.. | objects | select(.path? == $p)][0] // {}')
-status=$(jq -r '.workspaceStatus // ""' <<<"$card")
 comment=$(jq -r '.comment // ""' <<<"$card")
-
-[ "$status" = parked ] && parked="Orca status parked"
 
 case "$comment" in
   waiting:*|NEEDS-DREW:*) reasons+=("card says: ${comment:0:120}") ;;
