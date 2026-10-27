@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# orca-weekend-resume [--dry-run] — reopens each coordinator orca-weekend closed: a new tab in its
+# worktree running `claude --resume <session> "<resume prompt>"`, so it carries on with its Run.
+# The weekend-resume automation runs this as its precheck. It always exits non-zero, so that
+# automation never starts an agent: this script is the whole job. Records that reopen move to
+# ~/.local/state/orca-weekend/done-<timestamp>.jsonl; ones that fail stay in pending.jsonl.
+set -uo pipefail
+
+O="$HOME/.local/bin/orca"
+STATE="$HOME/.local/state/orca-weekend"
+P="$STATE/pending.jsonl"
+dry=0
+case "${1:-}" in
+  --dry-run) dry=1 ;;
+  '') ;;
+  *) echo "usage: orca-weekend-resume [--dry-run]" >&2; exit 2 ;;
+esac
+
+[ -s "$P" ] || { echo "orca-weekend-resume: nothing to resume"; exit 1; }
+
+done_file="$STATE/done-$(date +%F-%H%M%S).jsonl"
+retry="$P.retry"
+: >"$retry"
+while IFS= read -r rec; do
+  [ -n "$rec" ] || continue
+  run=$(jq -r .run <<<"$rec") wt=$(jq -r .worktree <<<"$rec") cwd=$(jq -r .cwd <<<"$rec")
+  sid=$(jq -r .session <<<"$rec") title=$(jq -r .title <<<"$rec")
+  prompt="Weekend over. Resume Run $run: check run-show, task-list and inbox, then start workers for the ready tasks and retry any you stopped before the weekend."
+  cmd="cd $(printf %q "$cwd") && claude --resume $(printf %q "$sid") $(printf %q "$prompt")"
+  if [ "$dry" -eq 1 ]; then
+    echo "would resume $run  in $wt: $cmd"
+  elif "$O" terminal create --worktree "path:$wt" --title "$title" --command "$cmd" --json </dev/null >/dev/null; then
+    echo "resumed      $run  in $wt"
+    echo "$rec" >>"$done_file"
+  else
+    echo "failed       $run  in $wt; kept for the next run"
+    echo "$rec" >>"$retry"
+  fi
+done <"$P"
+
+if [ "$dry" -eq 1 ]; then
+  rm -f "$retry"
+elif [ -s "$retry" ]; then
+  mv "$retry" "$P"
+else
+  rm -f "$retry" "$P"
+fi
+exit 1
