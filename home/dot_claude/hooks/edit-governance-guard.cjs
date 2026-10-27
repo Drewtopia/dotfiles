@@ -17,8 +17,9 @@ const GOVERNED = [
     /\/lefthook[^/]*\.ya?ml$/,
     /\/\.moon\//,
     /\/SKILL\.md$/,
-    /\/(dot_claude|\.claude)\/(rules|hooks|skills|commands|mods)\//,
-    /\/(dot_claude|\.claude)\/[^/]*settings[^/]*\.json(\.tmpl)?$/,
+    // `.claude-<name>` is a CLAUDE_CONFIG_DIR config, governed like `~/.claude`.
+    /\/(dot_claude|\.claude(-[\w.-]+)?)\/(rules|hooks|skills|commands|mods)\//,
+    /\/(dot_claude|\.claude(-[\w.-]+)?)\/[^/]*settings[^/]*\.json(\.tmpl)?$/,
     /\/\.chezmoitemplates\/claude-settings-merge$/,
     /\/\.claude\/governance-unlock(\/|$)/,
     /\/\.?claude-vault\/(?:[^/]+\/)?(?:rules|mods|\.githooks)\//,
