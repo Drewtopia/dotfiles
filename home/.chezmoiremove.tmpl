@@ -116,3 +116,12 @@
 # Retired: orca-new opens sessions; `orca reference add` links Azure PRs.
 .local/bin/wt-open
 .local/bin/orca-link-azure-pr
+
+# Retired for native tools: `wt switch --create` makes a worktree and `orca agent launch`
+# opens its session, `wt step prune` removes merged worktrees, Claude Code keeps every
+# session's transcript.
+.local/bin/orca-new
+.local/bin/wt-reap
+.local/bin/wt-sweep-agents
+.local/bin/claude-log-session
+.local/bin/claude-tail

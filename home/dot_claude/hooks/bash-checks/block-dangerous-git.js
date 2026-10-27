@@ -118,7 +118,7 @@ function run(input, deps = {}) {
         if (reason) return block(reason);
         if (movesBranch(call, refCheck) && primary(call.cwd)) {
             return block(
-                `'${call.text}' would move the branch of a primary checkout that has worktrees. Open the branch with 'orca-new <branch> --prompt-file <brief>' (stash first to carry uncommitted work).`,
+                `'${call.text}' would move the branch of a primary checkout that has worktrees. Open the branch in its own worktree: 'wt switch --create <branch> --no-cd', then 'orca agent launch --agent claude --worktree branch:<branch>' (stash first to carry uncommitted work).`,
             );
         }
     }
