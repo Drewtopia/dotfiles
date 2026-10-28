@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Quick close runs every time and stays short: a heavy closeout is a closeout that gets skipped. Full extras run only when their trigger is present, or when invoked as `/close full`.
 
-`/close` ends this session only; other sessions in the same worktree carry on. The stream ends when its PR merges and Drew presses **Land** on the `merge-watch` band. In a repo whose worktrunk config defines the `land` alias, that runs `wt step land`, which refuses while a Claude session runs in the worktree, closes the `gh<n>` issue, marks the Orca card completed and removes the worktree; elsewhere Drew runs `wt remove <branch>`. Either way `/close` never removes a worktree or closes a stream's issue; an issue whose branch carries no `gh<n>` is closed by `/reconcile-tracker`.
+`/close` ends this session only; other sessions in the same worktree carry on. The stream ends when its PR merges and Land runs: `closeout-tab` runs it after closing the stream's last tab, or Drew presses **Land** on the `merge-watch` band. In a repo whose worktrunk config defines the `land` alias, that runs `wt step land`, which refuses while a Claude session runs in the worktree, closes the `gh<n>` issue, marks the Orca card completed and removes the worktree; elsewhere it is `wt remove <branch>`. Either way `/close` never removes a worktree or closes a stream's issue, and a merged worktree waiting for Land is not an open item: with nothing else left, the block is `Done.`; an issue whose branch carries no `gh<n>` is closed by `/reconcile-tracker`.
 
 Where things live after a close:
 
@@ -44,6 +44,7 @@ Read back through the session once for what future work needs:
 - **Decisions, insights, references** worth keeping → the memory file that owns them (table below).
 - **Decisions with no durable home yet** — a scope call, a design choice, a deferred question → name the command that gives it one: `/to-spec` or `/re-spec` for a spec, `/to-tickets` or `/re-ticket` for tickets, `/edit-governance` for an ADR or rule. It gets its own line in the status block (step 3).
 - **Open tasks** → a line each in the status block (step 3), or a tracker issue, not memory.
+- **Follow-ups** — a finding outside this session's task, or a task it will not finish → file it now under the repo's filing rules. Check for a duplicate first: search open and closed issues for the finding's key terms (file name, error text, ticket number), e.g. `gh issue list --state all --search "<terms>"`. A match gets a comment with the new evidence (a closed match is reopened when the finding shows it is back); only no match opens a new issue. A product bug for a person to file (an Azure bug) stays a draft. Never leave Drew to pick which to file; a `Waiting on you:` line is only for an ask no agent can do.
 - **Context the next session needs** (findings, a half-done approach, why a step is blocked) → a comment on the stream's issue (`gh issue comment <n>`, plus `--repo` when the tracker is its own repo), never a `/tmp` or scratch handoff file. `/handoff` is only for a new directory, a new harness or a colleague.
 
 Skip ephemeral debugging steps, retracted ideas, and anything obvious from the diff. Nothing worth keeping is a valid result: say "no notes".
@@ -100,11 +101,11 @@ List everything this session created, changed, or started outside the commits �
 - **Landed** — merged, closed, released, verified on the remote.
 - **In flight** — waiting on review, CI, a pipeline, or a person; name who or what.
 - **Debris** — a remote scratch branch this session pushed, a temp file, an idle process or container, a stale comment this session wrote.
-- **Out of scope** — a finding that deserves its own tracker issue. Draft the title and one-paragraph body now, while the context is live; file it on confirm.
+- **Out of scope** — a finding that deserves its own tracker issue. File it now, while the context is live, as step 2's **Follow-ups** says.
 
 Clean up **Debris** without asking, since the live check already showed it finished or idle: `git push origin --delete <branch>` for a scratch branch, and stop or delete the process, container or temp file. A stale comment is proposed in the report, not deleted. Anything another agent made stays put and is named in the report; a step a hook blocks goes in the report as one `!` command for Drew.
 
-Report the sorted list: what was cleaned, what is in flight and who it waits on, and the out-of-scope drafts to file on confirm.
+Report the sorted list: what was cleaned, what is in flight and who it waits on, and the issues filed or commented on.
 
 ## Report
 
@@ -121,5 +122,6 @@ Drop any segment whose step didn't run rather than printing `0`. Then a `/rename
 - Every new memory file opens with `type:`, `title:` and `description:` frontmatter, and the vault's indexes were regenerated.
 - Counter line reflects actual counts, not aspirational ones.
 - The reply ends on the status block: one line per unfinished item, the first item last with `(+<N> more above)` when others sit above it, and every `Parked:` line opens with a runnable command.
+- No follow-up is left for Drew to pick: each is filed, or is a `Waiting on you:` ask only a person can do.
 - No `/tmp` or scratch handoff file was written for this repo; the remember slot is empty.
 - If the session touched vault or chezmoi source: both repos clean and pushed.
