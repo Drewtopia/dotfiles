@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+# orca-recover [--dry-run]: after the machine crashes or restarts, reopen every Claude session
+# that was running in the previous boot, each in an Orca tab in its own worktree.
+# gap: Orca's restore after an unclean shutdown starts empty `claude` tabs, and its own
+# `claude --resume` attempts can exit at once; Sleep and hibernation save only workspaces put to
+# sleep first. Claude keeps ~/.claude/sessions/<pid>.json while a session runs and leaves it
+# behind on a crash, so those files list what was open.
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+CLAUDE = Path.home() / ".claude"
+ORCA = os.environ.get("ORCA_CLI_COMMAND") or str(Path.home() / ".local/bin/orca")
+PROMPT = (
+    "The machine restarted, so WSL, your background tasks and subagents stopped. "
+    "Re-check git, PR and run state. If you were mid-task, carry on. "
+    "If you were waiting on Drew, say what for in one line and stop."
+)
+TICKS = os.sysconf("SC_CLK_TCK")
+
+
+def boot_time() -> float:
+    for line in Path("/proc/stat").read_text().splitlines():
+        if line.startswith("btime "):
+            return float(line.split()[1])
+    raise SystemExit("orca-recover: no btime in /proc/stat")
+
+
+def alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def sessions() -> list[dict]:
+    out = []
+    for f in (CLAUDE / "sessions").glob("*.json"):
+        try:
+            s = json.loads(f.read_text())
+            # procStart is the process start in clock ticks after boot, so this is the boot time.
+            s["boot"] = s["startedAt"] / 1000 - int(s["procStart"]) / TICKS
+        except (ValueError, KeyError, TypeError, OSError):
+            continue
+        if s.get("kind") == "interactive" and s.get("entrypoint") == "cli":
+            out.append(s)
+    return out
+
+
+def transcript(sid: str) -> Path | None:
+    return next((CLAUDE / "projects").glob(f"*/{sid}.jsonl"), None)
+
+
+def details(path: Path, fallback_cwd: str) -> tuple[str, str]:
+    """The directory the session was launched from (where --resume finds it), and its title."""
+    project = path.parent.name
+    cwd, title = None, ""
+    with path.open(errors="ignore") as fh:
+        for line in fh:
+            if '"cwd"' not in line and "title" not in line:
+                continue
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            c = d.get("cwd")
+            if cwd is None and c and re.sub(r"[^A-Za-z0-9]", "-", c) == project:
+                cwd = c
+            title = d.get("customTitle") or d.get("aiTitle") or title
+    return cwd or fallback_cwd, title
+
+
+def main() -> int:
+    if sys.argv[1:] not in ([], ["--dry-run"]):
+        print("usage: orca-recover [--dry-run]", file=sys.stderr)
+        return 2
+    dry = sys.argv[1:] == ["--dry-run"]
+
+    now_boot = boot_time()
+    all_s = sessions()
+    running = {s["sessionId"] for s in all_s if abs(s["boot"] - now_boot) < 120 and alive(s["pid"])}
+    earlier = [s for s in all_s if s["boot"] < now_boot - 120]
+    if not earlier:
+        print("orca-recover: no sessions from an earlier boot")
+        return 1
+    last_boot = max(s["boot"] for s in earlier)
+    latest: dict[str, dict] = {}
+    for s in earlier:
+        if abs(s["boot"] - last_boot) < 120:
+            if s["sessionId"] not in latest or s["updatedAt"] > latest[s["sessionId"]]["updatedAt"]:
+                latest[s["sessionId"]] = s
+
+    failed = 0
+    for sid, s in sorted(latest.items(), key=lambda kv: kv[1]["updatedAt"]):
+        name = s.get("name") or sid[:8]
+        if sid in running:
+            print(f"running   {name}: already open")
+            continue
+        path = transcript(sid)
+        if path is None:
+            print(f"skipped   {name}: never used, no transcript")
+            continue
+        cwd, title = details(path, s["cwd"])
+        title = (title or name)[:40]
+        top = subprocess.run(["git", "-C", cwd, "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True)
+        worktree = top.stdout.strip() if top.returncode == 0 else cwd
+        cmd = f"cd {shlex.quote(cwd)} && claude --resume {sid} {shlex.quote(PROMPT)}"
+        if dry:
+            print(f"would open {title}  in {worktree}")
+            continue
+        r = subprocess.run([ORCA, "terminal", "create", "--worktree", f"path:{worktree}",
+                            "--title", title, "--command", cmd, "--json"],
+                           capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        ok = r.returncode == 0 and json.loads(r.stdout or "{}").get("ok")
+        if ok:
+            print(f"opened    {title}  in {worktree}")
+        else:
+            failed += 1
+            print(f"failed    {title}  in {worktree}; open it by hand: {cmd}")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
