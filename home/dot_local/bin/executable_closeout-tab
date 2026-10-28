@@ -2,13 +2,22 @@
 # closeout-tab <session-name>... — run /close in each named Claude tab through Orca, wait until the
 # tab's transcript ends on /close's status line (Done. / Parked: / Waiting on you:), then close the
 # tab only if that line is Done. and `session-done` passes for its worktree. A closed tab's card moves
-# to completed and its worktree stays, so finished work shows in Orca's Done column. Any other tab stays
+# to completed; once the tab has exited, Land removes the worktree if its branch is merged and no other
+# session runs there, otherwise the worktree stays in Orca's Done column. Any other tab stays
 # open and is reported with the sleep command: closing drops Orca's resume record, so unfinished
 # work is slept, never closed. --dry-run lists only.
 set -uo pipefail
 dry=0; timeout_s=${CLOSEOUT_TIMEOUT:-600}
 [[ ${1:-} == --dry-run ]] && { dry=1; shift; }
 [[ $# -gt 0 ]] || { echo "usage: closeout-tab [--dry-run] <session-name>..." >&2; exit 2; }
+
+# Land refuses while any Claude session runs in the worktree or the branch is unmerged; either way
+# the worktree stays and the reason is printed.
+land_worktree() {
+  local name=$1 pid=$2 wt=$3 i
+  for i in 1 2 3 4 5 6 7 8 9 10; do [[ -d /proc/$pid ]] || break; sleep 1; done
+  echo "$name: land — $(wt -C "$wt" step land 2>&1 | tail -1)"
+}
 
 for name in "$@"; do
   pid="" sid=""
@@ -33,7 +42,7 @@ for name in "$@"; do
   while (( waited < timeout_s )); do
     status=$(jq -r --arg since "$since" 'select(.type=="assistant" and .timestamp >= $since)
         | [.message.content[]? | select(.type=="text") | .text] | join("\n")' "$transcript" 2>/dev/null \
-      | grep -v '^\s*$' | tail -1 | grep -E '^(Done\.|Parked:|Waiting on you:)' | cut -c1-200)
+      | grep -v '^\s*$' | tail -1 | tr -d '*' | grep -E '^(Done\.|Parked:|Waiting on you:)' | cut -c1-200)
     [[ -n $status ]] && break
     sleep 10; waited=$((waited + 10))
   done
@@ -46,7 +55,7 @@ for name in "$@"; do
   if [[ $status =~ ^Waiting\ on\ you:\ [Pp]ress\ Land && $status != *"(+"* && -n $wt \
     && -z $(git -C "$wt" status --porcelain) ]] && landed=$(wt -C "$wt" step land --keep=1 2>&1); then
     orca terminal close --terminal "$handle" --json >/dev/null && echo "$name: closed — landed; $(tail -1 <<<"$landed")" \
-      || echo "$name: landed but close failed, left open"
+      && land_worktree "$name" "$pid" "$wt" || echo "$name: landed but close failed, left open"
     continue
   fi
   if [[ -n $status && $status != Done.* ]]; then
@@ -54,11 +63,10 @@ for name in "$@"; do
   elif [[ -n $status ]] && ! done=$(session-done "$wt" 2>&1); then
     echo "$name: left open — session said Done. but its worktree is not: $(tr '\n' ' ' <<<"$done") (sleep instead: orca-sleep $wt)"
   elif [[ -n $status ]]; then
-    # The card goes to Done and the worktree stays, so it shows there until it is removed.
     orca worktree set --worktree "path:$wt" --workspace-status completed >/dev/null 2>&1 \
       || echo "$name: card not marked completed"
     orca terminal close --terminal "$handle" --json >/dev/null && echo "$name: closed — $status" \
-      || echo "$name: status saved ($status) but close failed, left open"
+      && land_worktree "$name" "$pid" "$wt" || echo "$name: status saved ($status) but close failed, left open"
   else
     echo "$name: no status saved after ${timeout_s}s, left open"
   fi
