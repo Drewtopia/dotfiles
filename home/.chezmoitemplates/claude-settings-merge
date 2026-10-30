@@ -354,6 +354,8 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   | .enabledPlugins["session-report@claude-plugins-official"] = false
   | .enabledPlugins["humanizer@humanizer"] = false
   | .enabledPlugins["andrej-karpathy-skills@karpathy-skills"] = false
+  # Caveman is uninstalled; the floor merge never drops a key, so remove its leftovers.
+  | del(.enabledPlugins["caveman@caveman"], .extraKnownMarketplaces.caveman)
   # Attribution stays off in every form. sessionUrl defaults to true and the
   # deprecated includeCoAuthoredBy never covered it, so web and Remote Control
   # commits still carried a session trailer. Pin the whole object (runtime wins

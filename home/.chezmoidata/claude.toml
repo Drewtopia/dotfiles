@@ -1,9 +1,8 @@
 # Read by run_onchange_after_55-add-claude-marketplaces and by
 # claude-settings-merge (extraKnownMarketplaces). Topgrade refreshes them.
-# <short-name> = "<owner/repo>"; the short name is the "@caveman" in plugin refs.
+# <short-name> = "<owner/repo>"; the short name is the "@mattpocock" in plugin refs.
 
 [marketplaces]
-caveman                   = "JuliusBrussee/caveman"
 "claude-plugins-official" = "anthropics/claude-plugins-official"
 "i-have-adhd"             = "ayghri/i-have-adhd"
 "karpathy-skills"         = "forrestchang/andrej-karpathy-skills"
@@ -56,7 +55,6 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # pr-review-toolkit ships the same code-simplifier agent.
 "code-simplifier@claude-plugins-official" = false
 "plugin-dev@claude-plugins-official"      = false
-"caveman@caveman"                         = false
 "pr-review-toolkit@claude-plugins-official" = true
 # Ships the stable engineering/ + productivity/ skills; the rest of the repo
 # stays on the `npx skills` path in .chezmoidata/skills.yaml.

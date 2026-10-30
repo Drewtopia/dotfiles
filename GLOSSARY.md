@@ -4,7 +4,7 @@ Vocabulary for this dotfiles repo. Use these terms exactly in code, commits, com
 
 ## Plugin Management
 
-- **marketplace** — A Claude Code plugin marketplace. Identified by a short name (e.g. `caveman`) that maps to a GitHub source repo (e.g. `JuliusBrussee/caveman`). Declared in `home/.chezmoidata/claude.toml` under `[marketplaces]`.
+- **marketplace** — A Claude Code plugin marketplace. Identified by a short name (e.g. `mattpocock`) that maps to a GitHub source repo (e.g. `mattpocock/skills`). Declared in `home/.chezmoidata/claude.toml` under `[marketplaces]`.
   - Marketplaces are **not** profile-gated. The marketplace-update script registers all of them on every machine because registration is cheap and side-effect-free. Profile gating happens at the plugin layer (which plugins from a marketplace get *enabled*), not at the marketplace layer.
 
 - **plugin** — A unit installed from a marketplace, addressed as `<plugin-name>@<marketplace-name>`. Plugins are *enabled* (used by Claude Code) or *opted out of* (explicit `false`) via `enabledPlugins` in `home/dot_claude/settings.json.tmpl`.
