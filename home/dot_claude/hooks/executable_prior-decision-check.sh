@@ -72,10 +72,11 @@ for p in "${paths[@]}"; do
 done
 [ ${#names[@]} -gt 0 ] || exit 0
 # A command that names one file twice gets one section for it.
-mapfile -t names < <(printf '%s\n' "${names[@]}" | sort -u)
+sorted=(); while IFS= read -r l; do sorted+=("$l"); done < <(printf '%s\n' "${names[@]}" | sort -u)
+names=("${sorted[@]}")
 
-mapfile -t files < <(find "$HOME/.claude/projects" -name '*.jsonl' -mmin -2880 -not -name "$sid.jsonl" \
-  -not -path "*/$sid/*" 2>/dev/null)
+files=(); while IFS= read -r -d '' f; do files+=("$f"); done < <(find "$HOME/.claude/projects" -name '*.jsonl' \
+  -mmin -2880 -not -name "$sid.jsonl" -not -path "*/$sid/*" -print0 2>/dev/null)
 [ ${#files[@]} -gt 0 ] || exit 0
 
 decision='delet|retir|remov|\bcut\b|replac|drop|revert|decid|\bkeep\b|\bkept\b|never|stays|no longer|instead'
@@ -83,7 +84,7 @@ report=""
 for n in "${names[@]}"; do
   echo "$n" >>"$seen"
   hits=$(printf '%s\0' "${files[@]}" | xargs -0 rg -l -F -- "$n" 2>/dev/null | while IFS= read -r f; do
-    s=$(basename "$f" .jsonl); case $f in */subagents/*) s=$(basename "$(dirname "$(dirname "$f")")") ;; esac
+    s=$(basename "$f" .jsonl); case $f in (*/subagents/*) s=$(basename "$(dirname "$(dirname "$f")")") ;; esac
     [ "$s" = "$sid" ] && continue
     jq -r --arg n "$n" --arg s "${s:0:8}" --arg d "$decision" '
       select(.type == "assistant" or .type == "user")
