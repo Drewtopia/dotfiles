@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-# orca-recover [--dry-run]: after the machine crashes or restarts, reopen every Claude session
-# that was running in the previous boot, each in an Orca tab in its own worktree.
+# orca-recover [--dry-run]: after the machine crashes or restarts, reopen the Claude sessions
+# that were mid-task in the previous boot (busy, running a background shell, or at a prompt),
+# each in an Orca tab in its own worktree. Idle sessions are not reopened: they are written to
+# ~/.local/state/orca-recover/<boot-time>.md with their last line and resume command.
 # gap: Orca's restore after an unclean shutdown starts empty `claude` tabs, and its own
 # `claude --resume` attempts can exit at once; Sleep and hibernation save only workspaces put to
 # sleep first. Claude keeps ~/.claude/sessions/<pid>.json while a session runs and leaves it
@@ -21,6 +23,8 @@ PROMPT = (
     "If you were waiting on Drew, say what for in one line and stop."
 )
 TICKS = os.sysconf("SC_CLK_TCK")
+ACTIVE = {"busy", "shell", "waiting"}
+STATE = Path.home() / ".local/state/orca-recover"
 
 
 def boot_time() -> float:
@@ -77,6 +81,24 @@ def details(path: Path, fallback_cwd: str) -> tuple[str, str]:
     return cwd or fallback_cwd, title
 
 
+def last_line(path: Path) -> str:
+    """The last line of Claude's last reply, which is usually its Next: or Parked: line."""
+    text = ""
+    with path.open(errors="ignore") as fh:
+        for line in fh:
+            if '"assistant"' not in line:
+                continue
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            for part in d.get("message", {}).get("content", []):
+                if isinstance(part, dict) and part.get("type") == "text" and part["text"].strip():
+                    text = part["text"]
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    return lines[-1][:300] if lines else ""
+
+
 def main() -> int:
     if sys.argv[1:] not in ([], ["--dry-run"]):
         print("usage: orca-recover [--dry-run]", file=sys.stderr)
@@ -98,6 +120,7 @@ def main() -> int:
                 latest[s["sessionId"]] = s
 
     failed = 0
+    parked: list[str] = []
     for sid, s in sorted(latest.items(), key=lambda kv: kv[1]["updatedAt"]):
         name = s.get("name") or sid[:8]
         if sid in running:
@@ -113,6 +136,11 @@ def main() -> int:
                              capture_output=True, text=True)
         worktree = top.stdout.strip() if top.returncode == 0 else cwd
         cmd = f"cd {shlex.quote(cwd)} && claude --resume {sid} {shlex.quote(PROMPT)}"
+        if s.get("status") not in ACTIVE:
+            parked.append(f"- **{title}** ({worktree})\n  {last_line(path)}\n"
+                          f"  `cd {shlex.quote(cwd)} && claude --resume {sid}`")
+            print(f"parked    {title}: idle, not reopened")
+            continue
         if dry:
             print(f"would open {title}  in {worktree}")
             continue
@@ -125,6 +153,13 @@ def main() -> int:
         else:
             failed += 1
             print(f"failed    {title}  in {worktree}; open it by hand: {cmd}")
+    if parked and not dry:
+        STATE.mkdir(parents=True, exist_ok=True)
+        out = STATE / f"{int(now_boot)}.md"
+        out.write_text("# Sessions idle at the restart, not reopened\n\n" + "\n".join(parked) + "\n")
+        print(f"\n{len(parked)} idle sessions listed in {out}")
+    elif parked:
+        print(f"\n{len(parked)} idle sessions would be listed in {STATE}/<boot>.md")
     return 1 if failed else 0
 
 
