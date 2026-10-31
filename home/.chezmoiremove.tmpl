@@ -129,3 +129,7 @@
 # Retired 2026-10-27: every automation it prechecked was off and several checks were broken
 # (wt-reap and SESSION_TAILS.md were already gone).
 .local/bin/orca-pre
+
+# Replaced by T3 Code's own background service (`t3 service install`, com.t3tools.t3code.service).
+.local/bin/t3-serve-tailnet
+Library/LaunchAgents/com.drew.t3-serve.plist
