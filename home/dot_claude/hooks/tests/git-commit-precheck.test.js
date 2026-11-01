@@ -31,7 +31,16 @@ const PRIVATE = { WORK_EMPLOYER: 'Acmecorp', TAILNET_BASE_DOMAIN: 'example-home.
  * Runs the hook for `git commit -m <message>` in a fresh repo whose origin is GitHub and
  * whose staged file holds `content`. `visibility` is what `gh` answers ('fail' = offline).
  */
-function precheck({ content, visibility = 'PUBLIC', message = 'chore: update', remote, names = PRIVATE }) {
+function precheck({
+    content,
+    visibility = 'PUBLIC',
+    message = 'chore: update',
+    remote,
+    names = PRIVATE,
+    cached,
+    command,
+    files = {},
+}) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'precheck-'));
     const repo = path.join(tmp, 'repo');
     const bin = path.join(tmp, 'bin');
@@ -60,7 +69,18 @@ function precheck({ content, visibility = 'PUBLIC', message = 'chore: update', r
         { mode: 0o755 },
     );
 
-    const input = JSON.stringify({ tool_input: { command: `git commit -m "${message}"` } });
+    for (const [name, body] of Object.entries(files)) fs.writeFileSync(path.join(repo, name), body);
+    // `cached`: a visibility answer already in the hook's cache, `ageDays` old.
+    if (cached) {
+        const dir = path.join(tmp, 'cache', 'claude-hooks', 'repo-visibility');
+        fs.mkdirSync(dir, { recursive: true });
+        const file = path.join(dir, 'someone__pub');
+        fs.writeFileSync(file, `${cached.answer}\n`);
+        const when = Date.now() / 1000 - cached.ageDays * 86400;
+        fs.utimesSync(file, when, when);
+    }
+
+    const input = JSON.stringify({ tool_input: { command: command ?? `git commit -m "${message}"` } });
     const res = spawnSync('bash', [HOOK], {
         cwd: repo,
         input,
@@ -152,4 +172,20 @@ test("public repo: Drew's own issue references pass", () => {
 test("public repo: another owner's issue cited in a staged file passes", () => {
     const r = precheck({ content: `# workaround for ${sample.foreignIssue}` });
     assert.equal(r.code, 0, r.stderr);
+});
+
+test('a GitHub remote the parser cannot read is scanned as unknown, not private', () => {
+    const r = precheck({ content: sample.privateIp10, remote: 'ssh://git@github.com:22/someone/pub.git' });
+    assert.equal(r.code, 2, r.stderr);
+});
+
+test('a cached private answer lasts a day, and a stale one counts as unknown when gh fails', () => {
+    const fresh = precheck({ content: sample.privateIp10, visibility: 'fail', cached: { answer: 'PRIVATE', ageDays: 0.5 } });
+    assert.equal(fresh.code, 0, fresh.stderr);
+    assert.equal(fresh.ghCalls, '');
+    const stale = precheck({ content: sample.privateIp10, visibility: 'fail', cached: { answer: 'PRIVATE', ageDays: 2 } });
+    assert.equal(stale.code, 2, stale.stderr);
+    const refreshed = precheck({ content: sample.privateIp10, visibility: 'PRIVATE', cached: { answer: 'PRIVATE', ageDays: 2 } });
+    assert.equal(refreshed.code, 0, refreshed.stderr);
+    assert.match(refreshed.ghCalls, /someone\/pub/);
 });

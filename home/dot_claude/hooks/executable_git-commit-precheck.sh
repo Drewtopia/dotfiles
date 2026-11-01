@@ -34,27 +34,39 @@ STAGED_COUNT=$(git diff --cached --name-only --diff-filter=ACMR | wc -l)
 
 LEAK_RULES="$(dirname "${BASH_SOURCE[0]}")/public-leaks.gitleaks.toml"
 VISIBILITY_TTL_SECONDS=$((7 * 24 * 3600))
+# A repo made public since it was cached would skip the leak scan, so PRIVATE lasts a day.
+PRIVATE_TTL_SECONDS=$((24 * 3600))
 
 # PUBLIC, PRIVATE or INTERNAL for a GitHub origin; PRIVATE for anything else (no remote, Azure
-# DevOps), since only GitHub repos here are ever public. Answers are cached per repo for a week.
-# When gh can't answer (offline, logged out), a cached answer of any age is used; with none,
+# DevOps), since only GitHub repos here are ever public. A GitHub URL the parser can't read is
+# UNKNOWN. Answers are cached per repo, PRIVATE for a day and others for a week. When gh can't
+# answer (offline, logged out), a stale cached answer is used unless it is PRIVATE; with none,
 # the repo counts as public: a blocked commit is cheaper than a leak that gets pushed later.
 repo_visibility() {
-    local url slug cache answer
+    local url slug cache answer age ttl
     url=$(git remote get-url origin 2>/dev/null) || { echo PRIVATE; return; }
     slug=$(printf '%s' "$url" | sed -nE 's#^(https://|ssh://)?([^@/]+@)?github\.com[^:/]*[:/]([^/]+/[^/]+)$#\3#p')
     slug="${slug%.git}"
-    [[ -z "$slug" ]] && { echo PRIVATE; return; }
+    if [[ -z "$slug" ]]; then
+        [[ "$url" == *github* ]] && echo UNKNOWN || echo PRIVATE
+        return
+    fi
 
     cache="${XDG_CACHE_HOME:-$HOME/.cache}/claude-hooks/repo-visibility/${slug//\//__}"
-    if [[ -f "$cache" ]] && (( $(date +%s) - $(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache") < VISIBILITY_TTL_SECONDS )); then
-        cat "$cache"; return
+    if [[ -f "$cache" ]]; then
+        answer=$(cat "$cache")
+        age=$(( $(date +%s) - $(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache") ))
+        ttl=$VISIBILITY_TTL_SECONDS
+        [[ "$answer" == PRIVATE ]] && ttl=$PRIVATE_TTL_SECONDS
+        (( age < ttl )) && { echo "$answer"; return; }
     fi
     if answer=$(gh repo view "$slug" --json visibility -q .visibility 2>/dev/null) && [[ -n "$answer" ]]; then
         mkdir -p "$(dirname "$cache")" && printf '%s\n' "$answer" >"$cache"
         echo "$answer"; return
     fi
-    [[ -f "$cache" ]] && { cat "$cache"; return; }
+    if [[ -f "$cache" ]] && [[ "$(cat "$cache")" != PRIVATE ]]; then
+        cat "$cache"; return
+    fi
     echo "UNKNOWN"
 }
 
