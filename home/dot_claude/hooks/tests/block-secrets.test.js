@@ -443,7 +443,28 @@ test('git reads the file a -c value or commit -F names', () => {
         'git commit -F.env',
     ])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
-    for (const cmd of ['git commit -F msg.txt -- .env', 'git -c color.ui=never status .env'])
+});
+
+test('git is name-only just for a few listing subcommands with known options', () => {
+    for (const cmd of [
+        "GIT_PAGER='cat .env' git status",
+        'git --config-env=core.pager=X status .env',
+        'git commit -t .env',
+        'git commit -qF.env',
+        'git add --pathspec-from-file=.env',
+        'git commit -F msg.txt -- .env',
+        'git add .env',
+        'git mv .env x',
+        'git rm .env',
+        'git status --frobnicate .env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of [
+        'git status --short .env',
+        'git ls-files --error-unmatch .env',
+        'git rm --cached .env',
+        'git -C /srv/app check-ignore -v .env',
+    ])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
 });
 

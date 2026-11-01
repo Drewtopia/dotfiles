@@ -155,7 +155,40 @@ const NAME_ONLY = new Set([
     'du', 'wc', 'file', 'realpath', 'readlink', 'dirname', 'basename', 'echo', 'printf',
     'which', 'type',
 ]);
-const GIT_NAME_ONLY = new Set(['check-ignore', 'ls-files', 'status', 'add', 'rm', 'mv', 'commit']);
+// git subcommands that only list or untrack names, each with the options known to keep
+// them so. Any other option, a global one past -C, or an env prefix (GIT_PAGER, a
+// GIT_CONFIG_* include) counts every word as a read.
+const GIT_NAME_ONLY = {
+    'check-ignore': /^-(?:v|q|n|z)$|^--(?:verbose|quiet|non-matching|no-index)$/,
+    'ls-files': /^-[cdmosktvz]+$|^--(?:cached|deleted|modified|others|stage|exclude-standard|error-unmatch|full-name)$/,
+    status: /^-[sbuz]+$|^--(?:short|branch|porcelain(?:=v[12])?|long|ignored|untracked-files(?:=\w+)?)$/,
+    rm: /^-[rqn]+$|^--(?:cached|quiet|dry-run)$/,
+};
+
+function gitNamesOnly(rest) {
+    let j = 0;
+    while (rest[j] === '-C' || rest[j] === '--no-pager') j += rest[j] === '-C' ? 2 : 1;
+    const known = GIT_NAME_ONLY[rest[j]];
+    if (!known) return false;
+    const opts = [];
+    for (let m = j + 1; m < rest.length && rest[m] !== '--'; m++) if (rest[m].startsWith('-')) opts.push(rest[m]);
+    if (rest[j] === 'rm' && !opts.includes('--cached')) return false;
+    return opts.every(o => known.test(o));
+}
+
+/**
+ * git's words that may name a file: not the values of -m/--message, which are commit
+ * text, and a short-option cluster's attached value (`-qF<file>`) on its own.
+ */
+function gitReadWords(rest) {
+    const out = [];
+    for (let m = 0; m < rest.length; m++) {
+        if (/^(?:-m|--message)$/.test(rest[m])) m++;
+        else if (/^(?:-m.|--message=)/.test(rest[m])) continue;
+        else out.push(rest[m], ...(/^-[A-Za-z]/.test(rest[m]) ? [rest[m].replace(/^-[A-Za-z]+/, '')] : []));
+    }
+    return out;
+}
 // Their first operand is a pattern, filter or script, not a file.
 const GREPS = new Set(['grep', 'egrep', 'fgrep', 'rg', 'ag']);
 const PATTERN_FIRST = new Set([...GREPS, 'sed', 'awk', 'jq', 'yq']);
@@ -258,24 +291,11 @@ function readWords(words) {
         return { reads: [...reads, ...rest], nested: [] };
     if (NAME_ONLY.has(program)) return { reads: [...reads, ...optionFiles(program, rest)], nested: [] };
     if (program === 'git') {
-        // A -c value can name a file git reads (include.path) or a command it runs.
-        const configs = [];
-        let j = 0;
-        while (j < rest.length && rest[j].startsWith('-')) {
-            if (rest[j] === '-c') configs.push(rest[j + 1] || '');
-            j += /^-[Cc]$/.test(rest[j]) ? 2 : 1;
-        }
-        if (GIT_NAME_ONLY.has(rest[j])) {
-            // `commit -F <file>` reads the message from that file.
-            const messageFiles = [];
-            if (rest[j] === 'commit')
-                for (let m = j + 1; m < rest.length && rest[m] !== '--'; m++) {
-                    const file = rest[m].match(/^(?:-F|--file=)(.+)$/);
-                    if (file) messageFiles.push(file[1]);
-                    else if (/^(?:-F|--file)$/.test(rest[m])) messageFiles.push(rest[++m] || '');
-                }
-            return { reads: [...reads, ...configs, ...messageFiles], nested: [] };
-        }
+        const assigned = args.slice(0, k).some(a => /^[A-Za-z_]\w*=/.test(a));
+        if (!assigned && gitNamesOnly(rest)) return { reads, nested: [] };
+        // A commit message is text git never opens; every other word, an env prefix
+        // included, may be a file.
+        return { reads: [...reads, ...args.slice(0, k), ...gitReadWords(rest)], nested: [] };
     }
     if (PATTERN_FIRST.has(program)) {
         if (GREPS.has(program) && namesOnly(program, rest))
