@@ -79,12 +79,12 @@ One tool per job. A new script fills a gap none of these covers, and says which.
 | mise | Tools, non-secret environment, a project's environments and tasks |
 | worktrunk | Worktree lifecycle, hooks, and the work repo's `ship` / `land` / `sync` |
 | Orca | Agent sessions, the board, sleep, automations |
-| `closeout-tab`, `session-done` | Whether a stream is finished, so its tab may close |
+| `session-done` | Whether a stream is finished, so its tab may close |
 | `orca-sleep` | Sleep from a script (Orca's CLI has no sleep command) |
 | `orca-weekend` | Pausing and resuming coordinators over a weekend |
 
 Board columns, one writer each: a new worktree goes to in progress, `ship` to in review,
-`closeout-tab` or `land` to completed; `sync` leaves a completed card where it is. A card
+`land` to completed; `sync` leaves a completed card where it is. A card
 leaves the board when its worktree is removed.
 
 ## Releases and changelog
