@@ -382,3 +382,8 @@ test('a command that builds its words at run time is judged by every name in it'
     ])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
 });
+
+test('PowerShell is judged by every name in it, since type and gc read files', () => {
+    for (const cmd of ['type .env', 'gc .env', 'Get-Content -Path .env'])
+        assert.equal(guard.run(cmdInput('PowerShell', cmd)).exitCode, 2, cmd);
+});

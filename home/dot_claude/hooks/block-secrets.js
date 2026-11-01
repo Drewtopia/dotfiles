@@ -139,7 +139,10 @@ function extractFilePath(data) {
     for (const key of ['file_path', 'path', 'filename', 'file']) {
         if (key in toolInput) return toolInput[key];
     }
-    return sensitiveReadIn(String(toolInput.command || ''), data && data.cwd);
+    const command = String(toolInput.command || '');
+    // The name-only rules below are bash's; in PowerShell `type` and `gc` read files.
+    if (data.tool_name === 'PowerShell') return sensitiveTokenIn(command, data.cwd);
+    return sensitiveReadIn(command, data && data.cwd);
 }
 
 // Commands that take a file's name but never print its contents.
