@@ -365,3 +365,8 @@ test('reading a secret file through any reader still blocks', () => {
         assert.match(res.stderr, /SECURITY HOOK BLOCKED/);
     }
 });
+
+test('a program behind npx or stdbuf is judged as itself', () => {
+    for (const cmd of ['npx rg -l API_TOKEN .env', 'stdbuf -oL ls .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});

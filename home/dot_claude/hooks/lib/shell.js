@@ -63,6 +63,40 @@ const segments = cmd =>
         /&&|\|\||[;|\n]/g,
     );
 
+/** Words of `s`, split outside quotes, each with its quotes removed. */
+const shellWords = s =>
+    (s.match(/(?:'[^']*'|"(?:\\.|[^"\\])*"|[^\s'"])+/g) || []).map(w =>
+        w.replace(/'([^']*)'|"((?:\\.|[^"\\])*)"/g, (_, a, b) => (a !== undefined ? a : b)),
+    );
+
+// Words that only run the next word (`timeout 600 pnpm test`, `npx -y tsc`), and the
+// shell keywords that can stand before a command.
+const RUNNERS = new Set([
+    'sudo', 'env', 'time', 'nice', 'command', 'exec', 'xargs', 'timeout', 'stdbuf',
+    'npx', 'pnpx', 'bunx',
+    '{', '}', '!', 'if', 'then', 'else', 'elif', 'do', 'while', 'until',
+]);
+
+/** Index of the program in a simple command's `words`, past env assignments and runners. */
+function commandStart(words) {
+    const base = i => path.basename(words[i] || '');
+    let k = 0;
+    for (;;) {
+        if (/^[A-Za-z_]\w*=/.test(words[k] || '') || RUNNERS.has(base(k))) {
+            k++;
+            while (k < words.length && (words[k].startsWith('-') || /^\d+[smhd]?$/.test(words[k]))) k++;
+        } else if (base(k) === 'mise' && /^(?:x|exec)$/.test(words[k + 1] || '')) {
+            const dd = words.indexOf('--', k);
+            k = dd < 0 ? words.length : dd + 1;
+        } else if (/^(?:uv|poetry)$/.test(base(k)) && words[k + 1] === 'run') k += 2;
+        else if (/^python3?$/.test(base(k)) && words[k + 1] === '-m') k += 2;
+        else return k;
+    }
+}
+
+/** A simple command's words from its program on. */
+const commandWords = words => words.slice(commandStart(words));
+
 /** Nearest `cd` before `index`, whose path is where later segments run. */
 function cdBefore(segs, index) {
     for (let j = index - 1; j >= 0; j--) {
@@ -72,4 +106,16 @@ function cdBefore(segs, index) {
     return '';
 }
 
-module.exports = { CD, WRAPPER, unquote, mask, splitUnquoted, segments, cdBefore, rewriteHeredocs };
+module.exports = {
+    CD,
+    WRAPPER,
+    unquote,
+    mask,
+    splitUnquoted,
+    segments,
+    cdBefore,
+    rewriteHeredocs,
+    shellWords,
+    commandStart,
+    commandWords,
+};

@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { readStdin, parseInput } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
-const { rewriteHeredocs, splitUnquoted } = require('./lib/shell');
+const { rewriteHeredocs, splitUnquoted, shellWords, commandStart } = require('./lib/shell');
 
 const HOOK_ID = 'pre:secrets:block';
 
@@ -159,16 +159,8 @@ const VALUE_OPTS = new Set([
 ]);
 // Output that names matching files or counts them, never the matching lines.
 const NO_CONTENT = /^-(?:[a-zA-Z]*[lLcq][a-zA-Z]*|-files-with(?:out)?-match(?:es)?|-count|-quiet)$/;
-// Words before the program: wrappers and shell keywords.
-const PREFIXES = new Set([
-    'sudo', 'env', 'time', 'nice', 'command', 'exec', 'xargs', 'timeout',
-    '{', '}', '!', 'if', 'then', 'else', 'elif', 'do', 'while', 'until',
-]);
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const SSH_VALUE_OPTS = /^-[bcDEeFIiJLlmOoPpQRSWw]$/;
-
-const shellWords = s => (s.match(/(?:'[^']*'|"(?:\\.|[^"\\])*"|[^\s'"])+/g) || []).map(unquoteWord);
-const unquoteWord = w => w.replace(/'([^']*)'|"((?:\\.|[^"\\])*)"/g, (_, a, b) => (a !== undefined ? a : b));
 
 // Simple commands in `command`, including the bodies of $(...), <(...) and backticks.
 function simpleCommands(command) {
@@ -196,12 +188,7 @@ function readWords(words) {
         if (redirect[2] === '<') reads.push(target);
     }
 
-    let k = 0;
-    while (k < args.length && (/^[A-Za-z_]\w*=/.test(args[k]) || PREFIXES.has(args[k]))) {
-        if (args[k] === 'timeout' && /^\d/.test(args[k + 1] || '')) k++;
-        k++;
-        while (k < args.length && args[k].startsWith('-')) k++;
-    }
+    const k = commandStart(args);
     const program = path.basename(args[k] || '');
     const rest = args.slice(k + 1);
 
