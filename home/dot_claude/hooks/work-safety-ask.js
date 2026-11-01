@@ -6,8 +6,8 @@
 // An ask in a `claude -p` run with no one to answer is denied by Claude Code, and
 // the reason reaches the agent.
 
-const fs = require('node:fs');
 const { readStdin, parseInput } = require('./lib/hook-io');
+const { transcriptEntries } = require('./lib/transcript');
 
 function ask(reason) {
     return { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: reason };
@@ -21,21 +21,10 @@ const resultText = r => (typeof r.content === 'string' ? r.content : JSON.string
 // the call being decided, so its id is skipped; without that id nothing counts.
 function publishedBefore(input, filePath) {
     if (!filePath || !input?.transcript_path || !input.tool_use_id) return false;
-    let lines;
-    try {
-        lines = fs.readFileSync(input.transcript_path, 'utf8').split('\n');
-    } catch {
-        return false;
-    }
     const calls = new Set();
     const published = new Set();
-    for (const line of lines) {
-        let content;
-        try {
-            content = JSON.parse(line).message.content;
-        } catch {
-            continue;
-        }
+    for (const entry of transcriptEntries(input.transcript_path)) {
+        const content = entry?.message?.content;
         if (!Array.isArray(content)) continue;
         for (const c of content) {
             if (c?.type === 'tool_use' && c.name === 'Artifact' && c.id !== input.tool_use_id && c.input?.file_path === filePath)

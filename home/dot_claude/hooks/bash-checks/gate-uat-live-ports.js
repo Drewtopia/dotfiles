@@ -11,6 +11,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { getCommand } = require('../lib/hook-io');
 const { rewriteHeredocs } = require('../lib/shell');
+const { transcriptEntries } = require('../lib/transcript');
 
 const LOCAL_CONFIG = path.join(
     process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'),
@@ -39,21 +40,9 @@ function loadConfig(file = LOCAL_CONFIG) {
 // and an Agent call's brief are not his prompts; hooks inside a subagent get the
 // main session's transcript, so a subagent is held to what Drew asked for.
 function promptsFrom(transcriptPath) {
-    let lines;
-    try {
-        lines = fs.readFileSync(transcriptPath, 'utf8').split('\n');
-    } catch {
-        return [];
-    }
     const prompts = [];
-    for (const line of lines) {
-        let entry;
-        try {
-            entry = JSON.parse(line);
-        } catch {
-            continue;
-        }
-        if (entry.type !== 'user' || entry.isMeta || entry.isCompactSummary) continue;
+    for (const entry of transcriptEntries(transcriptPath)) {
+        if (entry?.type !== 'user' || entry.isMeta || entry.isCompactSummary) continue;
         const content = entry.message?.content;
         const texts =
             typeof content === 'string'
