@@ -432,3 +432,17 @@ test('.npmrc is judged by the file the command names, once', () => {
         assert.equal(bash(cmd), 2, cmd);
     fs.rmSync(dir, { recursive: true });
 });
+
+test('git reads the file a -c value or commit -F names', () => {
+    for (const cmd of [
+        'git -c include.path=.env status',
+        "git -c core.pager='cat .env' status",
+        'git commit -F .env',
+        'git commit --file=.env',
+        'git commit -q --file .env',
+        'git commit -F.env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of ['git commit -F msg.txt -- .env', 'git -c color.ui=never status .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});

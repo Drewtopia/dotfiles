@@ -239,9 +239,24 @@ function readWords(words) {
         return { reads: [...reads, ...rest], nested: [] };
     if (NAME_ONLY.has(program)) return { reads, nested: [] };
     if (program === 'git') {
+        // A -c value can name a file git reads (include.path) or a command it runs.
+        const configs = [];
         let j = 0;
-        while (j < rest.length && rest[j].startsWith('-')) j += /^-[Cc]$/.test(rest[j]) ? 2 : 1;
-        if (GIT_NAME_ONLY.has(rest[j])) return { reads, nested: [] };
+        while (j < rest.length && rest[j].startsWith('-')) {
+            if (rest[j] === '-c') configs.push(rest[j + 1] || '');
+            j += /^-[Cc]$/.test(rest[j]) ? 2 : 1;
+        }
+        if (GIT_NAME_ONLY.has(rest[j])) {
+            // `commit -F <file>` reads the message from that file.
+            const messageFiles = [];
+            if (rest[j] === 'commit')
+                for (let m = j + 1; m < rest.length && rest[m] !== '--'; m++) {
+                    const file = rest[m].match(/^(?:-F|--file=)(.+)$/);
+                    if (file) messageFiles.push(file[1]);
+                    else if (/^(?:-F|--file)$/.test(rest[m])) messageFiles.push(rest[++m] || '');
+                }
+            return { reads: [...reads, ...configs, ...messageFiles], nested: [] };
+        }
     }
     if (PATTERN_FIRST.has(program)) {
         if (GREPS.has(program) && namesOnly(program, rest))
