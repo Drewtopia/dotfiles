@@ -26,6 +26,20 @@ if [[ -n "$CD_TARGET" ]]; then
     [[ -d "$CD_TARGET" ]] && cd "$CD_TARGET" || true
 fi
 
+# `git commit -F <file>` / `--file <file>` takes its message from a file, resolved here
+# against the command's cwd; `-F -` reads the command's own stdin, already in its text.
+MSG_FILE=$(printf '%s' "$COMMAND" \
+    | grep -oE '(^|[[:space:]])(-[a-zA-Z]*F|--file)(=|[[:space:]]*)[^[:space:];&|]+' \
+    | tail -1 | sed -E 's/^[[:space:]]*(-[a-zA-Z]*F|--file)=?[[:space:]]*//')
+MSG_FILE="${MSG_FILE%\"}"; MSG_FILE="${MSG_FILE#\"}"
+MSG_FILE="${MSG_FILE%\'}"; MSG_FILE="${MSG_FILE#\'}"
+MSG_FILE="${MSG_FILE/#\~/$HOME}"
+if [[ -n "$MSG_FILE" && "$MSG_FILE" != - && -f "$MSG_FILE" ]]; then
+    MSG_FILE="$(cd "$(dirname "$MSG_FILE")" && pwd)/$(basename "$MSG_FILE")"
+else
+    MSG_FILE=""
+fi
+
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$REPO_ROOT" || exit 0
 
@@ -139,6 +153,9 @@ if command -v gitleaks >/dev/null 2>&1; then
             # The commit message is in the command text, so scan that too.
             printf '%s\n' "$COMMAND" \
                 | gitleaks stdin --redact --no-banner --config "$LEAK_CONFIG" 2>&1 >&2 || LEAKED=1
+            if [[ -n "$MSG_FILE" ]]; then
+                gitleaks stdin --redact --no-banner --config "$LEAK_CONFIG" <"$MSG_FILE" 2>&1 >&2 || LEAKED=1
+            fi
             rm -f "$LEAK_CONFIG"
             if [[ "$LEAKED" -eq 1 ]]; then
                 echo "" >&2

@@ -189,3 +189,10 @@ test('a cached private answer lasts a day, and a stale one counts as unknown whe
     assert.equal(refreshed.code, 0, refreshed.stderr);
     assert.match(refreshed.ghCalls, /someone\/pub/);
 });
+
+test("public repo: another owner's issue in a commit -F message file is blocked", () => {
+    for (const command of ['git commit -F msg.txt', 'git commit --file=msg.txt', 'git commit -q --file msg.txt']) {
+        const r = precheck({ content: 'clean', command, files: { 'msg.txt': `fix: retry, as in ${sample.foreignIssue}\n` } });
+        assert.equal(r.code, 2, `${command}: ${r.stderr}`);
+    }
+});
