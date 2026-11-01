@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 'use strict';
-// PreToolUse(Read|Edit|Write|Bash|PowerShell): block sensitive files and literal
-// provider tokens in shell commands. Wired standalone, not via pre-bash-dispatcher,
-// because it spans PowerShell too.
+// PreToolUse(Read|Edit|Write|Bash|PowerShell): block reading a sensitive file's
+// contents, and literal provider tokens in shell commands. A command that only names
+// such a file (ls, git check-ignore, a jq path, a grep pattern) passes. Wired
+// standalone, not via pre-bash-dispatcher, because it spans PowerShell too.
 
+const fs = require('fs');
 const path = require('path');
 const { readStdin, parseInput } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
-const { rewriteHeredocs } = require('./lib/shell');
+const { rewriteHeredocs, splitUnquoted } = require('./lib/shell');
 
 const HOOK_ID = 'pre:secrets:block';
 
@@ -137,7 +139,125 @@ function extractFilePath(data) {
     for (const key of ['file_path', 'path', 'filename', 'file']) {
         if (key in toolInput) return toolInput[key];
     }
-    return sensitiveTokenIn(String(toolInput.command || ''));
+    return sensitiveReadIn(String(toolInput.command || ''), data && data.cwd);
+}
+
+// Commands that take a file's name but never print its contents.
+const NAME_ONLY = new Set([
+    'ls', 'find', 'test', '[', '[[', 'stat', 'touch', 'mkdir', 'chmod', 'chown', 'rm',
+    'du', 'wc', 'file', 'realpath', 'readlink', 'dirname', 'basename', 'echo', 'printf',
+    'which', 'type',
+]);
+const GIT_NAME_ONLY = new Set(['check-ignore', 'ls-files', 'status', 'add', 'rm', 'mv', 'commit']);
+// Their first operand is a pattern, filter or script, not a file.
+const GREPS = new Set(['grep', 'egrep', 'fgrep', 'rg', 'ag']);
+const PATTERN_FIRST = new Set([...GREPS, 'sed', 'awk', 'jq', 'yq']);
+// Options of PATTERN_FIRST commands whose value is the next word.
+const VALUE_OPTS = new Set([
+    '-e', '-f', '-m', '-A', '-B', '-C', '-g', '-t', '-T', '--regexp', '--file', '--glob',
+    '--type', '--max-count', '--arg', '--argjson', '--slurpfile', '--rawfile',
+]);
+// Output that names matching files or counts them, never the matching lines.
+const NO_CONTENT = /^-(?:[a-zA-Z]*[lLcq][a-zA-Z]*|-files-with(?:out)?-match(?:es)?|-count|-quiet)$/;
+// Words before the program: wrappers and shell keywords.
+const PREFIXES = new Set([
+    'sudo', 'env', 'time', 'nice', 'command', 'exec', 'xargs', 'timeout',
+    '{', '}', '!', 'if', 'then', 'else', 'elif', 'do', 'while', 'until',
+]);
+const SHELLS = new Set(['sh', 'bash', 'zsh']);
+const SSH_VALUE_OPTS = /^-[bcDEeFIiJLlmOoPpQRSWw]$/;
+
+const shellWords = s => (s.match(/(?:'[^']*'|"(?:\\.|[^"\\])*"|[^\s'"])+/g) || []).map(unquoteWord);
+const unquoteWord = w => w.replace(/'([^']*)'|"((?:\\.|[^"\\])*)"/g, (_, a, b) => (a !== undefined ? a : b));
+
+// Simple commands in `command`, including the bodies of $(...), <(...) and backticks.
+function simpleCommands(command) {
+    const subs = [];
+    const outer = command.replace(/[$<]\(([^()]*)\)|`([^`]*)`/g, (_, a, b) => {
+        subs.push(a !== undefined ? a : b);
+        return ' ';
+    });
+    return [...splitUnquoted(outer, /&&|\|\||[;|\n]|(?<!\\)[()]/g), ...subs.flatMap(simpleCommands)];
+}
+
+// The words of one simple command a program reads as files; redirect targets
+// that write are dropped and `<` targets kept, whatever the program.
+function readWords(words) {
+    const reads = [];
+    const args = [];
+    for (let i = 0; i < words.length; i++) {
+        const w = words[i];
+        const redirect = w.match(/^(\d*)(<<<|<<-?|<|>>?|&>>?)(.*)$/);
+        if (!redirect) {
+            args.push(w);
+            continue;
+        }
+        const target = redirect[3] || words[++i] || '';
+        if (redirect[2] === '<') reads.push(target);
+    }
+
+    let k = 0;
+    while (k < args.length && (/^[A-Za-z_]\w*=/.test(args[k]) || PREFIXES.has(args[k]))) {
+        if (args[k] === 'timeout' && /^\d/.test(args[k + 1] || '')) k++;
+        k++;
+        while (k < args.length && args[k].startsWith('-')) k++;
+    }
+    const program = path.basename(args[k] || '');
+    const rest = args.slice(k + 1);
+
+    // `xargs cat` reads whatever names reach it, so any name in the command counts.
+    if (args.slice(0, k).includes('xargs') && !NAME_ONLY.has(program))
+        return { reads, nested: [], feedsNames: true };
+
+    if (program === 'eval') return { reads, nested: [rest.join(' ')] };
+    if (SHELLS.has(program) && rest[0] === '-c') return { reads, nested: [rest[1] || ''] };
+    if (program === 'ssh') {
+        let j = 0;
+        while (j < rest.length && rest[j].startsWith('-')) j += SSH_VALUE_OPTS.test(rest[j]) ? 2 : 1;
+        return { reads, nested: [rest.slice(j + 1).join(' ')] };
+    }
+    if (program === 'find' && rest.some(a => /^-(?:exec|execdir|ok|okdir)$/.test(a)))
+        return { reads: [...reads, ...rest], nested: [] };
+    if (NAME_ONLY.has(program)) return { reads, nested: [] };
+    if (program === 'git') {
+        let j = 0;
+        while (j < rest.length && rest[j].startsWith('-')) j += /^-[Cc]$/.test(rest[j]) ? 2 : 1;
+        if (GIT_NAME_ONLY.has(rest[j])) return { reads, nested: [] };
+    }
+    if (PATTERN_FIRST.has(program)) {
+        if (GREPS.has(program) && rest.some(a => NO_CONTENT.test(a)))
+            return { reads, nested: [] };
+        const operands = [];
+        let patternGiven = false;
+        for (let j = 0; j < rest.length; j++) {
+            if (rest[j] === '--') {
+                operands.push(...rest.slice(j + 1));
+                break;
+            }
+            if (VALUE_OPTS.has(rest[j])) {
+                if (/^(?:-e|-f|--regexp|--file)$/.test(rest[j])) patternGiven = true;
+                j += rest[j] === '--arg' || rest[j] === '--argjson' ? 2 : 1;
+            } else if (!rest[j].startsWith('-')) operands.push(rest[j]);
+        }
+        return { reads: [...reads, ...(patternGiven ? operands : operands.slice(1))], nested: [] };
+    }
+    return { reads: [...reads, ...args.slice(k)], nested: [] };
+}
+
+// The sensitive file a command reads, by name: '' when it only names one.
+function sensitiveReadIn(command, cwd, depth = 0) {
+    if (depth > 3) return sensitiveTokenIn(command, cwd);
+    for (const cmd of simpleCommands(readableText(command))) {
+        const { reads, nested, feedsNames } = readWords(shellWords(cmd));
+        if (feedsNames) return sensitiveTokenIn(command, cwd);
+        const hit = sensitiveTokenIn(reads.join(' '), cwd);
+        if (hit) return hit;
+        for (const inner of nested) {
+            const innerHit = sensitiveReadIn(inner, cwd, depth + 1);
+            if (innerHit) return innerHit;
+        }
+    }
+    return '';
 }
 
 // A heredoc body read as data names no file it opens; in code a file is a string literal.
@@ -149,7 +269,7 @@ const readableText = command =>
 
 // Only a whole path token names a file: `process.env` or `Object.keys` in a
 // command is code, not `.env` or a `.key` file.
-function sensitiveTokenIn(command) {
+function sensitiveTokenIn(command, cwd) {
     // Glob and brace characters are dropped so `.env*` and `{.env,x}` still name `.env`.
     // A token that starts with a known name (`.npmrc.bak`) reports that name.
     const tokens = readableText(command)
@@ -160,6 +280,9 @@ function sensitiveTokenIn(command) {
         if (ENV_TEMPLATE.test(base)) continue;
         // A regex (`\.key$`) escapes the dot a file name would carry.
         if (/\\\.\w+$/.test(base)) continue;
+        // `id_rsa.pub` (and its `.pub.tmpl` template) is the public half.
+        if (/\.pub(?:\.|$)/.test(base)) continue;
+        if (base === '.npmrc' && !npmrcHoldsToken(token, cwd)) continue;
         const name = [...SENSITIVE_FILENAMES].find(n =>
             n.includes('/')
                 ? token === n || token.endsWith('/' + n)
@@ -170,6 +293,29 @@ function sensitiveTokenIn(command) {
     }
     return '';
 }
+
+// An .npmrc is only a secret when it holds a literal auth value; `${NPM_TOKEN}` is a
+// reference. A file the hook cannot read counts as holding one: it may sit on another
+// host, and a missing file costs nothing to deny.
+function npmrcHoldsToken(file, cwd) {
+    const home = process.env.HOME || '';
+    const resolved = path.resolve(cwd || process.cwd(), String(file).replace(/^~(?=\/|$)/, home));
+    let text;
+    try {
+        text = fs.readFileSync(resolved, 'utf8');
+    } catch {
+        return true;
+    }
+    return /_(?:authToken|auth|password)\s*=\s*(?!\$\{)\S/.test(text);
+}
+
+const NPMRC_FIX = `║ • \`npm config list\` shows the settings with auth values as (protected)
+║ • Reference the token as \${NPM_TOKEN} so the file holds no secret`;
+
+const FILE_FIX = `║ • Names only are fine: ls, find -name, git check-ignore, rg -l NAME <file>
+║ • Read .env.example (or the code that loads the file) for variable names
+║ • Pass a value through an environment variable without printing it,
+║   or ask the user for the specific non-secret detail you need`;
 
 const tokenMessage = (toolName, provider) =>
     `╔══════════════════════════════════════════════════════════════════╗
@@ -189,7 +335,7 @@ const tokenMessage = (toolName, provider) =>
 ║ Or read from a secrets manager / .env at runtime.
 ╚══════════════════════════════════════════════════════════════════╝`;
 
-const fileMessage = (toolName, filePath, reason) =>
+const fileMessage = (toolName, filePath, reason, fix = FILE_FIX) =>
     `╔══════════════════════════════════════════════════════════════════╗
 ║                    🔒 SECURITY HOOK BLOCKED                       ║
 ╠══════════════════════════════════════════════════════════════════╣
@@ -198,14 +344,10 @@ const fileMessage = (toolName, filePath, reason) =>
 ║
 ║ Reason: ${reason}
 ║
-║ This file likely contains secrets, credentials, or private keys
-║ that should not be accessed programmatically.
+║ Reading its contents would put a secret in the transcript.
 ║
-║ Recommended actions:
-║ • Use environment variables instead of reading .env directly
-║ • Ask the user for specific (non-sensitive) information
-║ • Reference .env.example for variable names only
-║ • Store secrets in a proper secrets manager
+║ Instead:
+${fix}
 ╚══════════════════════════════════════════════════════════════════╝`;
 
 function run(input) {
@@ -224,8 +366,13 @@ function run(input) {
     if (!filePath) return { exitCode: 0 };
 
     const { sensitive, reason } = isSensitiveFile(filePath);
-    if (sensitive)
-        return { exitCode: 2, stderr: fileMessage(toolName, filePath, reason) };
+    if (!sensitive) return { exitCode: 0 };
+    if (path.basename(String(filePath)) === '.npmrc') {
+        if (!npmrcHoldsToken(filePath, input.cwd)) return { exitCode: 0 };
+        const why = `${reason} that holds an auth token, or the hook could not read it to check`;
+        return { exitCode: 2, stderr: fileMessage(toolName, filePath, why, NPMRC_FIX) };
+    }
+    return { exitCode: 2, stderr: fileMessage(toolName, filePath, reason) };
 
     return { exitCode: 0 };
 }
