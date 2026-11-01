@@ -43,7 +43,7 @@ function governedTargets(cmd, startCwd) {
             hits.push(
                 ...segmentTargets(seg)
                     .map(t => resolve(t, cwd))
-                    .filter(isGoverned),
+                    .filter(t => isGoverned(t)),
             );
     }
     return hits;

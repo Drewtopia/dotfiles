@@ -52,7 +52,23 @@ function inTemp(fp) {
     return [...TEMP_ROOTS, ...realRoots].some(r => underRoot(real, r));
 }
 
-const isGoverned = fp => GOVERNED.some(re => re.test(fp)) && !inTemp(fp);
+/**
+ * Stricter than inTemp, for a file tool: the parent directory exists now and it (and the
+ * file, if there) resolves under temp, so no link made before the write can redirect it.
+ */
+function inExistingTemp(fp) {
+    const p = path.resolve(fp);
+    const realRoots = TEMP_ROOTS.map(r => realAncestor(r));
+    try {
+        const real = fs.existsSync(p) ? fs.realpathSync(p) : path.join(fs.realpathSync(path.dirname(p)), path.basename(p));
+        return realRoots.some(r => underRoot(real, r));
+    } catch {
+        return false;
+    }
+}
+
+/** Whether `fp` is a governance surface; `exempt` says which temp paths are drafts. */
+const isGoverned = (fp, exempt = inTemp) => GOVERNED.some(re => re.test(fp)) && !exempt(fp);
 
 const ASK_DREW =
     "Only Drew can run /edit-governance; agents can't invoke it. Stop and ask him to run it: " +
@@ -83,7 +99,7 @@ function grantOnExpansion(data) {
 
 function decide(data, isUnlocked = unlocked) {
     const fp = (data.tool_input && data.tool_input.file_path) || '';
-    if (!fp || !isGoverned(fp)) return null;
+    if (!fp || !isGoverned(fp, inExistingTemp)) return null;
     if (isUnlocked(data.session_id)) return null;
     return `Governance surface: ${fp}\nDirect edits are forbidden. ${ASK_DREW}`;
 }
