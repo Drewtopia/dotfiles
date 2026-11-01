@@ -1,0 +1,43 @@
+# gap: gitleaks' default rules find credentials, not private network or work detail.
+# Leak rules the commit precheck runs only when the repo's GitHub visibility is public.
+# Patterns only: this repo is public. The employer and tailnet names are appended at run time
+# from fnox by git-commit-precheck.sh, so they never appear here.
+
+title = "public-repo leaks"
+
+[[rules]]
+id = "private-ip"
+description = "Private IPv4 address (10/8, 172.16/12, 192.168/16)"
+regex = '''\b(?:10\.(?:25[0-5]|2[0-4]\d|1?\d?\d)|172\.(?:1[6-9]|2\d|3[01])|192\.168)\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\b'''
+keywords = ["10.", "172.", "192.168."]
+
+[[rules]]
+id = "cgnat-ip"
+description = "CGNAT address (100.64/10), the range tailnet nodes get"
+regex = '''\b100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\b'''
+keywords = ["100."]
+
+[[rules]]
+id = "tailscale-host"
+description = "Tailscale MagicDNS name (*.ts.net), which carries the tailnet name"
+regex = '''(?i)\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net\b'''
+keywords = [".ts.net"]
+
+[[rules]]
+id = "foreign-issue-ref"
+description = "owner/repo#N for an owner other than Drewtopia: a backlink into someone else's tracker"
+regex = '''\b[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+#\d+\b'''
+keywords = ["#"]
+    [[rules.allowlists]]
+    regexTarget = "match"
+    regexes = ['''(?i)^drewtopia/''']
+    # Only the commit message (scanned from stdin, which has no path) creates a backlink;
+    # a file citing an upstream issue is explaining a workaround.
+    [[rules.allowlists]]
+    paths = ['''.''']
+
+# Naming a range by its base address (10.0.0.0/8) describes it without revealing a host.
+[[allowlists]]
+targetRules = ["private-ip", "cgnat-ip"]
+regexTarget = "match"
+regexes = ['''^(?:10\.0\.0\.0|172\.16\.0\.0|192\.168\.0\.0|100\.64\.0\.0)$''']
