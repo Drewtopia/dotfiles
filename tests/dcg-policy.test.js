@@ -94,3 +94,20 @@ test('mac: the Windows filesystem semantic check is off', () => {
 test('wsl: the Windows filesystem semantic check stays on', () => {
     assert.equal(decide('wsl', windowsFalsePositive).rule, 'windows.filesystem:windows-filesystem-semantic-unverified');
 });
+
+// The pipe-to-tail hook's deny message hands the agent a rewritten command; dcg must let it run.
+const pipeToTail = require('../home/dot_claude/hooks/bash-checks/block-pipe-to-tail');
+const suggested = command => {
+    const { stderr } = pipeToTail.run({ tool_input: { command }, session_id: '0a1b2c3d-4e5f-6789-abcd-ef0123456789' });
+    return stderr.split('\n').find(l => l.includes('echo "exit $?"')).trim();
+};
+
+for (const host of ['mac', 'wsl']) {
+    test(`${host}: the redirect the pipe-to-tail hook suggests is allowed`, () => {
+        for (const cmd of ['moon run web:typecheck 2>&1 | tail -3', 'pnpm exec playwright test 2>&1 | tail -40', 'node --test tests/ 2>&1 | tail -8']) {
+            const fix = suggested(cmd);
+            assert.match(fix, /> \/tmp\/claude-\d+\/0a1b2c3d\.log 2>&1/);
+            assert.equal(decide(host, fix).decision, 'allow', fix);
+        }
+    });
+}
