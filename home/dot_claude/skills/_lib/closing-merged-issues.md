@@ -1,7 +1,6 @@
 # Closing issues behind merged PRs
 
-Shared by `close`, `reconcile-tracker` and `realign-tracker`. They differ only in **reach** —
-which done-set they hand in. The rule for turning a done-set into closures is here, once.
+Used by `reconcile-tracker`. A caller picks a **reach**, the done-set it hands in. The rule for turning a done-set into closures is here, once.
 
 ## Pick a reach
 

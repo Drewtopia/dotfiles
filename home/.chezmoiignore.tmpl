@@ -40,7 +40,7 @@ Library
 .wezterm.lua
 {{ end }}
 
-# Work WSL2 only: the headless Azure DevOps credential fallback (the rest use GCM), the Orca server updater, and the Orca sleep, weekend and closeout scripts.
+# Work WSL2 only: the headless Azure DevOps credential fallback (the rest use GCM), the Orca server updater, the Orca sleep and weekend scripts, and session-done.
 {{ if not (and .work .is_wsl) }}
 .git-azdo-helper.sh
 .local/bin/orca-server-update
@@ -48,7 +48,6 @@ Library
 .local/bin/orca-sleep-idle
 .local/bin/orca-weekend
 .local/bin/orca-weekend-resume
-.local/bin/closeout-tab
 .local/bin/session-done
 {{ end }}
 
