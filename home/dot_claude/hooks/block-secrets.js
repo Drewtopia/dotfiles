@@ -192,6 +192,8 @@ function readWords(words) {
     }
 
     const k = commandStart(args);
+    // With no program found, or none for sure, every word may be a file it reads.
+    if (k < 0 || k >= args.length) return { reads: [...reads, ...args], nested: [] };
     const program = path.basename(args[k] || '');
     const rest = args.slice(k + 1);
 

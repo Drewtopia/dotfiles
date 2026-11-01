@@ -387,3 +387,15 @@ test('PowerShell is judged by every name in it, since type and gc read files', (
     for (const cmd of ['type .env', 'gc .env', 'Get-Content -Path .env'])
         assert.equal(guard.run(cmdInput('PowerShell', cmd)).exitCode, 2, cmd);
 });
+
+test('a runner flag value or an unclear mise exec is not taken for a name-only program', () => {
+    for (const cmd of [
+        "mise x -c 'cat .env'",
+        'mise exec node cat .env',
+        'sudo -u echo cat .env',
+        'timeout -s ls 5 cat .env',
+        'npx -p ls cat .env',
+        'env -u ls cat .env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+});

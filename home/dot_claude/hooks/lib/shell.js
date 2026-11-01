@@ -77,25 +77,50 @@ const RUNNERS = new Set([
     '{', '}', '!', 'if', 'then', 'else', 'elif', 'do', 'while', 'until',
 ]);
 
-/** Index of the program in a simple command's `words`, past env assignments and runners. */
+// Runner flags whose value is the next word, so the value is not taken for the program.
+const RUNNER_VALUE_FLAGS = {
+    sudo: /^-[ugpChDrtUT]$|^--(?:user|group|prompt|close-from|host|chdir|role|type|other-user)$/,
+    env: /^-[uC]$|^--(?:unset|chdir)$/,
+    nice: /^-n$|^--adjustment$/,
+    timeout: /^-[sk]$|^--(?:signal|kill-after)$/,
+    stdbuf: /^-[ioe]$/,
+    xargs: /^-[IiLlnPsdEa]$|^--(?:replace|max-lines|max-args|max-procs|max-chars|delimiter|eof|arg-file)$/,
+    time: /^-[fo]$|^--(?:format|output)$/,
+    exec: /^-a$/,
+    npx: /^-p$|^--package$/,
+    pnpx: /^-p$|^--package$/,
+    bunx: /^-p$|^--package$/,
+};
+// Runner flags whose value is itself a command line: where the program is, is unclear.
+const RUNNER_COMMAND_FLAGS = { env: /^-S$|^--split-string/, npx: /^-c$|^--call/ };
+
+/**
+ * Index of the program in a simple command's `words`, past env assignments and runners;
+ * -1 when it is unclear (`mise x` without `--`, `env -S '...'`), so a caller scans every word.
+ */
 function commandStart(words) {
     const base = i => path.basename(words[i] || '');
     let k = 0;
     for (;;) {
-        if (/^[A-Za-z_]\w*=/.test(words[k] || '') || RUNNERS.has(base(k))) {
+        const runner = base(k);
+        if (/^[A-Za-z_]\w*=/.test(words[k] || '') || RUNNERS.has(runner)) {
             k++;
-            while (k < words.length && (words[k].startsWith('-') || /^\d+[smhd]?$/.test(words[k]))) k++;
-        } else if (base(k) === 'mise' && /^(?:x|exec)$/.test(words[k + 1] || '')) {
+            while (k < words.length && (words[k].startsWith('-') || /^\d+[smhd]?$/.test(words[k]))) {
+                if (RUNNER_COMMAND_FLAGS[runner]?.test(words[k])) return -1;
+                k += RUNNER_VALUE_FLAGS[runner]?.test(words[k]) ? 2 : 1;
+            }
+        } else if (runner === 'mise' && /^(?:x|exec)$/.test(words[k + 1] || '')) {
             const dd = words.indexOf('--', k);
-            k = dd < 0 ? words.length : dd + 1;
+            if (dd < 0) return -1;
+            k = dd + 1;
         } else if (/^(?:uv|poetry)$/.test(base(k)) && words[k + 1] === 'run') k += 2;
         else if (/^python3?$/.test(base(k)) && words[k + 1] === '-m') k += 2;
         else return k;
     }
 }
 
-/** A simple command's words from its program on. */
-const commandWords = words => words.slice(commandStart(words));
+/** A simple command's words from its program on; all of them when that is unclear. */
+const commandWords = words => words.slice(Math.max(commandStart(words), 0));
 
 /** Nearest `cd` before `index`, whose path is where later segments run. */
 function cdBefore(segs, index) {
