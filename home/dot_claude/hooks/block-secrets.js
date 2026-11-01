@@ -164,30 +164,32 @@ const VALUE_OPTS = new Set([
     '-e', '-f', '-m', '-A', '-B', '-C', '-g', '-t', '-T', '--regexp', '--file', '--glob',
     '--type', '--max-count', '--arg', '--argjson', '--slurpfile', '--rawfile',
 ]);
-// Each grep's flags that name matching files or count them, never print the lines.
-// rg's -L follows symlinks, so it is not one.
-const GREP_FLAVOUR = { grep: 'grep', egrep: 'grep', fgrep: 'grep', rg: 'rg', ag: 'ag' };
-const NO_CONTENT = {
-    grep: { short: 'lLcq', long: /^--(?:files-with-matches|files-without-match|count|quiet|silent)$/ },
-    rg: { short: 'lcq', long: /^--(?:files-with-matches|files-without-match|count|count-matches|quiet)$/ },
-    ag: { short: 'lLc', long: /^--(?:files-with-matches|files-without-matches|count)$/ },
-};
-// Short options that take a value, so the rest of a cluster (`-e-l`) is that value.
-const VALUE_LETTERS = 'efmABCgtTdD';
+// A grep names matching files or counts them, never printing the lines, when it has
+// one of its list or count flags and every other option is known to be harmless; any
+// other option (`--json`, `-o`, `-g <glob>`) counts as reading the operands. rg's -L
+// follows symlinks and its -r replaces, so they are not on its list.
+const GREP_FLAVOUR = { grep: 'grep', egrep: 'grep', fgrep: 'grep', rg: 'rg', ag: 'rg' };
+const NO_CONTENT = { grep: 'lLcq', rg: 'lcq' };
+const HARMLESS = { grep: 'lLcqiwFnsrRE', rg: 'lcqiwFns' };
+const NO_CONTENT_LONG = /^--(?:files-with-matches|count|quiet)$/;
+const HARMLESS_LONG = /^--(?:fixed-strings|ignore-case)$/;
 
 function namesOnly(program, rest) {
-    const { short, long } = NO_CONTENT[GREP_FLAVOUR[program]];
+    const flavour = GREP_FLAVOUR[program];
+    let listed = false;
     for (let j = 0; j < rest.length && rest[j] !== '--'; j++) {
         const w = rest[j];
-        if (VALUE_OPTS.has(w)) j++;
-        else if (long.test(w)) return true;
-        else if (/^-[^-]/.test(w))
+        if (w === '-e' || w === '--regexp') j++;
+        else if (NO_CONTENT_LONG.test(w)) listed = true;
+        else if (HARMLESS_LONG.test(w)) continue;
+        else if (/^-[^-]/.test(w)) {
             for (const ch of w.slice(1)) {
-                if (short.includes(ch)) return true;
-                if (VALUE_LETTERS.includes(ch)) break;
+                if (!HARMLESS[flavour].includes(ch)) return false;
+                if (NO_CONTENT[flavour].includes(ch)) listed = true;
             }
+        } else if (w.startsWith('-')) return false;
     }
-    return false;
+    return listed;
 }
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const SSH_VALUE_OPTS = /^-[bcDEeFIiJLlmOoPpQRSWw]$/;

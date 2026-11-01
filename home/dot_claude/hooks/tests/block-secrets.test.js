@@ -451,3 +451,10 @@ test('a runner flag the hook does not know makes it scan the whole command', () 
     for (const cmd of ['xargs -l cat echo .env', 'xargs -i cat echo .env', 'env -P /bin echo cat .env', 'sudo -R / echo cat .env'])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
 });
+
+test('a grep option outside the known-harmless few makes it a read', () => {
+    for (const cmd of ['rg -l -g x KEY .env', 'rg -l -t sh KEY .env', 'rg -c --json KEY .env', 'rg -l --passthru KEY .env', 'grep -c -o KEY .env', 'rg -l -r x KEY .env', 'rg -lM 5 KEY .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of ['grep -rn -l KEY .env', 'rg -i -w -l -e KEY .env', 'rg --count --fixed-strings KEY .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});
