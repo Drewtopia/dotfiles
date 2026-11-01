@@ -11,13 +11,16 @@ const os = require('node:os');
 const path = require('node:path');
 const { getCommand } = require('../lib/hook-io');
 const { rewriteHeredocs } = require('../lib/shell');
+const { transcriptEntries } = require('../lib/transcript');
 
 const LOCAL_CONFIG = path.join(
     process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'),
     'work-safety.local.json',
 );
 
-const UAT = /\bmise\b[^;&|\n]*?\s(?:-E|--env)(?:\s+|=)uat\b|\bMISE_ENV=uat\b/;
+// `-E uat`, `-Euat`, `--env="uat"`, `-E dev,uat`, `MISE_ENV=dev,uat`.
+const UAT_VALUE = String.raw`['"]?(?:[\w-]+,)*uat(?![\w-])`;
+const UAT = new RegExp(String.raw`\bmise\b[^;&|\n]*?\s(?:-E|--env)(?:\s*|=)${UAT_VALUE}|\bMISE_ENV=${UAT_VALUE}`);
 const KILL = /\b(?:kill|pkill|killall|kill-port|Stop-Process)\b|\bfuser\b[^;&|\n]*\s-k\b/;
 // A sentence that forbids the target ("Do NOT run -E uat") is not a request for it.
 const NEGATION = /\b(?:not|never|no|avoid|without)\b|n't\b/i;
@@ -37,21 +40,9 @@ function loadConfig(file = LOCAL_CONFIG) {
 // and an Agent call's brief are not his prompts; hooks inside a subagent get the
 // main session's transcript, so a subagent is held to what Drew asked for.
 function promptsFrom(transcriptPath) {
-    let lines;
-    try {
-        lines = fs.readFileSync(transcriptPath, 'utf8').split('\n');
-    } catch {
-        return [];
-    }
     const prompts = [];
-    for (const line of lines) {
-        let entry;
-        try {
-            entry = JSON.parse(line);
-        } catch {
-            continue;
-        }
-        if (entry.type !== 'user' || entry.isMeta || entry.isCompactSummary) continue;
+    for (const entry of transcriptEntries(transcriptPath)) {
+        if (entry?.type !== 'user' || entry.isMeta || entry.isCompactSummary) continue;
         const content = entry.message?.content;
         const texts =
             typeof content === 'string'
@@ -64,14 +55,25 @@ function promptsFrom(transcriptPath) {
     return prompts;
 }
 
-const asksFor = (prompts, re) =>
+// A heredoc written to a file (a note, a doc) runs nothing, unless the same command
+// then names that file again, to run it.
+function checkedText(command) {
+    const stripped = rewriteHeredocs(command, (body, kind) => (kind === 'data' ? '' : body));
+    const written = stripped
+        .split('\n')
+        .filter(line => line.includes('<<'))
+        .flatMap(line => [...line.matchAll(/(?:>|\btee\s+(?:-a\s+)?)\s*([^\s;&|<>'"]+)/g)].map(m => path.basename(m[1])));
+    const runs = written.some(f => stripped.split(f).length > 2);
+    return runs ? command : stripped;
+}
+
+const asksFor =(prompts, re) =>
     prompts.some(p => p.split(/[.!?\n]+/).some(s => re.test(s) && !NEGATION.test(s)));
 
 function run(input, deps = {}) {
     const config = deps.config || loadConfig();
     const prompts = deps.prompts || (() => promptsFrom(input?.transcript_path));
-    // A heredoc written to a file (a note, a doc) runs nothing.
-    const cmd = rewriteHeredocs(getCommand(input), (body, kind) => (kind === 'data' ? '' : body));
+    const cmd = checkedText(getCommand(input));
     if (!cmd) return { exitCode: 0 };
 
     if (UAT.test(cmd) && !asksFor(prompts(), /\buat\b/i))

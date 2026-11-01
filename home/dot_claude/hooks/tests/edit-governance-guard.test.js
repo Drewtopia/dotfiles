@@ -121,14 +121,31 @@ test('a crash denies instead of allowing', () => {
 });
 
 // Real denials: agents drafting governed files in a scratchpad under the temp directory.
-test('allows scratch copies under the temp directory', () => {
-    for (const p of [
-        '/private/tmp/claude-501/-Users-u-proj/sess-1/scratchpad/prompt-audit/b/AGENTS.md',
-        '/tmp/claude-1000/-home-u-proj/sess-1/scratchpad/ask-u/SKILL.md',
-        '/tmp/claude-1000/-home-u-proj/sess-1/scratchpad/gov/repo/docs/adr/0047-x.md',
-        `${require('node:os').tmpdir()}/draft/.github/workflows/ci.yml`,
-    ]) {
-        assert.equal(decide(edit(p), () => false), null, p);
+test('allows scratch copies in an existing directory under the temp directory', () => {
+    const dir = fs.mkdtempSync(`${require('node:os').tmpdir()}/gov-`);
+    try {
+        for (const rel of [
+            'scratchpad/prompt-audit/b/AGENTS.md',
+            'scratchpad/ask-u/SKILL.md',
+            'scratchpad/gov/repo/docs/adr/0047-x.md',
+            'draft/.github/workflows/ci.yml',
+        ]) {
+            const p = `${dir}/${rel}`;
+            fs.mkdirSync(require('node:path').dirname(p), { recursive: true });
+            assert.equal(decide(edit(p), () => false), null, p);
+        }
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+// A missing parent could be made a symlink to live config before the write lands.
+test('a temp path whose parent directory does not exist yet stays governed', () => {
+    const dir = fs.mkdtempSync(`${require('node:os').tmpdir()}/gov-`);
+    try {
+        assert.match(decide(edit(`${dir}/x/.claude/hooks/a.js`), () => false), /Governance surface/);
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
     }
 });
 

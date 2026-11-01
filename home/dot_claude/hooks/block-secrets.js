@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { readStdin, parseInput } = require('./lib/hook-io');
 const { isHookEnabled } = require('./lib/hook-flags');
-const { rewriteHeredocs, splitUnquoted } = require('./lib/shell');
+const { rewriteHeredocs, splitUnquoted, shellWords, commandStart } = require('./lib/shell');
 
 const HOOK_ID = 'pre:secrets:block';
 
@@ -139,8 +139,15 @@ function extractFilePath(data) {
     for (const key of ['file_path', 'path', 'filename', 'file']) {
         if (key in toolInput) return toolInput[key];
     }
-    return sensitiveReadIn(String(toolInput.command || ''), data && data.cwd);
+    const command = String(toolInput.command || '');
+    // After a cd, over ssh or in a nested shell, a relative name is not under the hook's cwd.
+    const where = { cwd: data && data.cwd, sure: !ELSEWHERE.test(command) };
+    // The name-only rules below are bash's; in PowerShell `type` and `gc` read files.
+    if (data && data.tool_name === 'PowerShell') return sensitiveTokenIn(command, where);
+    return sensitiveReadIn(command, where);
 }
+
+const ELSEWHERE = /(?:^|[\s;&|(`])(?:cd|pushd|ssh|(?:ba|z)?sh|eval)(?=\s|$)|\$\(|`/;
 
 // Commands that take a file's name but never print its contents.
 const NAME_ONLY = new Set([
@@ -148,7 +155,40 @@ const NAME_ONLY = new Set([
     'du', 'wc', 'file', 'realpath', 'readlink', 'dirname', 'basename', 'echo', 'printf',
     'which', 'type',
 ]);
-const GIT_NAME_ONLY = new Set(['check-ignore', 'ls-files', 'status', 'add', 'rm', 'mv', 'commit']);
+// git subcommands that only list or untrack names, each with the options known to keep
+// them so. Any other option, a global one past -C, or an env prefix (GIT_PAGER, a
+// GIT_CONFIG_* include) counts every word as a read.
+const GIT_NAME_ONLY = {
+    'check-ignore': /^-(?:v|q|n|z)$|^--(?:verbose|quiet|non-matching|no-index)$/,
+    'ls-files': /^-[cdmosktvz]+$|^--(?:cached|deleted|modified|others|stage|exclude-standard|error-unmatch|full-name)$/,
+    status: /^-[sbuz]+$|^--(?:short|branch|porcelain(?:=v[12])?|long|ignored|untracked-files(?:=\w+)?)$/,
+    rm: /^-[rqn]+$|^--(?:cached|quiet|dry-run)$/,
+};
+
+function gitNamesOnly(rest) {
+    let j = 0;
+    while (rest[j] === '-C' || rest[j] === '--no-pager') j += rest[j] === '-C' ? 2 : 1;
+    const known = GIT_NAME_ONLY[rest[j]];
+    if (!known) return false;
+    const opts = [];
+    for (let m = j + 1; m < rest.length && rest[m] !== '--'; m++) if (rest[m].startsWith('-')) opts.push(rest[m]);
+    if (rest[j] === 'rm' && !opts.includes('--cached')) return false;
+    return opts.every(o => known.test(o));
+}
+
+/**
+ * git's words that may name a file: not the values of -m/--message, which are commit
+ * text, and a short-option cluster's attached value (`-qF<file>`) on its own.
+ */
+function gitReadWords(rest) {
+    const out = [];
+    for (let m = 0; m < rest.length; m++) {
+        if (/^(?:-m|--message)$/.test(rest[m])) m++;
+        else if (/^(?:-m.|--message=)/.test(rest[m])) continue;
+        else out.push(rest[m], ...(/^-[A-Za-z]/.test(rest[m]) ? [rest[m].replace(/^-[A-Za-z]+/, '')] : []));
+    }
+    return out;
+}
 // Their first operand is a pattern, filter or script, not a file.
 const GREPS = new Set(['grep', 'egrep', 'fgrep', 'rg', 'ag']);
 const PATTERN_FIRST = new Set([...GREPS, 'sed', 'awk', 'jq', 'yq']);
@@ -157,18 +197,56 @@ const VALUE_OPTS = new Set([
     '-e', '-f', '-m', '-A', '-B', '-C', '-g', '-t', '-T', '--regexp', '--file', '--glob',
     '--type', '--max-count', '--arg', '--argjson', '--slurpfile', '--rawfile',
 ]);
-// Output that names matching files or counts them, never the matching lines.
-const NO_CONTENT = /^-(?:[a-zA-Z]*[lLcq][a-zA-Z]*|-files-with(?:out)?-match(?:es)?|-count|-quiet)$/;
-// Words before the program: wrappers and shell keywords.
-const PREFIXES = new Set([
-    'sudo', 'env', 'time', 'nice', 'command', 'exec', 'xargs', 'timeout',
-    '{', '}', '!', 'if', 'then', 'else', 'elif', 'do', 'while', 'until',
-]);
+// A grep names matching files or counts them, never printing the lines, when it has
+// one of its list or count flags and every other option is known to be harmless; any
+// other option (`--json`, `-o`, `-g <glob>`) counts as reading the operands. rg's -L
+// follows symlinks and its -r replaces, so they are not on its list.
+const GREP_FLAVOUR = { grep: 'grep', egrep: 'grep', fgrep: 'grep', rg: 'rg', ag: 'rg' };
+const NO_CONTENT = { grep: 'lLcq', rg: 'lcq' };
+const HARMLESS = { grep: 'lLcqiwFnsrRE', rg: 'lcqiwFns' };
+const NO_CONTENT_LONG = /^--(?:files-with-matches|count|quiet)$/;
+const HARMLESS_LONG = /^--(?:fixed-strings|ignore-case)$/;
+
+function namesOnly(program, rest) {
+    const flavour = GREP_FLAVOUR[program];
+    let listed = false;
+    for (let j = 0; j < rest.length && rest[j] !== '--'; j++) {
+        const w = rest[j];
+        if (w === '-e' || w === '--regexp') j++;
+        else if (NO_CONTENT_LONG.test(w)) listed = true;
+        else if (HARMLESS_LONG.test(w)) continue;
+        else if (/^-[^-]/.test(w)) {
+            for (const ch of w.slice(1)) {
+                if (!HARMLESS[flavour].includes(ch)) return false;
+                if (NO_CONTENT[flavour].includes(ch)) listed = true;
+            }
+        } else if (w.startsWith('-')) return false;
+    }
+    return listed;
+}
+// Options of NAME_ONLY commands that open the file they name: a list of names
+// (`wc --files0-from`, `file -f`), whose errors echo its lines, or a reference file.
+const FILE_OPTION = /^(?:--files0?-from|--reference)(?:=(.*))?$/;
+
+function optionFiles(program, rest) {
+    const files = [];
+    for (let j = 0; j < rest.length && rest[j] !== '--'; j++) {
+        const long = rest[j].match(FILE_OPTION);
+        const short = program === 'file' && rest[j].match(/^-f(.*)$/);
+        const opt = long || short;
+        if (opt) files.push(opt[1] || rest[++j] || '');
+    }
+    return files;
+}
+
+// Script commands that open a file or run one: sed's r, R, w and e, awk's getline and system().
+const SCRIPT_OPENS = {
+    sed: /(?:^|[\s;{}\/\d$!])[rRwWe](?=\s|$)/,
+    awk: /\bgetline\b|\bsystem\s*\(/,
+};
+
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const SSH_VALUE_OPTS = /^-[bcDEeFIiJLlmOoPpQRSWw]$/;
-
-const shellWords = s => (s.match(/(?:'[^']*'|"(?:\\.|[^"\\])*"|[^\s'"])+/g) || []).map(unquoteWord);
-const unquoteWord = w => w.replace(/'([^']*)'|"((?:\\.|[^"\\])*)"/g, (_, a, b) => (a !== undefined ? a : b));
 
 // Simple commands in `command`, including the bodies of $(...), <(...) and backticks.
 function simpleCommands(command) {
@@ -196,12 +274,11 @@ function readWords(words) {
         if (redirect[2] === '<') reads.push(target);
     }
 
-    let k = 0;
-    while (k < args.length && (/^[A-Za-z_]\w*=/.test(args[k]) || PREFIXES.has(args[k]))) {
-        if (args[k] === 'timeout' && /^\d/.test(args[k + 1] || '')) k++;
-        k++;
-        while (k < args.length && args[k].startsWith('-')) k++;
-    }
+    const k = commandStart(args);
+    // With no program found every word may be a file it reads. Where the program is
+    // unclear it may also be fed names (`xargs -l cat`), so the whole command counts.
+    if (k < 0) return { reads, nested: [], feedsNames: true };
+    if (k >= args.length) return { reads: [...reads, ...args], nested: [] };
     const program = path.basename(args[k] || '');
     const rest = args.slice(k + 1);
 
@@ -218,42 +295,66 @@ function readWords(words) {
     }
     if (program === 'find' && rest.some(a => /^-(?:exec|execdir|ok|okdir)$/.test(a)))
         return { reads: [...reads, ...rest], nested: [] };
-    if (NAME_ONLY.has(program)) return { reads, nested: [] };
+    if (NAME_ONLY.has(program)) return { reads: [...reads, ...optionFiles(program, rest)], nested: [] };
     if (program === 'git') {
-        let j = 0;
-        while (j < rest.length && rest[j].startsWith('-')) j += /^-[Cc]$/.test(rest[j]) ? 2 : 1;
-        if (GIT_NAME_ONLY.has(rest[j])) return { reads, nested: [] };
+        const assigned = args.slice(0, k).some(a => /^[A-Za-z_]\w*=/.test(a));
+        if (!assigned && gitNamesOnly(rest)) return { reads, nested: [] };
+        // A commit message is text git never opens; every other word, an env prefix
+        // included, may be a file.
+        return { reads: [...reads, ...args.slice(0, k), ...gitReadWords(rest)], nested: [] };
     }
     if (PATTERN_FIRST.has(program)) {
-        if (GREPS.has(program) && rest.some(a => NO_CONTENT.test(a)))
+        if (GREPS.has(program) && namesOnly(program, rest))
             return { reads, nested: [] };
         const operands = [];
+        const scripts = [];
+        const optionFiles = [];
         let patternGiven = false;
         for (let j = 0; j < rest.length; j++) {
             if (rest[j] === '--') {
                 operands.push(...rest.slice(j + 1));
                 break;
             }
-            if (VALUE_OPTS.has(rest[j])) {
-                if (/^(?:-e|-f|--regexp|--file)$/.test(rest[j])) patternGiven = true;
+            if (/^--(?:rawfile|slurpfile)$/.test(rest[j])) {
+                optionFiles.push(rest[j + 2] || '');
+                j += 2;
+            } else if (VALUE_OPTS.has(rest[j]) || rest[j] === '--expression') {
+                if (/^(?:-e|-f|--regexp|--file|--expression)$/.test(rest[j])) patternGiven = true;
+                if (/^(?:-e|--expression)$/.test(rest[j])) scripts.push(rest[j + 1] || '');
                 j += rest[j] === '--arg' || rest[j] === '--argjson' ? 2 : 1;
             } else if (!rest[j].startsWith('-')) operands.push(rest[j]);
         }
-        return { reads: [...reads, ...(patternGiven ? operands : operands.slice(1))], nested: [] };
+        if (!patternGiven) scripts.push(operands[0] || '');
+        // A script that opens a file or runs a command is scanned for names too.
+        const opens = SCRIPT_OPENS[program];
+        const scriptReads = opens ? scripts.filter(s => opens.test(s)) : [];
+        const fileOperands = patternGiven ? operands : operands.slice(1);
+        return { reads: [...reads, ...optionFiles, ...scriptReads, ...fileOperands], nested: [] };
     }
     return { reads: [...reads, ...args.slice(k)], nested: [] };
 }
 
-// The sensitive file a command reads, by name: '' when it only names one.
-function sensitiveReadIn(command, cwd, depth = 0) {
-    if (depth > 3) return sensitiveTokenIn(command, cwd);
+// Command substitution, `eval`, `sh -c` and `${!v}` build words this hook never sees.
+const RUNTIME_WORDS = /\$\(|`|\$\{!|(?:^|[\s;&|(])(?:eval|(?:ba|z)?sh\s+-c)\b/;
+const ASSIGNED = /(?:^|[\s;&|(])[A-Za-z_]\w*=(\S+)/g;
+
+// Whether `text` reads files under names built at run time, including a sensitive
+// name stored in a variable and expanded later (`f=.env; cat "$f"`).
+const buildsWords = (text, where) =>
+    RUNTIME_WORDS.test(text) ||
+    (/\$[A-Za-z_{]/.test(text) && [...text.matchAll(ASSIGNED)].some(m => sensitiveTokenIn(m[1], where)));
+
+// The sensitive file a command reads, by name: '' when it only names one. `where` is
+// the cwd its relative names resolve against, and whether that is sure.
+function sensitiveReadIn(command, where, depth = 0) {
+    if (depth > 3 || buildsWords(readableText(command), where)) return sensitiveTokenIn(command, where);
     for (const cmd of simpleCommands(readableText(command))) {
         const { reads, nested, feedsNames } = readWords(shellWords(cmd));
-        if (feedsNames) return sensitiveTokenIn(command, cwd);
-        const hit = sensitiveTokenIn(reads.join(' '), cwd);
+        if (feedsNames) return sensitiveTokenIn(command, where);
+        const hit = sensitiveTokenIn(reads.join(' '), where);
         if (hit) return hit;
         for (const inner of nested) {
-            const innerHit = sensitiveReadIn(inner, cwd, depth + 1);
+            const innerHit = sensitiveReadIn(inner, where, depth + 1);
             if (innerHit) return innerHit;
         }
     }
@@ -269,9 +370,10 @@ const readableText = command =>
 
 // Only a whole path token names a file: `process.env` or `Object.keys` in a
 // command is code, not `.env` or a `.key` file.
-function sensitiveTokenIn(command, cwd) {
+function sensitiveTokenIn(command, where) {
     // Glob and brace characters are dropped so `.env*` and `{.env,x}` still name `.env`.
-    // A token that starts with a known name (`.npmrc.bak`) reports that name.
+    // A token that starts with a known name (`.npmrc.bak`) reports that name; an
+    // .npmrc reports its path, the file whose token was checked.
     const tokens = readableText(command)
         .split(/[\s'"`=<>|;&(),${}:]+/)
         .map(t => t.replace(/[*?[\]]/g, ''));
@@ -282,7 +384,10 @@ function sensitiveTokenIn(command, cwd) {
         if (/\\\.\w+$/.test(base)) continue;
         // `id_rsa.pub` (and its `.pub.tmpl` template) is the public half.
         if (/\.pub(?:\.|$)/.test(base)) continue;
-        if (base === '.npmrc' && !npmrcHoldsToken(token, cwd)) continue;
+        if (base === '.npmrc') {
+            if (!where.sure || npmrcHoldsToken(token, where.cwd)) return token;
+            continue;
+        }
         const name = [...SENSITIVE_FILENAMES].find(n =>
             n.includes('/')
                 ? token === n || token.endsWith('/' + n)
@@ -367,14 +472,13 @@ function run(input) {
 
     const { sensitive, reason } = isSensitiveFile(filePath);
     if (!sensitive) return { exitCode: 0 };
-    if (path.basename(String(filePath)) === '.npmrc') {
-        if (!npmrcHoldsToken(filePath, input.cwd)) return { exitCode: 0 };
-        const why = `${reason} that holds an auth token, or the hook could not read it to check`;
-        return { exitCode: 2, stderr: fileMessage(toolName, filePath, why, NPMRC_FIX) };
-    }
-    return { exitCode: 2, stderr: fileMessage(toolName, filePath, reason) };
-
-    return { exitCode: 0 };
+    if (path.basename(String(filePath)) !== '.npmrc')
+        return { exitCode: 2, stderr: fileMessage(toolName, filePath, reason) };
+    // A command's .npmrc was checked where it matched; a file tool's is checked here.
+    const isCommand = toolName === 'Bash' || toolName === 'PowerShell';
+    if (!isCommand && !npmrcHoldsToken(filePath, input.cwd)) return { exitCode: 0 };
+    const why = `${reason} that holds an auth token, or the hook could not read it to check`;
+    return { exitCode: 2, stderr: fileMessage(toolName, filePath, why, NPMRC_FIX) };
 }
 
 // Only exit 2 blocks; a crash would let the call through.

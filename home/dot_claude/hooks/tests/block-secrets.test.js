@@ -365,3 +365,139 @@ test('reading a secret file through any reader still blocks', () => {
         assert.match(res.stderr, /SECURITY HOOK BLOCKED/);
     }
 });
+
+test('a program behind npx or stdbuf is judged as itself', () => {
+    for (const cmd of ['npx rg -l API_TOKEN .env', 'stdbuf -oL ls .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});
+
+test('a command that builds its words at run time is judged by every name in it', () => {
+    for (const cmd of [
+        'cat $(echo .env)',
+        'cat `echo .env`',
+        "bash -c 'f=.env; cat $f'",
+        'f=.env; eval "cat $f"',
+        'f=.env; cat "$f"',
+        'v=f; f=.env; cat "${!v}"',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+});
+
+test('PowerShell is judged by every name in it, since type and gc read files', () => {
+    for (const cmd of ['type .env', 'gc .env', 'Get-Content -Path .env'])
+        assert.equal(guard.run(cmdInput('PowerShell', cmd)).exitCode, 2, cmd);
+});
+
+test('a runner flag value or an unclear mise exec is not taken for a name-only program', () => {
+    for (const cmd of [
+        "mise x -c 'cat .env'",
+        'mise exec node cat .env',
+        'sudo -u echo cat .env',
+        'timeout -s ls 5 cat .env',
+        'npx -p ls cat .env',
+        'env -u ls cat .env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+});
+
+test('only a flag that hides matching lines, for that tool, makes a grep name-only', () => {
+    for (const cmd of ['rg -L KEY .env', 'grep -e -l .env', 'rg -e -c .env', 'grep --regexp -q .env', 'rg -iL KEY .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of [
+        'grep -c KEY .env',
+        'grep -rL KEY .env',
+        'grep -iq KEY .env',
+        'rg --count KEY .env',
+        'rg -q KEY .env',
+        'rg --files-with-matches KEY .env',
+        'egrep -l KEY .env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});
+
+test('.npmrc is judged by the file the command names, once', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'npmrc-'));
+    fs.mkdirSync(path.join(dir, 'sub'));
+    fs.writeFileSync(path.join(dir, '.npmrc'), 'registry=https://registry.example/\n');
+    fs.writeFileSync(path.join(dir, 'sub', '.npmrc'), '//registry.example/:_authToken=' + 'a1'.repeat(18) + '\n');
+    const bash = command => guard.run({ tool_name: 'Bash', tool_input: { command }, cwd: dir }).exitCode;
+
+    assert.equal(bash('cat .npmrc'), 0);
+    assert.equal(bash('cat sub/.npmrc'), 2);
+    assert.equal(bash('cp .npmrc.bak /tmp/x'), 2);
+    // Where the command reads it is not the hook's cwd, so any .npmrc counts as holding a token.
+    for (const cmd of ['cd sub && cat .npmrc', "ssh host 'cat .npmrc'", "bash -c 'cat .npmrc'"])
+        assert.equal(bash(cmd), 2, cmd);
+    fs.rmSync(dir, { recursive: true });
+});
+
+test('git reads the file a -c value or commit -F names', () => {
+    for (const cmd of [
+        'git -c include.path=.env status',
+        "git -c core.pager='cat .env' status",
+        'git commit -F .env',
+        'git commit --file=.env',
+        'git commit -q --file .env',
+        'git commit -F.env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+});
+
+test('git is name-only just for a few listing subcommands with known options', () => {
+    for (const cmd of [
+        "GIT_PAGER='cat .env' git status",
+        'git --config-env=core.pager=X status .env',
+        'git commit -t .env',
+        'git commit -qF.env',
+        'git add --pathspec-from-file=.env',
+        'git commit -F msg.txt -- .env',
+        'git add .env',
+        'git mv .env x',
+        'git rm .env',
+        'git status --frobnicate .env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of [
+        'git status --short .env',
+        'git ls-files --error-unmatch .env',
+        'git rm --cached .env',
+        'git -C /srv/app check-ignore -v .env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});
+
+test('a runner flag the hook does not know makes it scan the whole command', () => {
+    for (const cmd of ['xargs -l cat echo .env', 'xargs -i cat echo .env', 'env -P /bin echo cat .env', 'sudo -R / echo cat .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+});
+
+test('a grep option outside the known-harmless few makes it a read', () => {
+    for (const cmd of ['rg -l -g x KEY .env', 'rg -l -t sh KEY .env', 'rg -c --json KEY .env', 'rg -l --passthru KEY .env', 'grep -c -o KEY .env', 'rg -l -r x KEY .env', 'rg -lM 5 KEY .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of ['grep -rn -l KEY .env', 'rg -i -w -l -e KEY .env', 'rg --count --fixed-strings KEY .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});
+
+test('a name-only command reads the file a file-list or reference option names', () => {
+    for (const cmd of ['wc --files0-from=.env', 'du --files0-from .env', 'touch --reference=.env x', 'chmod --reference .env x', 'file -f .env', 'file -f.env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of ['wc -l .env', 'file .env', 'test -f .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});
+
+test('a sed or awk script that opens a file, or a jq file option, reads it', () => {
+    for (const cmd of [
+        "sed '1r .env' notes.txt",
+        "sed -e '$r .env' notes.txt",
+        "sed -n '/x/R .env' notes.txt",
+        "awk '{ while ((getline l < \".env\") > 0) print l }' notes.txt",
+        "awk 'BEGIN { system(\"cat .env\") }'",
+        "jq -n --rawfile s .env '$s'",
+        "jq -n --slurpfile s .env '$s'",
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of ["jq -n --arg f .env '$f'", "sed 's/.env/x/' notes.txt", "awk '/.env/ { n++ }' notes.txt"])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});

@@ -26,6 +26,20 @@ if [[ -n "$CD_TARGET" ]]; then
     [[ -d "$CD_TARGET" ]] && cd "$CD_TARGET" || true
 fi
 
+# `git commit -F <file>` / `--file <file>` takes its message from a file, resolved here
+# against the command's cwd; `-F -` reads the command's own stdin, already in its text.
+MSG_FILE=$(printf '%s' "$COMMAND" \
+    | grep -oE '(^|[[:space:]])(-[a-zA-Z]*F|--file)(=|[[:space:]]*)[^[:space:];&|]+' \
+    | tail -1 | sed -E 's/^[[:space:]]*(-[a-zA-Z]*F|--file)=?[[:space:]]*//')
+MSG_FILE="${MSG_FILE%\"}"; MSG_FILE="${MSG_FILE#\"}"
+MSG_FILE="${MSG_FILE%\'}"; MSG_FILE="${MSG_FILE#\'}"
+MSG_FILE="${MSG_FILE/#\~/$HOME}"
+if [[ -n "$MSG_FILE" && "$MSG_FILE" != - && -f "$MSG_FILE" ]]; then
+    MSG_FILE="$(cd "$(dirname "$MSG_FILE")" && pwd)/$(basename "$MSG_FILE")"
+else
+    MSG_FILE=""
+fi
+
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$REPO_ROOT" || exit 0
 
@@ -34,27 +48,39 @@ STAGED_COUNT=$(git diff --cached --name-only --diff-filter=ACMR | wc -l)
 
 LEAK_RULES="$(dirname "${BASH_SOURCE[0]}")/public-leaks.gitleaks.toml"
 VISIBILITY_TTL_SECONDS=$((7 * 24 * 3600))
+# A repo made public since it was cached would skip the leak scan, so PRIVATE lasts a day.
+PRIVATE_TTL_SECONDS=$((24 * 3600))
 
 # PUBLIC, PRIVATE or INTERNAL for a GitHub origin; PRIVATE for anything else (no remote, Azure
-# DevOps), since only GitHub repos here are ever public. Answers are cached per repo for a week.
-# When gh can't answer (offline, logged out), a cached answer of any age is used; with none,
+# DevOps), since only GitHub repos here are ever public. A GitHub URL the parser can't read is
+# UNKNOWN. Answers are cached per repo, PRIVATE for a day and others for a week. When gh can't
+# answer (offline, logged out), a stale cached answer is used unless it is PRIVATE; with none,
 # the repo counts as public: a blocked commit is cheaper than a leak that gets pushed later.
 repo_visibility() {
-    local url slug cache answer
+    local url slug cache answer age ttl
     url=$(git remote get-url origin 2>/dev/null) || { echo PRIVATE; return; }
     slug=$(printf '%s' "$url" | sed -nE 's#^(https://|ssh://)?([^@/]+@)?github\.com[^:/]*[:/]([^/]+/[^/]+)$#\3#p')
     slug="${slug%.git}"
-    [[ -z "$slug" ]] && { echo PRIVATE; return; }
+    if [[ -z "$slug" ]]; then
+        [[ "$url" == *github* ]] && echo UNKNOWN || echo PRIVATE
+        return
+    fi
 
     cache="${XDG_CACHE_HOME:-$HOME/.cache}/claude-hooks/repo-visibility/${slug//\//__}"
-    if [[ -f "$cache" ]] && (( $(date +%s) - $(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache") < VISIBILITY_TTL_SECONDS )); then
-        cat "$cache"; return
+    if [[ -f "$cache" ]]; then
+        answer=$(cat "$cache")
+        age=$(( $(date +%s) - $(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache") ))
+        ttl=$VISIBILITY_TTL_SECONDS
+        [[ "$answer" == PRIVATE ]] && ttl=$PRIVATE_TTL_SECONDS
+        (( age < ttl )) && { echo "$answer"; return; }
     fi
     if answer=$(gh repo view "$slug" --json visibility -q .visibility 2>/dev/null) && [[ -n "$answer" ]]; then
         mkdir -p "$(dirname "$cache")" && printf '%s\n' "$answer" >"$cache"
         echo "$answer"; return
     fi
-    [[ -f "$cache" ]] && { cat "$cache"; return; }
+    if [[ -f "$cache" ]] && [[ "$(cat "$cache")" != PRIVATE ]]; then
+        cat "$cache"; return
+    fi
     echo "UNKNOWN"
 }
 
@@ -127,6 +153,9 @@ if command -v gitleaks >/dev/null 2>&1; then
             # The commit message is in the command text, so scan that too.
             printf '%s\n' "$COMMAND" \
                 | gitleaks stdin --redact --no-banner --config "$LEAK_CONFIG" 2>&1 >&2 || LEAKED=1
+            if [[ -n "$MSG_FILE" ]]; then
+                gitleaks stdin --redact --no-banner --config "$LEAK_CONFIG" <"$MSG_FILE" 2>&1 >&2 || LEAKED=1
+            fi
             rm -f "$LEAK_CONFIG"
             if [[ "$LEAKED" -eq 1 ]]; then
                 echo "" >&2

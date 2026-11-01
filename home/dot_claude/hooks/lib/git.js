@@ -1,16 +1,17 @@
 'use strict';
-// Errors return '' so a hook outside a repo, or without git, degrades to "allow".
+// Errors return `onError` ('' by default) so a hook outside a repo, or without git,
+// degrades to "allow".
 
 const { execFileSync } = require('node:child_process');
 
-function git(args) {
+function git(args, onError = '') {
     try {
         return execFileSync('git', args, {
             encoding: 'utf8',
             stdio: ['ignore', 'pipe', 'ignore'],
         }).trim();
     } catch {
-        return '';
+        return onError;
     }
 }
 
@@ -21,17 +22,6 @@ const REV_PARSE_ROOT = ['rev-parse', '--show-toplevel'];
 const repoRoot = cwd => git(cwd ? ['-C', cwd, ...REV_PARSE_ROOT] : REV_PARSE_ROOT);
 
 /** False only when git confirms the repo has no remote; an error counts as having one. */
-function hasRemote(cwd) {
-    try {
-        return (
-            execFileSync('git', [...(cwd ? ['-C', cwd] : []), 'remote'], {
-                encoding: 'utf8',
-                stdio: ['ignore', 'pipe', 'ignore'],
-            }).trim() !== ''
-        );
-    } catch {
-        return true;
-    }
-}
+const hasRemote = cwd => git([...(cwd ? ['-C', cwd] : []), 'remote'], 'unknown') !== '';
 
 module.exports = { git, currentBranch, hasRemote, repoRoot };

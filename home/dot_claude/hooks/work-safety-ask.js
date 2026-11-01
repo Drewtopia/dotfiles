@@ -6,37 +6,33 @@
 // An ask in a `claude -p` run with no one to answer is denied by Claude Code, and
 // the reason reaches the agent.
 
-const fs = require('node:fs');
 const { readStdin, parseInput } = require('./lib/hook-io');
+const { transcriptEntries } = require('./lib/transcript');
 
 function ask(reason) {
     return { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: reason };
 }
 
-// Whether an earlier Artifact call in this session published `filePath`. The
-// transcript can already hold the call being decided, so its id is skipped.
+const DENIED = /doesn't want to proceed|denied|rejected|blocked/i;
+const resultText = r => (typeof r.content === 'string' ? r.content : JSON.stringify(r.content ?? ''));
+
+// Whether an earlier Artifact call in this session published `filePath`: its result is
+// in the transcript and is not an error or a denial. The transcript can already hold
+// the call being decided, so its id is skipped; without that id nothing counts.
 function publishedBefore(input, filePath) {
-    if (!filePath || !input?.transcript_path) return false;
-    let lines;
-    try {
-        lines = fs.readFileSync(input.transcript_path, 'utf8').split('\n');
-    } catch {
-        return false;
-    }
-    return lines.some(line => {
-        if (!line.includes('"Artifact"')) return false;
-        try {
-            return JSON.parse(line).message.content.some(
-                c =>
-                    c?.type === 'tool_use' &&
-                    c.name === 'Artifact' &&
-                    c.id !== input.tool_use_id &&
-                    c.input?.file_path === filePath,
-            );
-        } catch {
-            return false;
+    if (!filePath || !input?.transcript_path || !input.tool_use_id) return false;
+    const calls = new Set();
+    const published = new Set();
+    for (const entry of transcriptEntries(input.transcript_path)) {
+        const content = entry?.message?.content;
+        if (!Array.isArray(content)) continue;
+        for (const c of content) {
+            if (c?.type === 'tool_use' && c.name === 'Artifact' && c.id !== input.tool_use_id && c.input?.file_path === filePath)
+                calls.add(c.id);
+            if (c?.type === 'tool_result' && !c.is_error && !DENIED.test(resultText(c))) published.add(c.tool_use_id);
         }
-    });
+    }
+    return [...calls].some(id => published.has(id));
 }
 
 function decide(input) {

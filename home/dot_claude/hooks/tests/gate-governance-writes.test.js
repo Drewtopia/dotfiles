@@ -70,3 +70,11 @@ test('the Bash block message says only Drew can run /edit-governance', () => {
     assert.match(res.stderr, /Only Drew can run \/edit-governance/);
     assert.match(res.stderr, /Stop and ask (him|Drew)/);
 });
+
+test('a temp path is not exempt when the same command creates links', () => {
+    for (const cmd of [
+        'ln -s ~/.claude /tmp/d/.claude && echo x > /tmp/d/.claude/hooks/a.js',
+        'cp -s ~/.claude/hooks/a.js /tmp/d/.claude/hooks/a.js; echo x >> /tmp/d/.claude/hooks/a.js',
+    ])
+        assert.equal(code(cmd), 2, cmd);
+});

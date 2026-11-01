@@ -69,3 +69,8 @@ test('a heredoc command gets the redirect but no rewritten command', () => {
     assert.ok(stderr.includes(`> ${logPath(SESSION)} 2>&1`), stderr);
     assert.ok(!stderr.includes('<<'), stderr);
 });
+
+test('a test behind sudo or xargs is still a test', () => {
+    for (const cmd of ['sudo pnpm test 2>&1 | tail', 'git ls-files | xargs eslint | tail -5'])
+        assert.equal(check(cmd).exitCode, 2, cmd);
+});

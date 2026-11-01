@@ -7,16 +7,14 @@
 // (home/dot_config/dcg/config.toml.tmpl); a $VAR there would not be exempt.
 
 const { getCommand } = require('../lib/hook-io');
-const { splitUnquoted, mask, rewriteHeredocs } = require('../lib/shell');
+const { splitUnquoted, mask, rewriteHeredocs, shellWords, commandWords: programWords } = require('../lib/shell');
 
 const CUTTERS = new Set(['tail', 'head']);
 // Reading whatever a command lists or prints about itself is not a result.
 const LISTING = /(?:^|\s)--(?:list|help|version)\b/;
 
-// Words that only run the next word: `timeout 600 pnpm test`, `npx -y tsc`.
-const RUNNERS = new Set(['time', 'nice', 'env', 'command', 'exec', 'timeout', 'npx', 'pnpx', 'bunx', 'stdbuf']);
 // Package managers whose `exec`/`dlx`/`x` runs a tool, and `run` runs a script.
-const PMS = new Set(['pnpm', 'npm', 'yarn', 'bun']);
+const PACKAGE_MANAGERS = new Set(['pnpm', 'npm', 'yarn', 'bun']);
 // Package-manager flags that take a value: `pnpm --filter web test`.
 const PM_VALUE_FLAGS = new Set(['--filter', '-F', '-C', '--dir', '--workspace', '--prefix']);
 const SCRIPT = /^(?:test|build|lint|typecheck|type-check|check|e2e|tsc|vitest|jest)(?::\S*)?$/;
@@ -34,22 +32,8 @@ const SUBCOMMANDS = {
 
 const base = w => w.replace(/^.*\//, '');
 
-/** Words of one pipeline stage, past env assignments and wrappers that only run the next word. */
-function commandWords(stage) {
-    let words = mask(stage).split(/\s+/).filter(Boolean);
-    for (;;) {
-        const w = base(words[0] || '');
-        if (/^[A-Za-z_]\w*=/.test(words[0] || '') || RUNNERS.has(w)) {
-            words = words.slice(1);
-            while (words[0] && (words[0].startsWith('-') || /^\d+[smhd]?$/.test(words[0]))) words = words.slice(1);
-        } else if (w === 'mise' && /^(?:x|exec)$/.test(words[1] || '')) {
-            const dd = words.indexOf('--');
-            words = dd < 0 ? [] : words.slice(dd + 1);
-        } else if (/^(?:uv|poetry)$/.test(w) && words[1] === 'run') words = words.slice(2);
-        else if (/^python3?$/.test(w) && words[1] === '-m') words = words.slice(2);
-        else return words;
-    }
-}
+/** Words of one pipeline stage from its program on. */
+const commandWords = stage => programWords(shellWords(stage));
 
 function decidesResult(stage) {
     const words = commandWords(stage);
@@ -57,7 +41,7 @@ function decidesResult(stage) {
     if (TOOLS.has(cmd) || cmd === 'make' || cmd === 'gradle' || cmd === 'mvn') return true;
     if (cmd === 'node') return words.includes('--test');
     if (SUBCOMMANDS[cmd]) return SUBCOMMANDS[cmd].test(words.slice(1).find(w => !w.startsWith('-')) || '');
-    if (!PMS.has(cmd)) return false;
+    if (!PACKAGE_MANAGERS.has(cmd)) return false;
     for (let i = 1; i < words.length; i++) {
         const w = words[i];
         if (PM_VALUE_FLAGS.has(w)) i++;
