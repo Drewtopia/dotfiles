@@ -486,3 +486,18 @@ test('a name-only command reads the file a file-list or reference option names',
     for (const cmd of ['wc -l .env', 'file .env', 'test -f .env'])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
 });
+
+test('a sed or awk script that opens a file, or a jq file option, reads it', () => {
+    for (const cmd of [
+        "sed '1r .env' notes.txt",
+        "sed -e '$r .env' notes.txt",
+        "sed -n '/x/R .env' notes.txt",
+        "awk '{ while ((getline l < \".env\") > 0) print l }' notes.txt",
+        "awk 'BEGIN { system(\"cat .env\") }'",
+        "jq -n --rawfile s .env '$s'",
+        "jq -n --slurpfile s .env '$s'",
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of ["jq -n --arg f .env '$f'", "sed 's/.env/x/' notes.txt", "awk '/.env/ { n++ }' notes.txt"])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});

@@ -239,6 +239,12 @@ function optionFiles(program, rest) {
     return files;
 }
 
+// Script commands that open a file or run one: sed's r, R, w and e, awk's getline and system().
+const SCRIPT_OPENS = {
+    sed: /(?:^|[\s;{}\/\d$!])[rRwWe](?=\s|$)/,
+    awk: /\bgetline\b|\bsystem\s*\(/,
+};
+
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const SSH_VALUE_OPTS = /^-[bcDEeFIiJLlmOoPpQRSWw]$/;
 
@@ -301,18 +307,29 @@ function readWords(words) {
         if (GREPS.has(program) && namesOnly(program, rest))
             return { reads, nested: [] };
         const operands = [];
+        const scripts = [];
+        const optionFiles = [];
         let patternGiven = false;
         for (let j = 0; j < rest.length; j++) {
             if (rest[j] === '--') {
                 operands.push(...rest.slice(j + 1));
                 break;
             }
-            if (VALUE_OPTS.has(rest[j])) {
-                if (/^(?:-e|-f|--regexp|--file)$/.test(rest[j])) patternGiven = true;
+            if (/^--(?:rawfile|slurpfile)$/.test(rest[j])) {
+                optionFiles.push(rest[j + 2] || '');
+                j += 2;
+            } else if (VALUE_OPTS.has(rest[j]) || rest[j] === '--expression') {
+                if (/^(?:-e|-f|--regexp|--file|--expression)$/.test(rest[j])) patternGiven = true;
+                if (/^(?:-e|--expression)$/.test(rest[j])) scripts.push(rest[j + 1] || '');
                 j += rest[j] === '--arg' || rest[j] === '--argjson' ? 2 : 1;
             } else if (!rest[j].startsWith('-')) operands.push(rest[j]);
         }
-        return { reads: [...reads, ...(patternGiven ? operands : operands.slice(1))], nested: [] };
+        if (!patternGiven) scripts.push(operands[0] || '');
+        // A script that opens a file or runs a command is scanned for names too.
+        const opens = SCRIPT_OPENS[program];
+        const scriptReads = opens ? scripts.filter(s => opens.test(s)) : [];
+        const fileOperands = patternGiven ? operands : operands.slice(1);
+        return { reads: [...reads, ...optionFiles, ...scriptReads, ...fileOperands], nested: [] };
     }
     return { reads: [...reads, ...args.slice(k)], nested: [] };
 }
