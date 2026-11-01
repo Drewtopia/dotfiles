@@ -31,19 +31,22 @@ function segmentTargets(seg) {
     return targets;
 }
 
-function governedTargets(cmd, startCwd) {
+// A link made in the same command can send a temp path to live config.
+const MAKES_LINKS = /(?:^|[\s;&|(])(?:ln|cp\s+(?:-\w+\s+)*-\w*s\w*)(?=\s)/;
+
+function governedTargets(cmd, startCwd, tempExempt = !MAKES_LINKS.test(cmd)) {
     let cwd = startCwd;
     const hits = [];
     for (const seg of segments(cmd)) {
         const cd = seg.match(CD);
         const wrapped = seg.match(WRAPPER);
         if (cd) cwd = resolve(cd[2], cwd);
-        else if (wrapped) hits.push(...governedTargets(unquote(wrapped[1]), cwd));
+        else if (wrapped) hits.push(...governedTargets(unquote(wrapped[1]), cwd, tempExempt));
         else
             hits.push(
                 ...segmentTargets(seg)
                     .map(t => resolve(t, cwd))
-                    .filter(t => isGoverned(t)),
+                    .filter(t => (tempExempt ? isGoverned(t) : isGoverned(t, () => false))),
             );
     }
     return hits;
