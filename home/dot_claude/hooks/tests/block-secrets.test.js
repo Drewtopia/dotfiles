@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('path');
 const guard = require('../block-secrets.js');
 
 const fileInput = (toolName, filePath) => ({
@@ -246,4 +247,121 @@ test('a crash blocks instead of allowing', () => {
     });
     assert.equal(res.exitCode, 2);
     assert.match(res.stderr, /block-secrets errored: boom/);
+});
+
+// Cases below are past denials from transcripts, hosts and paths replaced.
+test('listing or checking a secret file by name is allowed', () => {
+    for (const cmd of [
+        'ls .env*',
+        'ls -la ~/.ssh/id_ed25519* 2>/dev/null; echo "---"',
+        'ls -1 mise.local.toml apps/*/mise.*.local.toml',
+        'git check-ignore -v .env',
+        'git -C /srv/app check-ignore .env .env.local',
+        'find . -type f \\( -name ".env*" -o -name "*.pem" -o -name "*.key" \\)',
+        '[ -f /opt/app/.env ] || echo missing',
+        "printf '.DS_Store\\n.env\\n.env.*\\n!.env.example\\n' > .gitignore",
+        'git commit -m "ignore .env and id_rsa"',
+        'rg -l API_TOKEN .env mise.local.toml',
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+    }
+});
+
+test('public keys are readable from the shell', () => {
+    for (const cmd of [
+        'cat ~/.ssh/id_ed25519.pub; ssh -o BatchMode=yes user@host whoami',
+        'ssh-keygen -lf ~/.ssh/id_ed25519.pub | cut -c1-30',
+        'k=$(cut -d" " -f2 .ssh/id_ed25519.pub); grep -c "$k" ~/.ssh/authorized_keys',
+        'cat home/dot_ssh/id_rsa.pub.tmpl',
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+    }
+});
+
+test('.env or a key name as a jq path, sed script or grep pattern is allowed', () => {
+    for (const cmd of [
+        "jq '.env' ~/.claude/settings.json",
+        "jq -r '.env|keys|join(\" \")' ~/.claude/settings.json",
+        'jq ".env // {}" ~/.claude/settings.json',
+        "jq -S 'del(.env)' ~/.claude/settings.json > \"$TMP/s.json\"",
+        "journalctl -u svc | sed -E 's/machine.key=\\S+ //'",
+        'rg -l x /config | grep -v -F "/config/secrets.yaml"',
+    ]) {
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+    }
+});
+
+test('commands run over ssh are judged the same way', () => {
+    assert.equal(guard.run(cmdInput('Bash', "ssh -o ConnectTimeout=8 host 'cd ~/app && ls .env*'")).exitCode, 0);
+    assert.equal(guard.run(cmdInput('Bash', "ssh host 'cat ~/app/.env'")).exitCode, 2);
+});
+
+test('as a hook: tool-call JSON on stdin, exit 2 and a fix on stderr to deny', () => {
+    const { spawnSync } = require('child_process');
+    const hook = path.join(__dirname, '..', 'block-secrets.js');
+    const call = command =>
+        spawnSync(process.execPath, [hook], {
+            input: JSON.stringify(cmdInput('Bash', command)),
+            env: { ...process.env, HOOKS_DISABLED: '' },
+            encoding: 'utf8',
+        });
+    assert.equal(call('ls .env*').status, 0);
+    const denied = call('cat .env');
+    assert.equal(denied.status, 2);
+    assert.match(denied.stderr, /File: \.env/);
+    assert.match(denied.stderr, /rg -l NAME <file>/);
+    assert.match(denied.stderr, /\.env\.example/);
+});
+
+test('.npmrc is denied only when it holds a literal auth token', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'npmrc-'));
+    const write = body => fs.writeFileSync(path.join(dir, '.npmrc'), body);
+    const read = { tool_name: 'Read', tool_input: { file_path: path.join(dir, '.npmrc') }, cwd: dir };
+    const cat = { tool_name: 'Bash', tool_input: { command: 'cat .npmrc' }, cwd: dir };
+
+    for (const body of [
+        'registry=https://registry.example/\n',
+        '//registry.example/:_authToken=${NPM_TOKEN}\n',
+    ]) {
+        write(body);
+        assert.equal(guard.run(read).exitCode, 0, body);
+        assert.equal(guard.run(cat).exitCode, 0, body);
+    }
+    for (const body of [
+        '//registry.example/:_authToken=' + 'a1'.repeat(18) + '\n',
+        '_auth=' + 'Zm9v'.repeat(6) + '\n',
+    ]) {
+        write(body);
+        for (const input of [read, cat]) {
+            const res = guard.run(input);
+            assert.equal(res.exitCode, 2, body);
+            assert.match(res.stderr, /auth token/);
+            assert.match(res.stderr, /npm config list/);
+        }
+    }
+    fs.rmSync(dir, { recursive: true });
+});
+
+test('reading a secret file through any reader still blocks', () => {
+    for (const cmd of [
+        'ls .env && cat .env',
+        'echo "$(cat .env)"',
+        'head < .env',
+        'jq . .env.json',
+        'sed -n 1p .env',
+        'grep -v x .env',
+        'git diff -- .env',
+        'git show HEAD:.env',
+        'find . -name .env -exec cat {} \\;',
+        "bash -c 'cat .env'",
+        'cat ~/.ssh/id_ed25519',
+        'ls .env* | xargs cat',
+        'find . -name .env -print0 | xargs -0 head',
+    ]) {
+        const res = guard.run(cmdInput('Bash', cmd));
+        assert.equal(res.exitCode, 2, cmd);
+        assert.match(res.stderr, /SECURITY HOOK BLOCKED/);
+    }
 });
