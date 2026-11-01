@@ -160,8 +160,31 @@ const VALUE_OPTS = new Set([
     '-e', '-f', '-m', '-A', '-B', '-C', '-g', '-t', '-T', '--regexp', '--file', '--glob',
     '--type', '--max-count', '--arg', '--argjson', '--slurpfile', '--rawfile',
 ]);
-// Output that names matching files or counts them, never the matching lines.
-const NO_CONTENT = /^-(?:[a-zA-Z]*[lLcq][a-zA-Z]*|-files-with(?:out)?-match(?:es)?|-count|-quiet)$/;
+// Each grep's flags that name matching files or count them, never print the lines.
+// rg's -L follows symlinks, so it is not one.
+const GREP_FLAVOUR = { grep: 'grep', egrep: 'grep', fgrep: 'grep', rg: 'rg', ag: 'ag' };
+const NO_CONTENT = {
+    grep: { short: 'lLcq', long: /^--(?:files-with-matches|files-without-match|count|quiet|silent)$/ },
+    rg: { short: 'lcq', long: /^--(?:files-with-matches|files-without-match|count|count-matches|quiet)$/ },
+    ag: { short: 'lLc', long: /^--(?:files-with-matches|files-without-matches|count)$/ },
+};
+// Short options that take a value, so the rest of a cluster (`-e-l`) is that value.
+const VALUE_LETTERS = 'efmABCgtTdD';
+
+function namesOnly(program, rest) {
+    const { short, long } = NO_CONTENT[GREP_FLAVOUR[program]];
+    for (let j = 0; j < rest.length && rest[j] !== '--'; j++) {
+        const w = rest[j];
+        if (VALUE_OPTS.has(w)) j++;
+        else if (long.test(w)) return true;
+        else if (/^-[^-]/.test(w))
+            for (const ch of w.slice(1)) {
+                if (short.includes(ch)) return true;
+                if (VALUE_LETTERS.includes(ch)) break;
+            }
+    }
+    return false;
+}
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const SSH_VALUE_OPTS = /^-[bcDEeFIiJLlmOoPpQRSWw]$/;
 
@@ -217,7 +240,7 @@ function readWords(words) {
         if (GIT_NAME_ONLY.has(rest[j])) return { reads, nested: [] };
     }
     if (PATTERN_FIRST.has(program)) {
-        if (GREPS.has(program) && rest.some(a => NO_CONTENT.test(a)))
+        if (GREPS.has(program) && namesOnly(program, rest))
             return { reads, nested: [] };
         const operands = [];
         let patternGiven = false;

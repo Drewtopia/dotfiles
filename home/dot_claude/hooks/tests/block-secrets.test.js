@@ -399,3 +399,18 @@ test('a runner flag value or an unclear mise exec is not taken for a name-only p
     ])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
 });
+
+test('only a flag that hides matching lines, for that tool, makes a grep name-only', () => {
+    for (const cmd of ['rg -L KEY .env', 'grep -e -l .env', 'rg -e -c .env', 'grep --regexp -q .env', 'rg -iL KEY .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of [
+        'grep -c KEY .env',
+        'grep -rL KEY .env',
+        'grep -iq KEY .env',
+        'rg --count KEY .env',
+        'rg -q KEY .env',
+        'rg --files-with-matches KEY .env',
+        'egrep -l KEY .env',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});
