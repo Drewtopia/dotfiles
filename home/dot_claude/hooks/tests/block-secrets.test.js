@@ -446,3 +446,8 @@ test('git reads the file a -c value or commit -F names', () => {
     for (const cmd of ['git commit -F msg.txt -- .env', 'git -c color.ui=never status .env'])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
 });
+
+test('a runner flag the hook does not know makes it scan the whole command', () => {
+    for (const cmd of ['xargs -l cat echo .env', 'xargs -i cat echo .env', 'env -P /bin echo cat .env', 'sudo -R / echo cat .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+});
