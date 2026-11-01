@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { getCommand } = require('../lib/hook-io');
 const { CD, WRAPPER, unquote, mask, splitUnquoted, segments } = require('../lib/shell');
-const { isGoverned, unlocked } = require('../edit-governance-guard.cjs');
+const { ASK_DREW, isGoverned, unlocked } = require('../edit-governance-guard.cjs');
 
 const HOME = os.homedir();
 const MAY_WRITE = /[>]|\b(tee|rm|touch|mv|cp|sed|perl)\b/;
@@ -61,7 +61,7 @@ function run(input, isUnlocked = unlocked) {
     if (!hits.length || isUnlocked(input.session_id)) return { exitCode: 0 };
     return {
         exitCode: 2,
-        stderr: `🛑 BLOCKED: Bash write to governance surface ${hits[0]}. Stop and ask the user to run /edit-governance; it unlocks this session only.`,
+        stderr: `🛑 BLOCKED: Bash write to governance surface ${hits[0]}. ${ASK_DREW}`,
     };
 }
 

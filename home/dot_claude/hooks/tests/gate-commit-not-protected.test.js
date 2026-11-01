@@ -105,3 +105,39 @@ test('commitTarget is null for git -C', () =>
     assert.equal(commitTarget('git -C /elsewhere commit -m x'), null));
 test('commitTarget is null when no commit runs', () =>
     assert.equal(commitTarget('echo "git commit"'), null));
+
+// Real git repos, so branch and remote come from git itself.
+const fs = require('node:fs');
+const os = require('node:os');
+const { execFileSync } = require('node:child_process');
+
+function repoOnMain(remote) {
+    const dir = fs.realpathSync(fs.mkdtempSync(`${os.tmpdir()}/commit-gate-`));
+    const git = (...args) => execFileSync('git', ['-C', dir, ...args], { stdio: 'ignore' });
+    git('init', '-q', '-b', 'main');
+    git('-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-q', '--allow-empty', '-m', 'init');
+    if (remote) git('remote', 'add', 'origin', 'https://example.invalid/u/repo.git');
+    return dir;
+}
+
+// Real denial: a notes repo with no remote, where main is the only branch.
+const NOTES_COMMIT = dir =>
+    `cd ${dir} && sed -i '' 's|a|b|' CONTEXT.md && git add CONTEXT.md && git commit -m "docs: note WAN"`;
+
+test('allows a commit on main in a repo with no remote', () => {
+    const dir = repoOnMain(false);
+    try {
+        assert.equal(run({ tool_input: { command: NOTES_COMMIT(dir) } }).exitCode, 0);
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('blocks a commit on main in a repo with a remote', () => {
+    const dir = repoOnMain(true);
+    try {
+        assert.equal(run({ tool_input: { command: NOTES_COMMIT(dir) } }).exitCode, 2);
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});

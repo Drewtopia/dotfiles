@@ -20,4 +20,18 @@ const currentBranch = cwd => git(cwd ? ['-C', cwd, ...REV_PARSE_BRANCH] : REV_PA
 const REV_PARSE_ROOT = ['rev-parse', '--show-toplevel'];
 const repoRoot = cwd => git(cwd ? ['-C', cwd, ...REV_PARSE_ROOT] : REV_PARSE_ROOT);
 
-module.exports = { git, currentBranch, repoRoot };
+/** False only when git confirms the repo has no remote; an error counts as having one. */
+function hasRemote(cwd) {
+    try {
+        return (
+            execFileSync('git', [...(cwd ? ['-C', cwd] : []), 'remote'], {
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'ignore'],
+            }).trim() !== ''
+        );
+    } catch {
+        return true;
+    }
+}
+
+module.exports = { git, currentBranch, hasRemote, repoRoot };
