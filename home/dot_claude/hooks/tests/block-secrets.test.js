@@ -458,3 +458,10 @@ test('a grep option outside the known-harmless few makes it a read', () => {
     for (const cmd of ['grep -rn -l KEY .env', 'rg -i -w -l -e KEY .env', 'rg --count --fixed-strings KEY .env'])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
 });
+
+test('a name-only command reads the file a file-list or reference option names', () => {
+    for (const cmd of ['wc --files0-from=.env', 'du --files0-from .env', 'touch --reference=.env x', 'chmod --reference .env x', 'file -f .env', 'file -f.env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+    for (const cmd of ['wc -l .env', 'file .env', 'test -f .env'])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
+});

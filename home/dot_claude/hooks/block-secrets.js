@@ -191,6 +191,21 @@ function namesOnly(program, rest) {
     }
     return listed;
 }
+// Options of NAME_ONLY commands that open the file they name: a list of names
+// (`wc --files0-from`, `file -f`), whose errors echo its lines, or a reference file.
+const FILE_OPTION = /^(?:--files0?-from|--reference)(?:=(.*))?$/;
+
+function optionFiles(program, rest) {
+    const files = [];
+    for (let j = 0; j < rest.length && rest[j] !== '--'; j++) {
+        const long = rest[j].match(FILE_OPTION);
+        const short = program === 'file' && rest[j].match(/^-f(.*)$/);
+        const opt = long || short;
+        if (opt) files.push(opt[1] || rest[++j] || '');
+    }
+    return files;
+}
+
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const SSH_VALUE_OPTS = /^-[bcDEeFIiJLlmOoPpQRSWw]$/;
 
@@ -241,7 +256,7 @@ function readWords(words) {
     }
     if (program === 'find' && rest.some(a => /^-(?:exec|execdir|ok|okdir)$/.test(a)))
         return { reads: [...reads, ...rest], nested: [] };
-    if (NAME_ONLY.has(program)) return { reads, nested: [] };
+    if (NAME_ONLY.has(program)) return { reads: [...reads, ...optionFiles(program, rest)], nested: [] };
     if (program === 'git') {
         // A -c value can name a file git reads (include.path) or a command it runs.
         const configs = [];
