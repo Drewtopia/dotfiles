@@ -38,10 +38,21 @@ test('a new version of an artifact made earlier this session does not ask again'
     assert.equal(decide(first).permissionDecision, 'ask');
 
     const v2 = { tool_name: 'Artifact', tool_use_id: 'tu2', tool_input: { file_path: page, label: 'v2' }, transcript_path: transcript };
-    write(toolUse('tu1', first.tool_input), toolUse('tu2', v2.tool_input));
+    const result = (id, extra = {}) => ({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content: 'published', ...extra }] } });
+    write(toolUse('tu1', first.tool_input), result('tu1'), toolUse('tu2', v2.tool_input));
     assert.equal(decide(v2), null);
     const other = { ...v2, tool_input: { file_path: '/tmp/scratch/other.html' } };
     assert.equal(decide(other).permissionDecision, 'ask');
+
+    // Without its own id the call being decided could be the earlier one.
+    const { tool_use_id, ...noId } = v2;
+    assert.equal(decide(noId).permissionDecision, 'ask');
+
+    // An earlier call counts only once it published: a result that is not an error or denial.
+    write(toolUse('tu1', first.tool_input), toolUse('tu2', v2.tool_input));
+    assert.equal(decide(v2).permissionDecision, 'ask');
+    write(toolUse('tu1', first.tool_input), result('tu1', { is_error: true, content: 'denied' }), toolUse('tu2', v2.tool_input));
+    assert.equal(decide(v2).permissionDecision, 'ask');
     fs.rmSync(dir, { recursive: true });
 });
 
