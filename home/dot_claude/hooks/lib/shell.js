@@ -142,6 +142,5 @@ module.exports = {
     cdBefore,
     rewriteHeredocs,
     shellWords,
-    commandStart,
     commandWords,
 };
