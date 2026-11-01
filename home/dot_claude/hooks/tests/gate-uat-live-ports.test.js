@@ -81,3 +81,15 @@ test('no transcript and no local config: only the UAT rule applies', () => {
     assert.equal(bare('mise -E uat run smoke'), 2);
     assert.equal(bare('fuser -k 5999/tcp'), 0);
 });
+
+test('catches UAT given attached, quoted or in a list', () => {
+    for (const cmd of ['mise -Euat run smoke', 'mise -E "uat" run smoke', "mise --env='uat' run smoke", 'mise -E dev,uat run smoke', 'MISE_ENV=dev,uat pnpm web', 'MISE_ENV="uat" pnpm web'])
+        assert.equal(check(cmd).exitCode, 2, cmd);
+    for (const cmd of ['mise -E uatx run smoke', 'mise -E sit run smoke'])
+        assert.equal(check(cmd).exitCode, 0, cmd);
+});
+
+test('a heredoc written to a file the same command runs is checked', () => {
+    for (const cmd of ["cat > s.sh <<'EOF'\nmise -E uat run smoke\nEOF\nbash s.sh", "cat <<'EOF' > s.sh && chmod +x s.sh && ./s.sh\nmise -E uat run smoke\nEOF"])
+        assert.equal(check(cmd).exitCode, 2, cmd);
+});
