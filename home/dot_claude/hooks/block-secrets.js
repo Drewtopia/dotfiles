@@ -140,10 +140,14 @@ function extractFilePath(data) {
         if (key in toolInput) return toolInput[key];
     }
     const command = String(toolInput.command || '');
+    // After a cd, over ssh or in a nested shell, a relative name is not under the hook's cwd.
+    const where = { cwd: data && data.cwd, sure: !ELSEWHERE.test(command) };
     // The name-only rules below are bash's; in PowerShell `type` and `gc` read files.
-    if (data.tool_name === 'PowerShell') return sensitiveTokenIn(command, data.cwd);
-    return sensitiveReadIn(command, data && data.cwd);
+    if (data && data.tool_name === 'PowerShell') return sensitiveTokenIn(command, where);
+    return sensitiveReadIn(command, where);
 }
+
+const ELSEWHERE = /(?:^|[\s;&|(`])(?:cd|pushd|ssh|(?:ba|z)?sh|eval)(?=\s|$)|\$\(|`/;
 
 // Commands that take a file's name but never print its contents.
 const NAME_ONLY = new Set([
@@ -265,20 +269,21 @@ const ASSIGNED = /(?:^|[\s;&|(])[A-Za-z_]\w*=(\S+)/g;
 
 // Whether `text` reads files under names built at run time, including a sensitive
 // name stored in a variable and expanded later (`f=.env; cat "$f"`).
-const buildsWords = (text, cwd) =>
+const buildsWords = (text, where) =>
     RUNTIME_WORDS.test(text) ||
-    (/\$[A-Za-z_{]/.test(text) && [...text.matchAll(ASSIGNED)].some(m => sensitiveTokenIn(m[1], cwd)));
+    (/\$[A-Za-z_{]/.test(text) && [...text.matchAll(ASSIGNED)].some(m => sensitiveTokenIn(m[1], where)));
 
-// The sensitive file a command reads, by name: '' when it only names one.
-function sensitiveReadIn(command, cwd, depth = 0) {
-    if (depth > 3 || buildsWords(readableText(command), cwd)) return sensitiveTokenIn(command, cwd);
+// The sensitive file a command reads, by name: '' when it only names one. `where` is
+// the cwd its relative names resolve against, and whether that is sure.
+function sensitiveReadIn(command, where, depth = 0) {
+    if (depth > 3 || buildsWords(readableText(command), where)) return sensitiveTokenIn(command, where);
     for (const cmd of simpleCommands(readableText(command))) {
         const { reads, nested, feedsNames } = readWords(shellWords(cmd));
-        if (feedsNames) return sensitiveTokenIn(command, cwd);
-        const hit = sensitiveTokenIn(reads.join(' '), cwd);
+        if (feedsNames) return sensitiveTokenIn(command, where);
+        const hit = sensitiveTokenIn(reads.join(' '), where);
         if (hit) return hit;
         for (const inner of nested) {
-            const innerHit = sensitiveReadIn(inner, cwd, depth + 1);
+            const innerHit = sensitiveReadIn(inner, where, depth + 1);
             if (innerHit) return innerHit;
         }
     }
@@ -294,9 +299,10 @@ const readableText = command =>
 
 // Only a whole path token names a file: `process.env` or `Object.keys` in a
 // command is code, not `.env` or a `.key` file.
-function sensitiveTokenIn(command, cwd) {
+function sensitiveTokenIn(command, where) {
     // Glob and brace characters are dropped so `.env*` and `{.env,x}` still name `.env`.
-    // A token that starts with a known name (`.npmrc.bak`) reports that name.
+    // A token that starts with a known name (`.npmrc.bak`) reports that name; an
+    // .npmrc reports its path, the file whose token was checked.
     const tokens = readableText(command)
         .split(/[\s'"`=<>|;&(),${}:]+/)
         .map(t => t.replace(/[*?[\]]/g, ''));
@@ -307,7 +313,10 @@ function sensitiveTokenIn(command, cwd) {
         if (/\\\.\w+$/.test(base)) continue;
         // `id_rsa.pub` (and its `.pub.tmpl` template) is the public half.
         if (/\.pub(?:\.|$)/.test(base)) continue;
-        if (base === '.npmrc' && !npmrcHoldsToken(token, cwd)) continue;
+        if (base === '.npmrc') {
+            if (!where.sure || npmrcHoldsToken(token, where.cwd)) return token;
+            continue;
+        }
         const name = [...SENSITIVE_FILENAMES].find(n =>
             n.includes('/')
                 ? token === n || token.endsWith('/' + n)
@@ -392,14 +401,13 @@ function run(input) {
 
     const { sensitive, reason } = isSensitiveFile(filePath);
     if (!sensitive) return { exitCode: 0 };
-    if (path.basename(String(filePath)) === '.npmrc') {
-        if (!npmrcHoldsToken(filePath, input.cwd)) return { exitCode: 0 };
-        const why = `${reason} that holds an auth token, or the hook could not read it to check`;
-        return { exitCode: 2, stderr: fileMessage(toolName, filePath, why, NPMRC_FIX) };
-    }
-    return { exitCode: 2, stderr: fileMessage(toolName, filePath, reason) };
-
-    return { exitCode: 0 };
+    if (path.basename(String(filePath)) !== '.npmrc')
+        return { exitCode: 2, stderr: fileMessage(toolName, filePath, reason) };
+    // A command's .npmrc was checked where it matched; a file tool's is checked here.
+    const isCommand = toolName === 'Bash' || toolName === 'PowerShell';
+    if (!isCommand && !npmrcHoldsToken(filePath, input.cwd)) return { exitCode: 0 };
+    const why = `${reason} that holds an auth token, or the hook could not read it to check`;
+    return { exitCode: 2, stderr: fileMessage(toolName, filePath, why, NPMRC_FIX) };
 }
 
 // Only exit 2 blocks; a crash would let the call through.

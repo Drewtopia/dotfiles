@@ -414,3 +414,21 @@ test('only a flag that hides matching lines, for that tool, makes a grep name-on
     ])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
 });
+
+test('.npmrc is judged by the file the command names, once', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'npmrc-'));
+    fs.mkdirSync(path.join(dir, 'sub'));
+    fs.writeFileSync(path.join(dir, '.npmrc'), 'registry=https://registry.example/\n');
+    fs.writeFileSync(path.join(dir, 'sub', '.npmrc'), '//registry.example/:_authToken=' + 'a1'.repeat(18) + '\n');
+    const bash = command => guard.run({ tool_name: 'Bash', tool_input: { command }, cwd: dir }).exitCode;
+
+    assert.equal(bash('cat .npmrc'), 0);
+    assert.equal(bash('cat sub/.npmrc'), 2);
+    assert.equal(bash('cp .npmrc.bak /tmp/x'), 2);
+    // Where the command reads it is not the hook's cwd, so any .npmrc counts as holding a token.
+    for (const cmd of ['cd sub && cat .npmrc', "ssh host 'cat .npmrc'", "bash -c 'cat .npmrc'"])
+        assert.equal(bash(cmd), 2, cmd);
+    fs.rmSync(dir, { recursive: true });
+});
