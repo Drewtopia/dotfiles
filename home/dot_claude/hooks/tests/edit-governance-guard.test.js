@@ -119,3 +119,37 @@ test('a crash denies instead of allowing', () => {
     });
     assert.match(reason, /edit-governance-guard errored: boom/);
 });
+
+// Real denials: agents drafting governed files in a scratchpad under the temp directory.
+test('allows scratch copies under the temp directory', () => {
+    for (const p of [
+        '/private/tmp/claude-501/-Users-u-proj/sess-1/scratchpad/prompt-audit/b/AGENTS.md',
+        '/tmp/claude-1000/-home-u-proj/sess-1/scratchpad/ask-u/SKILL.md',
+        '/tmp/claude-1000/-home-u-proj/sess-1/scratchpad/gov/repo/docs/adr/0047-x.md',
+        `${require('node:os').tmpdir()}/draft/.github/workflows/ci.yml`,
+    ]) {
+        assert.equal(decide(edit(p), () => false), null, p);
+    }
+});
+
+test('a path that only climbs out of the temp directory stays governed', () => {
+    assert.match(decide(edit('/tmp/../home/u/.claude/hooks/x.js'), () => false), /Governance surface/);
+});
+
+// Agents read "ask the user to run /edit-governance" as leave to run it themselves.
+test('the denial says only Drew can run /edit-governance, and to stop and ask him', () => {
+    const reason = decide(edit('/repo/AGENTS.md'), () => false);
+    assert.match(reason, /Only Drew can run \/edit-governance/);
+    assert.match(reason, /agents can't invoke it/i);
+    assert.match(reason, /Stop and ask (him|Drew)/);
+});
+
+test('a symlink from the temp directory to live config stays governed', () => {
+    const dir = fs.mkdtempSync(`${require('node:os').tmpdir()}/gov-`);
+    try {
+        fs.symlinkSync('/', `${dir}/root`);
+        assert.match(decide(edit(`${dir}/root/home/u/.claude/hooks/x.js`), () => false), /Governance surface/);
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});

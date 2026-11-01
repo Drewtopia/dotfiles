@@ -4,7 +4,7 @@
 // an unresolvable branch allows rather than wedging the commit.
 
 const { getCommand } = require('../lib/hook-io');
-const { currentBranch } = require('../lib/git');
+const { currentBranch, hasRemote } = require('../lib/git');
 const { WRAPPER, unquote, segments: splitSegments, cdBefore } = require('../lib/shell');
 
 const PROTECTED = /^(main|master|develop)$/;
@@ -41,6 +41,8 @@ function run(input, deps = {}) {
 
     const branch = branchOf(target);
     if (!branch || !PROTECTED.test(branch)) return { exitCode: 0 };
+    // With no remote there is no pull request to protect main for; main is the only branch.
+    if (!(deps.hasRemote || hasRemote)(target)) return { exitCode: 0 };
 
     return {
         exitCode: 2,
