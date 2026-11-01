@@ -128,6 +128,15 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
+        "matcher": "Artifact|mcp__claude_ai_Claude_Docs__.*|mcp__.*__wit_.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/work-safety-ask.js\""
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write",
         "hooks": [
           {
