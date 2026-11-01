@@ -12,6 +12,7 @@ const CHECKS = [
     'pre:bash:gate-push-convention',
     'pre:bash:gate-commit-not-protected',
     'pre:bash:gate-vault-commit',
+    'pre:bash:gate-uat-live-ports',
 ].map(id => ({
     id,
     run: input => require(`./bash-checks/${id.slice('pre:bash:'.length)}`).run(input),
