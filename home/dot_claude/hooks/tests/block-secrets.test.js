@@ -370,3 +370,15 @@ test('a program behind npx or stdbuf is judged as itself', () => {
     for (const cmd of ['npx rg -l API_TOKEN .env', 'stdbuf -oL ls .env'])
         assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 0, cmd);
 });
+
+test('a command that builds its words at run time is judged by every name in it', () => {
+    for (const cmd of [
+        'cat $(echo .env)',
+        'cat `echo .env`',
+        "bash -c 'f=.env; cat $f'",
+        'f=.env; eval "cat $f"',
+        'f=.env; cat "$f"',
+        'v=f; f=.env; cat "${!v}"',
+    ])
+        assert.equal(guard.run(cmdInput('Bash', cmd)).exitCode, 2, cmd);
+});

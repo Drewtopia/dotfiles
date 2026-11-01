@@ -231,9 +231,19 @@ function readWords(words) {
     return { reads: [...reads, ...args.slice(k)], nested: [] };
 }
 
+// Command substitution, `eval`, `sh -c` and `${!v}` build words this hook never sees.
+const RUNTIME_WORDS = /\$\(|`|\$\{!|(?:^|[\s;&|(])(?:eval|(?:ba|z)?sh\s+-c)\b/;
+const ASSIGNED = /(?:^|[\s;&|(])[A-Za-z_]\w*=(\S+)/g;
+
+// Whether `text` reads files under names built at run time, including a sensitive
+// name stored in a variable and expanded later (`f=.env; cat "$f"`).
+const buildsWords = (text, cwd) =>
+    RUNTIME_WORDS.test(text) ||
+    (/\$[A-Za-z_{]/.test(text) && [...text.matchAll(ASSIGNED)].some(m => sensitiveTokenIn(m[1], cwd)));
+
 // The sensitive file a command reads, by name: '' when it only names one.
 function sensitiveReadIn(command, cwd, depth = 0) {
-    if (depth > 3) return sensitiveTokenIn(command, cwd);
+    if (depth > 3 || buildsWords(readableText(command), cwd)) return sensitiveTokenIn(command, cwd);
     for (const cmd of simpleCommands(readableText(command))) {
         const { reads, nested, feedsNames } = readWords(shellWords(cmd));
         if (feedsNames) return sensitiveTokenIn(command, cwd);
