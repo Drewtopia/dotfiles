@@ -1,4 +1,5 @@
-# NOT a chezmoi .tmpl: worktrunk's own {{ }} syntax collides with chezmoi's.
+# chezmoi:template:left-delimiter="<%" right-delimiter="%>"
+# Angle-percent delimiters: worktrunk's double braces and TOML's double brackets collide with the defaults.
 # Per-project hooks belong in each repo's .config/wt.toml, not here.
 worktree-path = "~/dev/worktrees/{{ remote_repo }}/{{ branch | sanitize }}"
 
@@ -24,6 +25,7 @@ since-main = "git log --oneline {{ default_branch }}..HEAD"
 [commit.generation]
 command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
 
+<% if .orcaHelpers -%>
 [pre-start]
 # Warn-only: flag an existing branch sharing this branch's ticket number.
 # `|| true` keeps an empty grep from aborting the create under set -e/pipefail.
@@ -48,6 +50,7 @@ N=$(printf '%s\\n' "$R" | grep -c ' — ' || true)
 echo "🧹 $N merged worktrees or branches can go — preview: wt step prune --dry-run · remove: wt step prune"
 exit 0
 """
+<% end -%>
 
 # `.claude/` is globally ignored, so copy-ignored cannot deliver it to a new worktree.
 # Copies, not symlinks: path-scoped rules do not load through a symlink leaving the worktree.
@@ -63,6 +66,7 @@ done
 exit 0
 """
 
+<% if .orcaHelpers -%>
 # A new worktree's Orca card: in progress, linked to the branch's gh<n> issue.
 # Runs from any shell, not only an Orca terminal: `orca` is Orca's CLI, which in WSL talks to the Orca
 # server there. Skipped where `orca` is a distro package, such as the GNOME screen reader.
@@ -72,6 +76,7 @@ N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || tru
 orca worktree set --worktree path:{{ worktree_path }} --workspace-status in-progress ${N:+--issue "$N"} >/dev/null 2>&1 || true
 exit 0
 """
+<% end -%>
 
 # A table runs its entries concurrently, so a pipeline keeps the salvage ahead of the session close.
 [[pre-remove]]
@@ -79,8 +84,10 @@ exit 0
 attic = "wt-attic {{ worktree_path }}"
 
 [[pre-remove]]
+<% if .orcaHelpers -%>
 # Orca never closes an agent tab, and --reap spares processes holding a terminal.
 orca-close = "orca-close-worktree {{ worktree_path }}"
+<% end -%>
 # An Azure merge never closes the GitHub issue a branch carries, so name it while it is still open.
 issue-reminder = """
 N=$(printf '%s' "{{ branch }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
