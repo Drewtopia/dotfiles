@@ -2,17 +2,21 @@
 # cchk.toml; a repo's local hooks run it as its own check beside the repo's team policy.
 
 [commit]
-ai_attribution = "forbid"
 # Subject length is the repo's rule. commit-check has no off switch (0 and -1 still apply
 # its default 80), so the ceiling sits out of reach.
 subject_max_length = 1000
+{{- if .work }}
+# Work commits carry no AI attribution: no AI trailer and no vendor named in the message.
+# Personal machines leave attribution allowed.
+ai_attribution = "forbid"
 # message_pattern replaces commit-check's conventional-commit check, so this policy checks
 # only the banned words; commit types stay with the repo's team policy and commitlint.
 # A path (`.claude/`, `CLAUDE.md`) is not a mention.
 message_pattern = '''^(?!(?i:[\s\S]*(?:(?<!\.)claude(?!\.md)|\.claude(?!/)|anthropic)))'''
+{{- end }}
 {{- if and .work .email }}
-# On a work machine, the work identity's domain, so a clone made outside the usual path
-# cannot commit under the personal identity.
+# The work identity's domain, so a clone made outside the usual path cannot commit under
+# the personal identity.
 author_email_pattern = '^.+@{{ .email | splitList "@" | last | replace "." "\\." }}$'
 {{- end }}
 
