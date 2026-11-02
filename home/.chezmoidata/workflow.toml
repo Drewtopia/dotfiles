@@ -1,0 +1,4 @@
+# Orca-era worktree helpers: the worktrunk hooks that drive Orca cards and terminals,
+# plus the parallel-session warnings (ticket collision, merged-worktree report).
+# Off for the T3 Code trial, which replaces them; true restores them on the next apply.
+orcaHelpers = false
