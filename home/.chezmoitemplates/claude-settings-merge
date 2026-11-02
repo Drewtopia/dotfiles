@@ -350,7 +350,7 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
             "/shims/dcg",
             "session-start-git-status.js", "session-start-window-name.js",
             "post-commit-clear-nudge.js", "check-onboard-drift", "hooks/notify.js",
-            "block-secrets.js",
+            "block-secrets.js", "prior-decision-check.sh",
             "tmux set-option -w automatic-rename on";
             . as $r | $c | contains($r)) | not)))
       | map(select((.hooks | length) > 0))))
