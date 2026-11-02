@@ -15,7 +15,7 @@ Where things live after a close:
 - **Everything this session leaves unfinished** → the closing status block (step 3), one line per item. The block in the session's transcript is the record. The `open-loops` mod, when it saves for the session, also copies the last line to the worktree's Orca card and lists it at every new session start; that copy is a convenience, not the record.
 - **What happened** → the remember plugin's own history and the session's transcript, both written automatically.
 
-Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it as `edit-governance` step 3 says (`git -C ~/.claude-vault fetch . <branch>:main`, then Drew pushes) so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
+Global memory (`~/.claude/memory/`) lives in the vault, whose `main` is protected: edit it on a vault work branch and land it per `edit-governance` step 3 so entries reach the other machines. The git work in step 1 is for the **outer project repo** (e.g. chezmoi, an app repo) — not the vault.
 
 ## Quick close — every time
 
