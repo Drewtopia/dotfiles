@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { getCommand } = require('../lib/hook-io');
 const { CD, WRAPPER, unquote, mask, splitUnquoted, segments } = require('../lib/shell');
-const { isGoverned, unlocked } = require('../edit-governance-guard.cjs');
+const { ASK_DREW, isGoverned, unlocked } = require('../edit-governance-guard.cjs');
 
 const HOME = os.homedir();
 const MAY_WRITE = /[>]|\b(tee|rm|touch|mv|cp|sed|perl)\b/;
@@ -31,19 +31,22 @@ function segmentTargets(seg) {
     return targets;
 }
 
-function governedTargets(cmd, startCwd) {
+// A link made in the same command can send a temp path to live config.
+const MAKES_LINKS = /(?:^|[\s;&|(])(?:ln|cp\s+(?:-\w+\s+)*-\w*s\w*)(?=\s)/;
+
+function governedTargets(cmd, startCwd, tempExempt = !MAKES_LINKS.test(cmd)) {
     let cwd = startCwd;
     const hits = [];
     for (const seg of segments(cmd)) {
         const cd = seg.match(CD);
         const wrapped = seg.match(WRAPPER);
         if (cd) cwd = resolve(cd[2], cwd);
-        else if (wrapped) hits.push(...governedTargets(unquote(wrapped[1]), cwd));
+        else if (wrapped) hits.push(...governedTargets(unquote(wrapped[1]), cwd, tempExempt));
         else
             hits.push(
                 ...segmentTargets(seg)
                     .map(t => resolve(t, cwd))
-                    .filter(isGoverned),
+                    .filter(t => (tempExempt ? isGoverned(t) : isGoverned(t, () => false))),
             );
     }
     return hits;
@@ -61,7 +64,7 @@ function run(input, isUnlocked = unlocked) {
     if (!hits.length || isUnlocked(input.session_id)) return { exitCode: 0 };
     return {
         exitCode: 2,
-        stderr: `🛑 BLOCKED: Bash write to governance surface ${hits[0]}. Stop and ask the user to run /edit-governance; it unlocks this session only.`,
+        stderr: `🛑 BLOCKED: Bash write to governance surface ${hits[0]}. ${ASK_DREW}`,
     };
 }
 

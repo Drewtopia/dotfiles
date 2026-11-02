@@ -108,6 +108,12 @@
 .claude/hooks/tests/permission-denied-audit.test.js
 .claude/hooks/tests/stop-failure-log.test.js
 .claude/hooks/tests/pre-compact-snapshot.test.js
+# Retired: its block only made agents retry the same call.
+.claude/hooks/prior-decision-check.sh
+# Retired for permissions.deny Read rules in settings.json.
+.claude/hooks/block-secrets.js
+.claude/hooks/tests/block-secrets.test.js
+.local/state/prior-decision-check
 
 # Retired: orca worktree ps / orca search cover it.
 .local/bin/claude-ls
@@ -133,3 +139,7 @@
 # Replaced by T3 Code's own background service (`t3 service install`, com.t3tools.t3code.service).
 .local/bin/t3-serve-tailnet
 Library/LaunchAgents/com.drew.t3-serve.plist
+
+# Retired: sessions end through T3, so /close and the script that ran it in Orca tabs go.
+.claude/skills/close
+.local/bin/closeout-tab

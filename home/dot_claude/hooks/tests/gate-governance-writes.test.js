@@ -52,3 +52,29 @@ test('names the governed path in the block message', () => {
     );
     assert.match(res.stderr, /CLAUDE\.md.*\/edit-governance/);
 });
+
+// Real denial: copying a skill into the session scratchpad to draft it there.
+test('allows a governed-looking write under the temp directory', () => {
+    assert.equal(
+        code('cp ~/.claude-vault/skills/standup/SKILL.md /private/tmp/claude-501/-Users-u-proj/sess-1/scratchpad/SKILL.md'),
+        0,
+    );
+    assert.equal(
+        code("cd /private/tmp/claude-501/-Users-u-proj/sess-1/scratchpad/audit; ssh host 'cat ~/.claude/skills/x/SKILL.md' > src/x/SKILL.md"),
+        0,
+    );
+});
+
+test('the Bash block message says only Drew can run /edit-governance', () => {
+    const res = run({ cwd: '/repo', tool_input: { command: 'echo >> AGENTS.md' } }, () => false);
+    assert.match(res.stderr, /Only Drew can run \/edit-governance/);
+    assert.match(res.stderr, /Stop and ask (him|Drew)/);
+});
+
+test('a temp path is not exempt when the same command creates links', () => {
+    for (const cmd of [
+        'ln -s ~/.claude /tmp/d/.claude && echo x > /tmp/d/.claude/hooks/a.js',
+        'cp -s ~/.claude/hooks/a.js /tmp/d/.claude/hooks/a.js; echo x >> /tmp/d/.claude/hooks/a.js',
+    ])
+        assert.equal(code(cmd), 2, cmd);
+});

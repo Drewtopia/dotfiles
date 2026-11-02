@@ -29,3 +29,29 @@ test('a crashing check blocks the command', () => {
     assert.equal(res.exitCode, 2);
     assert.match(res.stderr, /crash errored: boom/);
 });
+
+test('runs the UAT and live-ports gate', () => {
+    const { spawnSync } = require('node:child_process');
+    const os = require('node:os');
+    const path = require('node:path');
+    const res = spawnSync(process.execPath, [path.join(__dirname, '..', 'pre-bash-dispatcher.js')], {
+        input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'mise -E uat run smoke' } }),
+        encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CONFIG_DIR: os.tmpdir(), HOOKS_DISABLED: '' },
+    });
+    assert.equal(res.status, 2);
+    assert.match(res.stderr, /UAT/);
+});
+
+test('runs the pipe-to-tail check', () => {
+    const { spawnSync } = require('node:child_process');
+    const os = require('node:os');
+    const path = require('node:path');
+    const res = spawnSync(process.execPath, [path.join(__dirname, '..', 'pre-bash-dispatcher.js')], {
+        input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'pnpm test 2>&1 | tail -20' } }),
+        encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CONFIG_DIR: os.tmpdir(), HOOKS_DISABLED: '' },
+    });
+    assert.equal(res.status, 2);
+    assert.match(res.stderr, /tail or head/);
+});

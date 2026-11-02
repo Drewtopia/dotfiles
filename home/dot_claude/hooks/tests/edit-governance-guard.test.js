@@ -119,3 +119,54 @@ test('a crash denies instead of allowing', () => {
     });
     assert.match(reason, /edit-governance-guard errored: boom/);
 });
+
+// Real denials: agents drafting governed files in a scratchpad under the temp directory.
+test('allows scratch copies in an existing directory under the temp directory', () => {
+    const dir = fs.mkdtempSync(`${require('node:os').tmpdir()}/gov-`);
+    try {
+        for (const rel of [
+            'scratchpad/prompt-audit/b/AGENTS.md',
+            'scratchpad/ask-u/SKILL.md',
+            'scratchpad/gov/repo/docs/adr/0047-x.md',
+            'draft/.github/workflows/ci.yml',
+        ]) {
+            const p = `${dir}/${rel}`;
+            fs.mkdirSync(require('node:path').dirname(p), { recursive: true });
+            assert.equal(decide(edit(p), () => false), null, p);
+        }
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+// A missing parent could be made a symlink to live config before the write lands.
+test('a temp path whose parent directory does not exist yet stays governed', () => {
+    const dir = fs.mkdtempSync(`${require('node:os').tmpdir()}/gov-`);
+    try {
+        assert.match(decide(edit(`${dir}/x/.claude/hooks/a.js`), () => false), /Governance surface/);
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('a path that only climbs out of the temp directory stays governed', () => {
+    assert.match(decide(edit('/tmp/../home/u/.claude/hooks/x.js'), () => false), /Governance surface/);
+});
+
+// Agents read "ask the user to run /edit-governance" as leave to run it themselves.
+test('the denial says only Drew can run /edit-governance, and to stop and ask him', () => {
+    const reason = decide(edit('/repo/AGENTS.md'), () => false);
+    assert.match(reason, /Only Drew can run \/edit-governance/);
+    assert.match(reason, /agents can't invoke it/i);
+    assert.match(reason, /Stop and ask (him|Drew)/);
+});
+
+test('a symlink from the temp directory to live config stays governed', () => {
+    const dir = fs.mkdtempSync(`${require('node:os').tmpdir()}/gov-`);
+    try {
+        fs.symlinkSync('/', `${dir}/root`);
+        assert.match(decide(edit(`${dir}/root/home/u/.claude/hooks/x.js`), () => false), /Governance surface/);
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});

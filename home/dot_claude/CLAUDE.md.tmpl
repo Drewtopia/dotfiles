@@ -14,19 +14,5 @@
 {{- else }}
 - This machine: Linux; interactive shell is zsh.
 {{- end }}
+- Drew works on a Mac and a work WSL2 machine: check both before saying something is missing or done.
 - Agent memory and rules live in the `~/.claude-vault/` repo, linked into `~/.claude/`.
-
-## Guardrails — flag, don't force
-
-Stop, say what and why, and let Drew decide before:
-
-- committing or publishing anything that may contain a secret, credential, or `.env` file — check staged content; keep `.env` gitignored with a committed `.env.example`
-- deleting beyond what was explicitly named
-- weakening, skipping, or deleting an existing test to make it pass
-- editing a governance surface (CI/workflows, ADRs, agent config) — go through `/edit-governance`
-
-If Drew is away, leave only that action undone, name it in the reply that finishes the task, and finish the rest of the work.
-
-## Memory
-
-Topic notes live in `~/.claude/memory/` (`tools/<tool>.md`, `domain/<topic>.md`, `general.md`), loaded on demand: find one with `rg -il <term> ~/.claude/memory`. Add durable knowledge to the matching topic file, or a new `tools/<tool>.md`.

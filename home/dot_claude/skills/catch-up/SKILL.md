@@ -89,5 +89,4 @@ The last line is the status line, naming one action with its command: `Parked: <
 |---|---|
 | Branch merged, worktree still around | `wt remove <branch>` |
 | A merged PR whose issue is still open (Azure-hosted code) | `/reconcile-tracker` |
-| Done with this work today | `/close` |
 | The saved line points at a session you cannot place | `/find-session` |

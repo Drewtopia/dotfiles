@@ -77,24 +77,51 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
     ],
     "deny": [
       "Bash(> /dev/sda*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(**/secrets/**)",
-      "Edit(**/.env)",
-      "Edit(**/.env.*)"
+      "Read(//**/.env)",
+      "Read(//**/.env.local)",
+      "Read(//**/.env.*.local)",
+      "Read(//**/.env.production)",
+      "Read(//**/.env.development)",
+      "Read(//**/.env.test)",
+      "Read(//**/.env.staging)",
+      "Read(//**/secrets/**)",
+      "Read(//**/secrets.json)",
+      "Read(//**/secrets.yaml)",
+      "Read(//**/secrets.yml)",
+      "Read(//**/secrets.toml)",
+      "Read(//**/.secrets)",
+      "Read(//**/credentials.json)",
+      "Read(//**/credentials.yaml)",
+      "Read(//**/service-account.json)",
+      "Read(//**/service_account.json)",
+      "Read(//**/id_rsa)",
+      "Read(//**/id_ed25519)",
+      "Read(//**/id_ecdsa)",
+      "Read(//**/id_dsa)",
+      "Read(//**/*.pem)",
+      "Read(//**/*.key)",
+      "Read(//**/*.p12)",
+      "Read(//**/*.pfx)",
+      "Read(//**/*.jks)",
+      "Read(//**/*.keystore)",
+      "Read(~/.npmrc)",
+      "Read(~/.yarnrc)",
+      "Read(//**/.pypirc)",
+      "Read(//**/.docker/config.json)",
+      "Read(//**/.aws/credentials)",
+      "Read(//**/gcloud/credentials.db)",
+      "Read(//**/.azure/credentials)",
+      "Read(//**/.git-credentials)",
+      "Read(//**/.git/config)",
+      "Read(//**/.pgpass)",
+      "Read(//**/.my.cnf)",
+      "Read(//**/.mongorc.js)",
+      "Read(//**/mise.local.toml)",
+      "Read(//**/config.local.toml)"
     ]
   },
   "hooks": {
     "PreToolUse": [
-      {
-        "matcher": "Read|Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\""
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -110,29 +137,20 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
-        "matcher": "Edit|Write|NotebookEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/prior-decision-check.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/block-secrets.js\""
-          }
-        ]
-      },
-      {
         "matcher": "Bash|PowerShell|Monitor",
         "hooks": [
           {
             "type": "command",
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/dcg-unattended-ask.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Artifact|mcp__claude_ai_Claude_Docs__.*|mcp__.*__wit_.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/work-safety-ask.js\""
           }
         ]
       },
@@ -299,7 +317,11 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # Tombstones: the merge is add-only (arrays union), so retiring a managed
   # entry in this file cannot remove it from the live settings. List retired
   # entries here to prune them on the next apply.
-  | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)"]
+  # The cwd-relative **/ rules became //**/ (filesystem-wide, as the retired block-secrets
+  # hook was); Read(**/.env.*) also denied .env.example; a Read deny already denies Edit.
+  | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)",
+      "Read(**/.env)", "Read(**/.env.*)", "Read(**/secrets/**)",
+      "Edit(**/.env)", "Edit(**/.env.*)"]
   # Retire the former inline SessionStart rename (shipped via #81): the add-only
   # merge keeps it in live settings, so strip that exact command and drop any
   # hook entry it empties. session-start-window-name.js supersedes it.
@@ -307,7 +329,7 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
       | map(.hooks |= map(select(.command != "[ -n \"$TMUX\" ] && tmux rename-window \"cc:$(basename \"$PWD\")\" || true")))
       | map(select((.hooks | length) > 0)))
   # Retire the stop-end-of-turn hook: its lint half was discarded work and its
-  # secret scan is covered by the block-secrets PreToolUse guard plus pre-commit.
+  # secret scan is covered by the permissions.deny Read rules plus pre-commit.
   # Strip it from live settings (add-only merge keeps it) and drop emptied entries.
   | .hooks.Stop = ((.hooks.Stop // [])
       | map(.hooks |= map(select((.command | contains("stop-end-of-turn.js")) | not)))
@@ -328,6 +350,7 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
             "/shims/dcg",
             "session-start-git-status.js", "session-start-window-name.js",
             "post-commit-clear-nudge.js", "check-onboard-drift", "hooks/notify.js",
+            "block-secrets.js",
             "tmux set-option -w automatic-rename on";
             . as $r | $c | contains($r)) | not)))
       | map(select((.hooks | length) > 0))))

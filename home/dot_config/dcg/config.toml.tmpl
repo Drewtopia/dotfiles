@@ -55,9 +55,24 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 # NOTE: powershell.exe and `ssh host 'pwsh -Command …'` strings holding `$` expressions are
 # unparseable to dcg and denied outright.
 "heredoc.shell:launcher-unverified" = "ask"
+# Heredoc and inline-script bodies dcg cannot statically verify: an ordinary script
+# holding `$(…)` or `zsh -c "$L"` is not a data-loss command, so a human decides.
+"heredoc.posix:substitution-unverified" = "ask"
+"heredoc.posix:inline-launcher-unverified" = "ask"
+"heredoc.powershell:substitution-unverified" = "ask"
 {{- if $windows }}
 "windows.powershell:force-stop-or-restart-computer" = "ask"
+{{- else }}
+# No Windows commands run here, yet this pass denies long heredocs it gives up on.
+"windows.filesystem:windows-filesystem-semantic-unverified" = "log"
 {{- end }}
+
+# Agent-owned scratch: the session job dir and Claude Code's temp dir
+# (/tmp/claude-<uid>/<project>/<session>/scratchpad; /private/tmp on macOS).
+# Only literal targets are exempt, and only from this one rule: a write to
+# ~/.bashrc or a chained `git reset --hard` is still judged by its own rule.
+[rules."core.filesystem:redirect-truncate-root-home"]
+exempt_target_globs = ["~/.claude/jobs/*/tmp/**", "/tmp/claude-*/**", "/private/tmp/claude-*/**"]
 
 [history]
 enabled = true

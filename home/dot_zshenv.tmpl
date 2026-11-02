@@ -84,4 +84,11 @@ export HOMEBREW_FORBIDDEN_FORMULAE="bat git-delta eza fd gdu gh glow golangci-li
 export SUPERWHISPER_SETTINGS="$HOME/superwhisper/settings/settings.json"
 {{- end }}
 
+# Claude Code sets CLAUDECODE in the shells it spawns. Agents write `echo === x` and optional
+# globs, which zsh's defaults abort on; interactive shells keep the defaults.
+if [[ -n "$CLAUDECODE" ]]; then
+    setopt no_equals
+    unsetopt nomatch
+fi
+
 [[ -f "${HOME}/.zshenv.local" ]] && source "${HOME}/.zshenv.local"
