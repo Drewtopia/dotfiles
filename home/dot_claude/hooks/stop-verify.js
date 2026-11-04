@@ -70,14 +70,21 @@ async function main() {
     if (state.passed === print) return 0;
     if (state.failed === print && state.fails >= MAX_FAILS) return 0;
 
-    const run = spawnSync('moon', ['run', ':typecheck', '--affected'], {
+    // A missing mise or moon is not a type error Claude can fix. `mise exec` exits 1 when
+    // it can't find moon, the same code as a failed typecheck, so ask mise first.
+    const moon = spawnSync('mise', ['which', 'moon'], { cwd: root, encoding: 'utf8' });
+    if (moon.error || moon.status !== 0) return 0;
+
+    // Through mise, so moon sees the repo's MOON_TOOLCHAIN_FORCE_GLOBALS and uses mise's
+    // Node; a bare moon in a shell without mise falls back to proto's.
+    const run = spawnSync('mise', ['exec', '--', 'moon', 'run', ':typecheck', '--affected'], {
         cwd: root,
         env: { ...process.env, MOON_BASE: base },
         encoding: 'utf8',
         timeout: TIMEOUT_MS,
     });
     if (run.error || run.status === 0) {
-        // A missing moon or a timeout is not a type error Claude can fix.
+        // A timeout is not a type error Claude can fix either.
         if (!run.error) writeState(file, { passed: print });
         return 0;
     }
