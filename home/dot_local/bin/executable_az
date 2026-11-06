@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# az shim for work WSL2. The managed Windows device passes Conditional Access and the
+# WSL Azure CLI does not. When WSL az has no session, run the call through Windows az.
+#   AZ_SHIM=wsl|windows  force a side.   az --shim-self-test  run the checks.
+# gap: `az login --use-device-code` from WSL fails Conditional Access, and az has no
+# option to borrow the Windows CLI's session.
+# shortcut: cache-file detection says "a session exists", not "it is still valid";
+# an expired WSL session fails like plain az would, force AZ_SHIM=windows then.
+REAL_AZ=/usr/bin/az
+WIN_PY="/mnt/c/Program Files/Microsoft SDKs/Azure/CLI2/python.exe"
+# python.exe directly, not az.cmd: no cmd.exe, so no %, ^, & or quote rewriting, and
+# WSL interop quotes argv for CreateProcess. -X utf8 keeps non-ASCII output intact under -I.
+WIN_CMD=("$WIN_PY" -X utf8 -IBm azure.cli)
+
+# Is there a usable WSL session? Cheap file reads, no network.
+has_session() {
+  local d=${AZURE_CONFIG_DIR:-$HOME/.azure}
+  grep -qs '"user"' "$d/azureProfile.json" && return 0
+  cat "$d/msal_token_cache.json" 2>/dev/null | tr -d ' \n\t\r' | grep -Eq '"(RefreshToken|Account)":\{"' && return 0
+  grep -Eqs '"(client_id|servicePrincipalId)"' "$d/service_principal_entries.json" 2>/dev/null
+}
+
+# Which side runs this call? $@ are az's args.
+choose_side() {
+  case $1 in login | logout) echo wsl; return ;; esac # sign-in always happens in WSL
+  case ${AZ_SHIM:-} in wsl | windows) echo "$AZ_SHIM"; return ;; esac
+  # local-state commands stay with the WSL install
+  case $1 in config | configure | extension | upgrade | cache | completion | feedback) echo wsl; return ;; esac
+  if has_session; then echo wsl; else echo windows; fi
+}
+
+# Sets REPLY to arg $1 with a WSL file path made readable by Windows:
+# @/path, --flag=/path, --flag=@/path, or a bare absolute or ./ ../ path that exists.
+translate_arg() {
+  local a=$1 flag= at=
+  if [[ $a == --*=* ]]; then flag=${a%%=*}=; a=${a#*=}; fi
+  if [[ $a == @* ]]; then at=@; a=${a:1}; fi
+  if { [[ -n $at && -n $a ]] || [[ $a == /* || $a == ./* || $a == ../* ]]; } && [[ -e $a ]]; then
+    REPLY="$flag$at$(wslpath -w "$(realpath -m "$a")")"
+  else
+    REPLY=$1
+  fi
+}
+
+# Windows cwd: cmd-hosted programs reject a UNC cwd. Cached after the first lookup.
+win_home() {
+  local cache=${XDG_CACHE_HOME:-$HOME/.cache}/az-shim-winhome h
+  h=$(cat "$cache" 2>/dev/null)
+  if [[ ! -d $h ]]; then
+    h=$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')
+    h=$(wslpath "$h") && [[ -d $h ]] || h=/mnt/c/Windows/System32
+    mkdir -p "${cache%/*}" && printf '%s' "$h" >"$cache"
+  fi
+  printf '%s' "$h"
+}
+
+# Run "${WIN_CMD[@]}" "$@" with translated args; stdout loses \r; stderr and exit code pass.
+run_windows() {
+  local args=() a
+  for a in "$@"; do translate_arg "$a"; args+=("$REPLY"); done
+  local home
+  home=$(win_home)
+  (cd "$home" && "${WIN_CMD[@]}" "${args[@]}") | tr -d '\r'
+  return "${PIPESTATUS[0]}"
+}
+
+self_test() {
+  local fails=0 t
+  ok() { if [[ $2 == "$3" ]]; then echo "ok   $1"; else echo "FAIL $1: got [$2] want [$3]"; fails=$((fails + 1)); fi; }
+
+  # session detection
+  t=$(mktemp -d)
+  mkdir "$t/empty" "$t/prof" "$t/rt" "$t/sp"
+  printf '\xef\xbb\xbf{"subscriptions": []}' >"$t/empty/azureProfile.json"
+  printf '{\n "RefreshToken": {},\n "Account": {}\n}' >"$t/empty/msal_token_cache.json"
+  printf '{"subscriptions": [{"id": "x", "user": {"name": "n"}}]}' >"$t/prof/azureProfile.json"
+  printf '{\n "RefreshToken": {\n  "k": {"v": 1}\n }\n}' >"$t/rt/msal_token_cache.json"
+  printf '[{"client_id": "c"}]' >"$t/sp/service_principal_entries.json"
+  ok "no session: empty profile and cache" "$(AZURE_CONFIG_DIR=$t/empty has_session && echo y || echo n)" n
+  ok "no session: missing dir" "$(AZURE_CONFIG_DIR=$t/none has_session && echo y || echo n)" n
+  ok "session: subscription in profile" "$(AZURE_CONFIG_DIR=$t/prof has_session && echo y || echo n)" y
+  ok "session: refresh token in msal cache" "$(AZURE_CONFIG_DIR=$t/rt has_session && echo y || echo n)" y
+  ok "session: service principal" "$(AZURE_CONFIG_DIR=$t/sp has_session && echo y || echo n)" y
+
+  # side choice
+  ok "login stays WSL when signed out" "$(AZURE_CONFIG_DIR=$t/empty choose_side login)" wsl
+  ok "login stays WSL under AZ_SHIM=windows" "$(AZ_SHIM=windows choose_side login)" wsl
+  ok "signed out -> windows" "$(AZURE_CONFIG_DIR=$t/empty choose_side repos list)" windows
+  ok "signed in -> wsl" "$(AZURE_CONFIG_DIR=$t/rt choose_side repos list)" wsl
+  ok "AZ_SHIM forces windows" "$(AZURE_CONFIG_DIR=$t/rt AZ_SHIM=windows choose_side repos list)" windows
+  ok "extension stays WSL when signed out" "$(AZURE_CONFIG_DIR=$t/empty choose_side extension list)" wsl
+
+  # path translation
+  echo '{}' >"$t/b x.json"
+  translate_arg "@$t/b x.json"
+  [[ $REPLY == @*'b x.json' && $REPLY != *"$t"* ]] && ok "@file translated" y y || ok "@file translated" "$REPLY" "@<windows path>"
+  translate_arg "--body=@$t/b x.json"
+  [[ $REPLY == --body=@*'b x.json' && $REPLY != *"$t"* ]] && ok "--flag=@file translated" y y || ok "--flag=@file translated" "$REPLY" "--body=@<windows path>"
+  translate_arg "$t/b x.json"
+  [[ $REPLY != "$t"* && $REPLY == *'b x.json' ]] && ok "existing path translated" y y || ok "existing path translated" "$REPLY" "<windows path>"
+  translate_arg "$t/missing.json"
+  ok "missing path untouched" "$REPLY" "$t/missing.json"
+  mkdir "$t/develop"
+  (cd "$t" && translate_arg develop && ok "bare word never a path" "$REPLY" develop)
+  translate_arg "[?name=='x']"
+  ok "JMESPath untouched" "$REPLY" "[?name=='x']"
+
+  # quoting and exit code through the real interop
+  if [[ -x $WIN_PY ]]; then
+    WIN_CMD=("$WIN_PY" -X utf8 -c 'import sys,json;print(json.dumps(sys.argv[1:]));sys.exit(7)')
+    local want got rc
+    local tricky=("[?name=='x'].{a:b}" '{"title": "a b", "q": "it'\''s \"x\""}' 'a&b|c%PATH%^d!e' 'C:\dir\' '' $'line1\nline2' 'caf'$'\xc3\xa9' '$HOME `x`' '-x --y')
+    want=$(python3 -c 'import sys,json;print(json.dumps(sys.argv[1:]))' "${tricky[@]}")
+    got=$(run_windows "${tricky[@]}"); rc=$?
+    ok "tricky args round trip" "$got" "$want"
+    ok "exit code passes through" "$rc" 7
+    ok "stdout has no CR" "$(run_windows | grep -c $'\r')" 0
+  else
+    echo "skip quoting and exit code: no Windows python at $WIN_PY"
+  fi
+  rm -rf "$t"
+  ((fails == 0)) && echo "all passed" || echo "$fails failed"
+  return $((fails > 0))
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  [[ ${1:-} == --shim-self-test ]] && { self_test; exit; }
+  if [[ $(choose_side "$@") == wsl ]]; then exec "$REAL_AZ" "$@"; fi
+  if [[ ! -x $WIN_PY ]]; then
+    echo "az shim: Windows az not found at $WIN_PY and WSL az has no session" >&2
+    exec "$REAL_AZ" "$@"
+  fi
+  # one stderr note per parent shell, only on a terminal so captured output stays clean
+  note=${XDG_RUNTIME_DIR:-/tmp}/az-shim-noted-$PPID-$UID
+  if [[ -t 2 && ! -e $note ]]; then
+    : >"$note"
+    echo "az shim: WSL az has no session, running through Windows az (AZ_SHIM=wsl to force WSL)" >&2
+  fi
+  run_windows "$@"
+  exit $?
+fi
