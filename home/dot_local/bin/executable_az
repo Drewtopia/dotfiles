@@ -6,6 +6,10 @@
 # option to borrow the Windows CLI's session.
 # shortcut: cache-file detection says "a session exists", not "it is still valid";
 # an expired WSL session fails like plain az would, force AZ_SHIM=windows then.
+# shortcut: only the first output path (--output-file, --out-file, --output-path,
+# --download-path, and --path or --file on a "download" command) in the WSL filesystem is
+# staged through a Windows temp dir and moved back on success; a path that does not exist
+# yet is otherwise not translated, so other new-file flags must name a /mnt/<drive> path.
 REAL_AZ=/usr/bin/az
 WIN_PY="/mnt/c/Program Files/Microsoft SDKs/Azure/CLI2/python.exe"
 # python.exe directly, not az.cmd: no cmd.exe, so no %, ^, & or quote rewriting, and
@@ -54,14 +58,63 @@ win_home() {
   printf '%s' "$h"
 }
 
+# Windows temp dir as a WSL path: Windows az writes to a real drive there.
+win_temp() {
+  local t
+  t=$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /c 'echo %TEMP%' 2>/dev/null | tr -d '\r')
+  t=$(wslpath "$t") && [[ -d $t ]] || t=$(win_home)
+  printf '%s' "$t"
+}
+
+# Is option $1 an output path? $2 is 1 on a download command: --path and --file are
+# inputs on an upload, so they only count there.
+is_output_flag() {
+  case $1 in
+    --output-file | --out-file | --output-path | --download-path) return 0 ;;
+    --path | --file) [[ $2 == 1 ]] ;;
+    *) return 1 ;;
+  esac
+}
+
 # Run "${WIN_CMD[@]}" "$@" with translated args; stdout loses \r; stderr and exit code pass.
+# An output path in the WSL filesystem goes to a Windows temp dir and is moved back on
+# success: Windows az fails writing straight into \\wsl.localhost paths (hard-link error).
 run_windows() {
-  local args=() a
-  for a in "$@"; do translate_arg "$a"; args+=("$REPLY"); done
-  local home
+  local args=() a name val prev= dl=0 dest= tmp= kind= base=
+  for a in "$@"; do [[ $a == -* ]] && break; [[ $a == download ]] && dl=1; done
+  for a in "$@"; do
+    name= val=$a
+    if [[ $a == --*=* ]]; then name=${a%%=*}; val=${a#*=}; elif [[ -n $prev ]]; then name=$prev; fi
+    prev=
+    if [[ -z $name && $a == --* ]] && is_output_flag "$a" "$dl"; then prev=$a; fi
+    if [[ -n $name && -z $dest && -n $val ]] && is_output_flag "$name" "$dl" \
+      && [[ $(realpath -m "$val") != /mnt/[a-z] && $(realpath -m "$val") != /mnt/[a-z]/* && $(realpath -m "$val") != / ]]; then
+      dest=$(realpath -m "$val")
+      tmp=$(mktemp -d -p "$(win_temp)" az-shim.XXXXXX) || return 1
+      case $name in
+        --path | --output-path | --download-path) kind=dir; val=$(wslpath -w "$tmp") ;;
+        *) kind=file; base=${dest##*/}; val=$(wslpath -w "$tmp")\\$base ;;
+      esac
+      if [[ $a == --*=* ]]; then args+=("$name=$val"); else args+=("$val"); fi
+      continue
+    fi
+    translate_arg "$a"; args+=("$REPLY")
+  done
+  local home rc
   home=$(win_home)
   (cd "$home" && "${WIN_CMD[@]}" "${args[@]}") | tr -d '\r'
-  return "${PIPESTATUS[0]}"
+  rc=${PIPESTATUS[0]}
+  if [[ -n $tmp ]]; then
+    if ((rc == 0)); then
+      if [[ $kind == dir ]]; then
+        mkdir -p "$dest" && cp -a "$tmp"/. "$dest"/ || rc=1
+      else
+        mkdir -p "${dest%/*}" && mv -f "$tmp/$base" "$dest" || rc=1
+      fi
+    fi
+    rm -rf "$tmp"
+  fi
+  return "$rc"
 }
 
 self_test() {
@@ -115,6 +168,25 @@ self_test() {
     ok "tricky args round trip" "$got" "$want"
     ok "exit code passes through" "$rc" 7
     ok "stdout has no CR" "$(run_windows | grep -c $'\r')" 0
+
+    # output paths: the stub writes a.txt holding the --path it received
+    WIN_CMD=("$WIN_PY" -X utf8 -c 'import sys,os;a=sys.argv;p=a[a.index("--path")+1];os.makedirs(p,exist_ok=True);open(os.path.join(p,"a.txt"),"w").write(p);sys.exit(int(a[a.index("--rc")+1]))')
+    local wt d
+    mkdir "$t/out"
+    wt=$(win_temp); d=$(mktemp -d -p "$wt" az-shim-test.XXXXXX)
+    run_windows pipelines runs artifact download --path "$t/out/new" --rc 0
+    got=$(cat "$t/out/new/a.txt" 2>/dev/null)
+    [[ $got == [A-Za-z]:\\* && $got != *wsl* ]] && ok "WSL output path staged on a drive, lands at original" y y || ok "WSL output path staged on a drive, lands at original" "$got" "<drive path>"
+    run_windows pipelines runs artifact download --path "$d" --rc 0
+    ok "/mnt/c output path not redirected" "$(cat "$d/a.txt")" "$(wslpath -w "$d")"
+    run_windows artifacts universal publish --path "$t/out/new" --rc 0
+    got=$(cat "$t/out/new/a.txt")
+    [[ $got == '\\'* ]] && ok "--path on a non-download is an input, not redirected" y y || ok "--path on a non-download is an input, not redirected" "$got" '\\<wsl path>'
+    run_windows pipelines runs artifact download --path "$t/fail" --rc 3; rc=$?
+    ok "failed download: exit code passes" "$rc" 3
+    ok "failed download: nothing moved to original" "$([[ -e $t/fail ]] && echo y || echo n)" n
+    ok "temp dirs removed" "$(find "$wt" -maxdepth 1 -name 'az-shim.*' | wc -l)" 0
+    rm -rf "$d"
   else
     echo "skip quoting and exit code: no Windows python at $WIN_PY"
   fi
