@@ -12,4 +12,7 @@ export MANPATH="/opt/homebrew/share/man${MANPATH+:$MANPATH}:"
 export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
 
 export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
+
+# OrbStack CLI tools and shell integration; a no-op once OrbStack is gone.
+source ~/.orbstack/shell/init.zsh 2>/dev/null || :
 {{- end }}
