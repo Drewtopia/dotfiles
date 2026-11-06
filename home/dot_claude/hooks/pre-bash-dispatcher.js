@@ -12,6 +12,7 @@ const CHECKS = [
     'pre:bash:gate-push-convention',
     'pre:bash:gate-commit-not-protected',
     'pre:bash:gate-vault-commit',
+    'pre:bash:gate-blocked-issue-close',
     'pre:bash:gate-uat-live-ports',
     'pre:bash:block-pipe-to-tail',
 ].map(id => ({
