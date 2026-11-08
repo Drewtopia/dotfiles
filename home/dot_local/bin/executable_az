@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # az shim for work WSL2. The managed Windows device passes Conditional Access and the
-# WSL Azure CLI does not. When WSL az has no session, Windows az only mints a token and
-# WSL az runs the command with it.
+# WSL Azure CLI does not. When WSL az has no session, WSL az runs the command with a token
+# from the Windows side: Git Credential Manager for Azure DevOps, Windows az for the rest.
 #   AZ_SHIM=wsl|windows  force a side.   az --shim-self-test  run the checks.
 # gap: `az login --use-device-code` from WSL fails Conditional Access, and az has no
 # option to borrow the Windows CLI's session.
@@ -19,6 +19,7 @@ WIN_PY="/mnt/c/Program Files/Microsoft SDKs/Azure/CLI2/python.exe"
 WIN_CMD=("$WIN_PY" -X utf8 -IBm azure.cli)
 ADO_RESOURCE=499b84ac-1321-427f-aa17-267ca6975798 # Azure DevOps' public AAD resource id
 TOKEN_DIR=${XDG_RUNTIME_DIR:-$HOME/.cache}/az-shim
+GCM="/mnt/c/Program Files/Git/ucrt64/bin/git-credential-manager.exe"
 
 # Is there a usable WSL session? Cheap file reads, no network.
 has_session() {
@@ -56,8 +57,48 @@ run_windows() {
   return "${PIPESTATUS[0]}"
 }
 
-# Sets REPLY to a token for resource $1. Windows az mints it (~4 s); later calls reuse it
-# from TOKEN_DIR until 5 minutes before it expires.
+# Prints the Azure DevOps organization for az args $@: --org or --organization, else a
+# dev.azure.com or visualstudio.com URL among them, else `az devops configure`'s default.
+ado_org() {
+  local a prev= v=
+  for a in "$@"; do
+    case $prev in --org | --organization) v=$a ;; esac
+    case $a in
+      --org=* | --organization=*) v=${a#*=} ;;
+      https://dev.azure.com/* | https://*.visualstudio.com*) [[ -n $v ]] || v=$a ;;
+    esac
+    prev=$a
+  done
+  [[ -n $v ]] || v=$(sed -n 's/^organization *= *//p' "${AZURE_CONFIG_DIR:-$HOME/.azure}/azuredevops/config" 2>/dev/null | head -1)
+  case $v in
+    https://dev.azure.com/*) v=${v#https://dev.azure.com/} v=${v%%[/?]*} ;;
+    https://*.visualstudio.com*) v=${v#https://} v=${v%%.*} ;;
+    *) v= ;;
+  esac
+  printf '%s' "$v"
+}
+
+# Sets REPLY to an Azure DevOps token for org $1 from Git Credential Manager, which signs in
+# through the Windows broker and renews its own tokens (~1 s). Never prompts.
+gcm_token() {
+  [[ -n $1 && -x $GCM ]] || return 1
+  REPLY=$(printf 'protocol=https\nhost=dev.azure.com\npath=%s\n\n' "$1" \
+    | GCM_INTERACTIVE=never "$GCM" get 2>/dev/null | tr -d '\r' | sed -n 's/^password=//p')
+  [[ -n $REPLY ]]
+}
+
+# Prints the exp claim of JWT $1; empty when it is not a JWT.
+jwt_exp() {
+  local p
+  [[ $1 == *.*.* ]] || return 0
+  p=${1#*.} p=${p%%.*} p=${p//-/+} p=${p//_//}
+  while ((${#p} % 4)); do p+='='; done
+  base64 -d <<<"$p" 2>/dev/null | grep -o '"exp": *[0-9]*' | grep -o '[0-9]*$'
+}
+
+# Sets REPLY to a token for resource $1 (Azure DevOps org $2, when known). GCM mints Azure
+# DevOps tokens (~1 s); Windows az mints the rest, or when GCM fails (4-13 s). Later calls
+# reuse the token from TOKEN_DIR until 5 minutes before it expires.
 mint_token() {
   local f exp tok out
   f=$TOKEN_DIR/$(printf '%s' "$1" | md5sum | cut -c1-16)
@@ -66,8 +107,12 @@ mint_token() {
     REPLY=$tok
     return
   fi
-  out=$(run_windows account get-access-token --resource "$1" --query '[accessToken, expires_on]' -o tsv) || return
-  { read -r tok; read -r exp; } <<<"$out"
+  if [[ $1 == "$ADO_RESOURCE" ]] && gcm_token "${2:-}"; then
+    tok=$REPLY exp=$(jwt_exp "$REPLY")
+  else
+    out=$(run_windows account get-access-token --resource "$1" --query '[accessToken, expires_on]' -o tsv) || return
+    { read -r tok; read -r exp; } <<<"$out"
+  fi
   [[ -n $tok ]] || { echo "az shim: Windows az returned no token for $1" >&2; return 1; }
   if [[ $exp =~ ^[0-9]+$ ]]; then
     (umask 077 && mkdir -p "$TOKEN_DIR" && printf '%s\n%s\n' "$exp" "$tok" >"$f.$$" && mv -f "$f.$$" "$f") 2>/dev/null
@@ -134,12 +179,12 @@ dispatch() {
     windows) run_windows "$@"; exit $? ;;
     pat)
       [[ -n ${AZURE_DEVOPS_EXT_PAT:-} ]] && exec "$REAL_AZ" "$@" # a PAT already set wins
-      mint_token "$ADO_RESOURCE" || exit 1
+      mint_token "$ADO_RESOURCE" "$(ado_org "$@")" || exit 1
       AZURE_DEVOPS_EXT_PAT=$REPLY exec "$REAL_AZ" "$@" ;;
     rest)
       parse_rest "$@"
       [[ -n $REST_RES ]] || exec "$REAL_AZ" "$@" # unknown host: fails as plain az would
-      mint_token "$REST_RES" || exit 1
+      mint_token "$REST_RES" "$(ado_org "${REST_KEEP[@]}")" || exit 1
       add_auth "$REPLY" "${REST_KEEP[@]}"
       exec "$REAL_AZ" "${AUTH_ARGS[@]}" ;;
     *) exec "$REAL_AZ" "$@" ;;
@@ -201,6 +246,18 @@ self_test() {
   add_auth TOK rest --headers=A=1 --uri u
   ok "rest: --headers=A=1 kept" "${AUTH_ARGS[*]}" "rest --headers Authorization=Bearer TOK A=1 --uri u --skip-authorization-header"
 
+  # Azure DevOps org and JWT expiry
+  mkdir -p "$t/cfg/azuredevops"
+  printf '[defaults]\norganization = https://dev.azure.com/dflt/\n' >"$t/cfg/azuredevops/config"
+  ok "org: --org URL" "$(AZURE_CONFIG_DIR=$t/cfg ado_org repos list --org https://dev.azure.com/o1/)" o1
+  ok "org: --organization= visualstudio.com" "$(ado_org repos list --organization=https://o2.visualstudio.com/)" o2
+  ok "org: from a rest URI" "$(ado_org rest --uri 'https://dev.azure.com/o3/_apis/x?a=1')" o3
+  ok "org: --org beats an earlier URL" "$(ado_org rest --uri https://dev.azure.com/o3 --org https://dev.azure.com/o4)" o4
+  ok "org: configured default" "$(AZURE_CONFIG_DIR=$t/cfg ado_org repos list)" dflt
+  ok "org: none" "$(AZURE_CONFIG_DIR=$t/none ado_org repos list)" ""
+  ok "jwt: exp read" "$(jwt_exp "h.$(printf '{"aud":"a","exp": 1234}' | base64 -w0 | tr -d =).s")" 1234
+  ok "jwt: not a JWT" "$(jwt_exp abc)" ""
+
   # dispatch against a stub Windows az (prints TOK123, plus an expiry when asked for one, and
   # logs each mint to $MINTS; exit code STUB_RC) and a stub WSL az. The group runs in $( )
   # because dispatch execs; its FAIL lines are counted afterwards.
@@ -211,11 +268,17 @@ self_test() {
     'exit "${STUB_RC:-0}"' >"$t/win"
   printf '%s\n' '#!/usr/bin/env bash' \
     'printf "%s|" "${AZURE_DEVOPS_EXT_PAT:-}" "$@" >>"$REC"; exit 5' >"$t/real"
-  chmod +x "$t/win" "$t/real"
+  # stub GCM: logs the request's path to $GCMLOG; prints $STUB_GCM_PW, or fails when unset
+  printf '%s\n' '#!/usr/bin/env bash' \
+    'sed -n "s/^path=//p" >>"$GCMLOG"' \
+    '[[ -n ${STUB_GCM_PW:-} ]] || exit 1' \
+    'printf "protocol=https\r\nusername=u\r\npassword=%s\r\n" "$STUB_GCM_PW"' >"$t/gcm"
+  chmod +x "$t/win" "$t/real" "$t/gcm"
   local grp
   grp=$(
-    REAL_AZ=$t/real WIN_CMD=("$t/win") AZURE_CONFIG_DIR=$out TOKEN_DIR=$t/tok
-    export REC=$t/rec MINTS=$t/mints
+    REAL_AZ=$t/real WIN_CMD=("$t/win") AZURE_CONFIG_DIR=$out TOKEN_DIR=$t/tok GCM=$t/gcm
+    export REC=$t/rec MINTS=$t/mints GCMLOG=$t/gcmlog
+    unset STUB_GCM_PW
     mints() { cat "$MINTS" 2>/dev/null | wc -l | tr -d ' '; }
     unset AZURE_DEVOPS_EXT_PAT AZ_SHIM
     rec() { cat "$REC"; : >"$REC"; }
@@ -247,6 +310,23 @@ self_test() {
     rm -rf "$TOKEN_DIR" "$MINTS"
     (STUB_EXP=$(($(date +%s) + 60)) dispatch repos list); (dispatch repos list)
     ok "cache: token near expiry is minted again" "$(mints)" 2
+    rec >/dev/null
+
+    # GCM for Azure DevOps tokens
+    local jwt
+    jwt="h.$(printf '{"exp":%s}' $(($(date +%s) + 3600)) | base64 -w0 | tr -d =).s"
+    rm -rf "$TOKEN_DIR" "$MINTS" "$GCMLOG"
+    (STUB_GCM_PW=$jwt dispatch repos list --org https://dev.azure.com/o1); (dispatch repos list --org https://dev.azure.com/o1)
+    ok "gcm: token used, Windows az never asked, cached" "$(mints)|$(cat "$GCMLOG")|$(rec)" "0|o1|$jwt|repos|list|--org|https://dev.azure.com/o1|$jwt|repos|list|--org|https://dev.azure.com/o1|"
+    rm -rf "$TOKEN_DIR" "$MINTS" "$GCMLOG"
+    (STUB_GCM_PW=$jwt dispatch rest --uri https://dev.azure.com/o3/_apis/x)
+    ok "gcm: rest org from the URI" "$(mints)|$(cat "$GCMLOG")|$(rec)" "0|o3||rest|--uri|https://dev.azure.com/o3/_apis/x|--headers|Authorization=Bearer $jwt|--skip-authorization-header|"
+    rm -rf "$TOKEN_DIR" "$MINTS" "$GCMLOG"
+    (dispatch repos list --org https://dev.azure.com/o1)
+    ok "gcm fails: Windows az mints instead" "$(mints)|$(cat "$GCMLOG")|$(rec)" "1|o1|TOK123|repos|list|--org|https://dev.azure.com/o1|"
+    rm -rf "$TOKEN_DIR" "$MINTS" "$GCMLOG"
+    (STUB_GCM_PW=$jwt dispatch repos list)
+    ok "gcm: no org known, never asked" "$(mints)|$(cat "$GCMLOG" 2>/dev/null)" "1|"
     rec >/dev/null
   )
   echo "$grp"
