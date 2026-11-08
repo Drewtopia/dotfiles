@@ -77,6 +77,7 @@ cmd_diff() {
 }
 
 cmd_apply() {
+    set -- "${1:-}"
     cd "$VAULT_DIR"
     # Never `git add -A` over unmerged paths: it stages conflict markers as
     # ordinary text and re-adds files an upstream commit deliberately deleted.
@@ -93,9 +94,20 @@ cmd_apply() {
         echo "  → run \`cvault merge\` to finish it first" >&2
         return 1
     fi
-    if git diff --quiet && git diff --cached --quiet; then
+    # status, not diff: untracked files are swept in by `git add -A` too.
+    if [ -z "$(git status --porcelain)" ]; then
         echo "cvault: no local changes to apply"
         return 0
+    fi
+    # The vault checkout often holds other sessions' uncommitted files; `git add -A` would
+    # commit them onto main. Only an explicit --all (Drew at a terminal) sweeps them in.
+    if [ "$1" != "--all" ]; then
+        echo "✗ cvault: the vault has uncommitted changes; apply would commit all of them to main:" >&2
+        git status --short | sed 's/^/    /' >&2
+        echo "  → agents: work in your own worktree and open a PR:" >&2
+        echo "      wt -C ~/.claude-vault switch --create <type>/<slug> --no-cd" >&2
+        echo "  → Drew, to commit everything: cvault apply --all" >&2
+        return 1
     fi
     echo "→ Committing local changes..."
     git add -A
@@ -130,7 +142,7 @@ cmd_update() {
 cmd_sync() {
     # A failed pull falling through to apply would push conflict markers.
     cmd_update || return 1
-    cmd_apply
+    cmd_apply "${1:-}"
 }
 
 cmd_merge() {
@@ -173,9 +185,10 @@ usage: cvault <command> [args]
   status         Show ahead/behind, working tree, pending migrations
                  (loudly flags any in-progress rebase/merge)
   diff [...]    `git diff` pass-through
-  apply          Commit + push local changes
+  apply [--all]  Commit + push local changes; with a dirty tree it refuses
+                 unless --all (agents: use a vault worktree and a PR)
   update         Pull from origin (rebase + autostash)
-  sync           update + apply
+  sync [--all]   update + apply
   merge          Resolve conflicts via `git mergetool` and continue
   help           Show this message
 EOF
@@ -184,9 +197,9 @@ EOF
 case "${1:-status}" in
     status)  cmd_status ;;
     diff)    shift; cmd_diff "$@" ;;
-    apply)   cmd_apply ;;
+    apply)   shift; cmd_apply "$@" ;;
     update)  cmd_update ;;
-    sync)    cmd_sync ;;
+    sync)    shift; cmd_sync "$@" ;;
     merge)   cmd_merge ;;
     help|-h|--help) cmd_help ;;
     *)
