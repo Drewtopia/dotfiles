@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
 # az shim for work WSL2. The managed Windows device passes Conditional Access and the
-# WSL Azure CLI does not. When WSL az has no session, run the call through Windows az.
+# WSL Azure CLI does not. When WSL az has no session, Windows az only mints a token and
+# WSL az runs the command with it.
 #   AZ_SHIM=wsl|windows  force a side.   az --shim-self-test  run the checks.
 # gap: `az login --use-device-code` from WSL fails Conditional Access, and az has no
 # option to borrow the Windows CLI's session.
 # shortcut: cache-file detection says "a session exists", not "it is still valid";
 # an expired WSL session fails like plain az would, force AZ_SHIM=windows then.
-# shortcut: only the first output path (--output-file, --out-file, --output-path,
-# --download-path, and --path or --file on a "download" command) in the WSL filesystem is
-# staged through a Windows temp dir and moved back on success; a path that does not exist
-# yet is otherwise not translated, so other new-file flags must name a /mnt/<drive> path.
+# shortcut: the token reaches WSL az through argv or the environment, so the same user can
+# read it in ps or /proc for the length of the call; az rest and the devops extension take
+# no other form. Key Vault commands cannot take a token, so keyvault is the one full forward.
+# shortcut: tokens are reused from 0600 files in TOKEN_DIR until 5 minutes before expiry; a
+# token revoked early keeps failing until then, `rm -r "$TOKEN_DIR"` clears it.
 REAL_AZ=/usr/bin/az
 WIN_PY="/mnt/c/Program Files/Microsoft SDKs/Azure/CLI2/python.exe"
 # python.exe directly, not az.cmd: no cmd.exe, so no %, ^, & or quote rewriting, and
 # WSL interop quotes argv for CreateProcess. -X utf8 keeps non-ASCII output intact under -I.
 WIN_CMD=("$WIN_PY" -X utf8 -IBm azure.cli)
+ADO_RESOURCE=499b84ac-1321-427f-aa17-267ca6975798 # Azure DevOps' public AAD resource id
+TOKEN_DIR=${XDG_RUNTIME_DIR:-$HOME/.cache}/az-shim
 
 # Is there a usable WSL session? Cheap file reads, no network.
 has_session() {
@@ -24,97 +28,122 @@ has_session() {
   grep -Eqs '"(client_id|servicePrincipalId)"' "$d/service_principal_entries.json" 2>/dev/null
 }
 
-# Which side runs this call? $@ are az's args.
-choose_side() {
+# How does this call run? $@ are az's args. wsl | windows (whole command) | pat | rest.
+route() {
   case $1 in login | logout) echo wsl; return ;; esac # sign-in always happens in WSL
   case ${AZ_SHIM:-} in wsl | windows) echo "$AZ_SHIM"; return ;; esac
-  # local-state commands stay with the WSL install
-  case $1 in config | configure | extension | upgrade | cache | completion | feedback) echo wsl; return ;; esac
-  if has_session; then echo wsl; else echo windows; fi
-}
-
-# Sets REPLY to arg $1 with a WSL file path made readable by Windows:
-# @/path, --flag=/path, --flag=@/path, or a bare absolute or ./ ../ path that exists.
-translate_arg() {
-  local a=$1 flag= at=
-  if [[ $a == --*=* ]]; then flag=${a%%=*}=; a=${a#*=}; fi
-  if [[ $a == @* ]]; then at=@; a=${a:1}; fi
-  if { [[ -n $at && -n $a ]] || [[ $a == /* || $a == ./* || $a == ../* ]]; } && [[ -e $a ]]; then
-    REPLY="$flag$at$(wslpath -w "$(realpath -m "$a")")"
-  else
-    REPLY=$1
-  fi
-}
-
-# Windows cwd: cmd-hosted programs reject a UNC cwd. Cached after the first lookup.
-win_home() {
-  local cache=${XDG_CACHE_HOME:-$HOME/.cache}/az-shim-winhome h
-  h=$(cat "$cache" 2>/dev/null)
-  if [[ ! -d $h ]]; then
-    h=$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')
-    h=$(wslpath "$h") && [[ -d $h ]] || h=/mnt/c/Windows/System32
-    mkdir -p "${cache%/*}" && printf '%s' "$h" >"$cache"
-  fi
-  printf '%s' "$h"
-}
-
-# Windows temp dir as a WSL path: Windows az writes to a real drive there.
-win_temp() {
-  local t
-  t=$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /c 'echo %TEMP%' 2>/dev/null | tr -d '\r')
-  t=$(wslpath "$t") && [[ -d $t ]] || t=$(win_home)
-  printf '%s' "$t"
-}
-
-# Is option $1 an output path? $2 is 1 on a download command: --path and --file are
-# inputs on an upload, so they only count there.
-is_output_flag() {
+  has_session && { echo wsl; return; }
   case $1 in
-    --output-file | --out-file | --output-path | --download-path) return 0 ;;
-    --path | --file) [[ $2 == 1 ]] ;;
-    *) return 1 ;;
+    account) case ${2:-} in get-access-token | show) echo windows ;; *) echo wsl ;; esac ;;
+    repos | boards | pipelines | devops | artifacts) echo pat ;;
+    rest) echo rest ;;
+    keyvault) echo windows ;;
+    *) echo wsl ;;
   esac
 }
 
-# Run "${WIN_CMD[@]}" "$@" with translated args; stdout loses \r; stderr and exit code pass.
-# An output path in the WSL filesystem goes to a Windows temp dir and is moved back on
-# success: Windows az fails writing straight into \\wsl.localhost paths (hard-link error).
+# Windows cwd: cmd-hosted programs reject a UNC cwd.
+win_home() {
+  local h
+  h=$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')
+  h=$(wslpath "$h" 2>/dev/null) && [[ -d $h ]] || h=/mnt/c/Windows/System32
+  printf '%s' "$h"
+}
+
+# Run "${WIN_CMD[@]}" "$@" from the Windows profile dir; stdout loses \r; stderr and exit code pass.
 run_windows() {
-  local args=() a name val prev= dl=0 dest= tmp= kind= base=
-  for a in "$@"; do [[ $a == -* ]] && break; [[ $a == download ]] && dl=1; done
-  for a in "$@"; do
-    name= val=$a
-    if [[ $a == --*=* ]]; then name=${a%%=*}; val=${a#*=}; elif [[ -n $prev ]]; then name=$prev; fi
-    prev=
-    if [[ -z $name && $a == --* ]] && is_output_flag "$a" "$dl"; then prev=$a; fi
-    if [[ -n $name && -z $dest && -n $val ]] && is_output_flag "$name" "$dl" \
-      && [[ $(realpath -m "$val") != /mnt/[a-z] && $(realpath -m "$val") != /mnt/[a-z]/* && $(realpath -m "$val") != / ]]; then
-      dest=$(realpath -m "$val")
-      tmp=$(mktemp -d -p "$(win_temp)" az-shim.XXXXXX) || return 1
-      case $name in
-        --path | --output-path | --download-path) kind=dir; val=$(wslpath -w "$tmp") ;;
-        *) kind=file; base=${dest##*/}; val=$(wslpath -w "$tmp")\\$base ;;
-      esac
-      if [[ $a == --*=* ]]; then args+=("$name=$val"); else args+=("$val"); fi
-      continue
-    fi
-    translate_arg "$a"; args+=("$REPLY")
-  done
-  local home rc
-  home=$(win_home)
-  (cd "$home" && "${WIN_CMD[@]}" "${args[@]}") | tr -d '\r'
-  rc=${PIPESTATUS[0]}
-  if [[ -n $tmp ]]; then
-    if ((rc == 0)); then
-      if [[ $kind == dir ]]; then
-        mkdir -p "$dest" && cp -a "$tmp"/. "$dest"/ || rc=1
-      else
-        mkdir -p "${dest%/*}" && mv -f "$tmp/$base" "$dest" || rc=1
-      fi
-    fi
-    rm -rf "$tmp"
+  (cd "$(win_home)" && "${WIN_CMD[@]}" "$@") | tr -d '\r'
+  return "${PIPESTATUS[0]}"
+}
+
+# Sets REPLY to a token for resource $1. Windows az mints it (~4 s); later calls reuse it
+# from TOKEN_DIR until 5 minutes before it expires.
+mint_token() {
+  local f exp tok out
+  f=$TOKEN_DIR/$(printf '%s' "$1" | md5sum | cut -c1-16)
+  if { read -r exp && read -r tok; } 2>/dev/null <"$f" && [[ $exp =~ ^[0-9]+$ && -n $tok ]] \
+    && ((exp - 300 > $(date +%s))); then
+    REPLY=$tok
+    return
   fi
-  return "$rc"
+  out=$(run_windows account get-access-token --resource "$1" --query '[accessToken, expires_on]' -o tsv) || return
+  { read -r tok; read -r exp; } <<<"$out"
+  [[ -n $tok ]] || { echo "az shim: Windows az returned no token for $1" >&2; return 1; }
+  if [[ $exp =~ ^[0-9]+$ ]]; then
+    (umask 077 && mkdir -p "$TOKEN_DIR" && printf '%s\n%s\n' "$exp" "$tok" >"$f.$$" && mv -f "$f.$$" "$f") 2>/dev/null
+  fi
+  REPLY=$tok
+}
+
+# The AAD resource for a URI's host; empty when unknown.
+resource_for() {
+  local h=${1#*://}
+  h=${h%%[/?]*}
+  case ${h%%:*} in
+    dev.azure.com | *.visualstudio.com) echo "$ADO_RESOURCE" ;;
+    *.vault.azure.net) echo https://vault.azure.net ;;
+    management.azure.com) echo https://management.azure.com ;;
+  esac
+}
+
+# Splits az rest's args: REST_RES is the --resource (else the URI host's), REST_KEEP the rest.
+parse_rest() {
+  local a uri= prev= skip=0
+  REST_RES=
+  REST_KEEP=()
+  for a in "$@"; do
+    if ((skip)); then REST_RES=$a skip=0; continue; fi
+    case $a in
+      --resource) skip=1; continue ;;
+      --resource=*) REST_RES=${a#*=}; continue ;;
+      --uri=* | --url=*) uri=${a#*=} ;;
+    esac
+    [[ $prev == --uri || $prev == --url || $prev == -u ]] && uri=$a
+    prev=$a
+    REST_KEEP+=("$a")
+  done
+  [[ -n $REST_RES ]] || REST_RES=$(resource_for "$uri")
+}
+
+# Sets AUTH_ARGS to az rest's args $2.. with $1 as the bearer token. --headers takes a list and
+# a second --headers replaces the first, so the header joins the caller's own list.
+add_auth() {
+  local t=$1 a added=0
+  shift
+  AUTH_ARGS=()
+  for a in "$@"; do
+    case $a in
+      --headers) AUTH_ARGS+=("$a" "Authorization=Bearer $t"); added=1 ;;
+      --headers=*) AUTH_ARGS+=(--headers "Authorization=Bearer $t" "${a#*=}"); added=1 ;;
+      *) AUTH_ARGS+=("$a") ;;
+    esac
+  done
+  ((added)) || AUTH_ARGS+=(--headers "Authorization=Bearer $t")
+  AUTH_ARGS+=(--skip-authorization-header)
+}
+
+# Replaces the process (exec) or exits; call it in a subshell to test it.
+dispatch() {
+  local side
+  side=$(route "$@")
+  if [[ $side != wsl && ! -x ${WIN_CMD[0]} ]]; then
+    echo "az shim: Windows az not found at ${WIN_CMD[0]} and WSL az has no session" >&2
+    exec "$REAL_AZ" "$@"
+  fi
+  case $side in
+    windows) run_windows "$@"; exit $? ;;
+    pat)
+      [[ -n ${AZURE_DEVOPS_EXT_PAT:-} ]] && exec "$REAL_AZ" "$@" # a PAT already set wins
+      mint_token "$ADO_RESOURCE" || exit 1
+      AZURE_DEVOPS_EXT_PAT=$REPLY exec "$REAL_AZ" "$@" ;;
+    rest)
+      parse_rest "$@"
+      [[ -n $REST_RES ]] || exec "$REAL_AZ" "$@" # unknown host: fails as plain az would
+      mint_token "$REST_RES" || exit 1
+      add_auth "$REPLY" "${REST_KEEP[@]}"
+      exec "$REAL_AZ" "${AUTH_ARGS[@]}" ;;
+    *) exec "$REAL_AZ" "$@" ;;
+  esac
 }
 
 self_test() {
@@ -136,59 +165,99 @@ self_test() {
   ok "session: service principal" "$(AZURE_CONFIG_DIR=$t/sp has_session && echo y || echo n)" y
 
   # side choice
-  ok "login stays WSL when signed out" "$(AZURE_CONFIG_DIR=$t/empty choose_side login)" wsl
-  ok "login stays WSL under AZ_SHIM=windows" "$(AZ_SHIM=windows choose_side login)" wsl
-  ok "signed out -> windows" "$(AZURE_CONFIG_DIR=$t/empty choose_side repos list)" windows
-  ok "signed in -> wsl" "$(AZURE_CONFIG_DIR=$t/rt choose_side repos list)" wsl
-  ok "AZ_SHIM forces windows" "$(AZURE_CONFIG_DIR=$t/rt AZ_SHIM=windows choose_side repos list)" windows
-  ok "extension stays WSL when signed out" "$(AZURE_CONFIG_DIR=$t/empty choose_side extension list)" wsl
+  local out=$t/empty in=$t/rt c
+  ok "login stays WSL when signed out" "$(AZURE_CONFIG_DIR=$out route login)" wsl
+  ok "login stays WSL under AZ_SHIM=windows" "$(AZ_SHIM=windows route login)" wsl
+  ok "signed in -> wsl" "$(AZURE_CONFIG_DIR=$in route repos list)" wsl
+  ok "AZ_SHIM forces windows" "$(AZURE_CONFIG_DIR=$in AZ_SHIM=windows route repos list)" windows
+  ok "AZ_SHIM forces wsl" "$(AZURE_CONFIG_DIR=$out AZ_SHIM=wsl route repos list)" wsl
+  ok "signed out: get-access-token -> windows" "$(AZURE_CONFIG_DIR=$out route account get-access-token)" windows
+  ok "signed out: account show -> windows" "$(AZURE_CONFIG_DIR=$out route account show)" windows
+  ok "signed out: account list -> wsl" "$(AZURE_CONFIG_DIR=$out route account list)" wsl
+  for c in repos boards pipelines devops artifacts; do
+    ok "signed out: $c -> pat" "$(AZURE_CONFIG_DIR=$out route $c x)" pat
+  done
+  ok "signed out: rest -> rest" "$(AZURE_CONFIG_DIR=$out route rest)" rest
+  ok "signed out: keyvault -> windows" "$(AZURE_CONFIG_DIR=$out route keyvault secret show)" windows
+  ok "signed out: extension stays wsl" "$(AZURE_CONFIG_DIR=$out route extension list)" wsl
+  ok "signed out: anything else stays wsl" "$(AZURE_CONFIG_DIR=$out route vm list)" wsl
 
-  # path translation
-  echo '{}' >"$t/b x.json"
-  translate_arg "@$t/b x.json"
-  [[ $REPLY == @*'b x.json' && $REPLY != *"$t"* ]] && ok "@file translated" y y || ok "@file translated" "$REPLY" "@<windows path>"
-  translate_arg "--body=@$t/b x.json"
-  [[ $REPLY == --body=@*'b x.json' && $REPLY != *"$t"* ]] && ok "--flag=@file translated" y y || ok "--flag=@file translated" "$REPLY" "--body=@<windows path>"
-  translate_arg "$t/b x.json"
-  [[ $REPLY != "$t"* && $REPLY == *'b x.json' ]] && ok "existing path translated" y y || ok "existing path translated" "$REPLY" "<windows path>"
-  translate_arg "$t/missing.json"
-  ok "missing path untouched" "$REPLY" "$t/missing.json"
-  mkdir "$t/develop"
-  (cd "$t" && translate_arg develop && ok "bare word never a path" "$REPLY" develop)
-  translate_arg "[?name=='x']"
-  ok "JMESPath untouched" "$REPLY" "[?name=='x']"
+  # az rest: resource choice and arg rewriting
+  ok "resource: dev.azure.com" "$(resource_for https://dev.azure.com/o/p/_apis/x)" "$ADO_RESOURCE"
+  ok "resource: visualstudio.com" "$(resource_for 'https://o.vsrm.visualstudio.com?a=1')" "$ADO_RESOURCE"
+  ok "resource: vault" "$(resource_for https://v.vault.azure.net:443/secrets)" https://vault.azure.net
+  ok "resource: management" "$(resource_for https://management.azure.com/subscriptions)" https://management.azure.com
+  ok "resource: unknown host" "$(resource_for https://example.com/x)" ""
+  parse_rest rest --method get --uri https://dev.azure.com/o/_apis/x --query v
+  ok "rest: resource from URI" "$REST_RES" "$ADO_RESOURCE"
+  parse_rest rest --resource R1 --uri https://dev.azure.com/o --method get
+  ok "rest: --resource wins, removed from args" "$REST_RES|${REST_KEEP[*]}" "R1|rest --uri https://dev.azure.com/o --method get"
+  parse_rest rest --resource=R2 -u https://example.com
+  ok "rest: --resource=R removed, -u read" "$REST_RES|${REST_KEEP[*]}" "R2|rest -u https://example.com"
+  add_auth TOK rest --uri u
+  ok "rest: headers added" "${AUTH_ARGS[*]}" "rest --uri u --headers Authorization=Bearer TOK --skip-authorization-header"
+  add_auth TOK rest --headers A=1 B=2 --uri u
+  ok "rest: existing headers kept" "${AUTH_ARGS[*]}" "rest --headers Authorization=Bearer TOK A=1 B=2 --uri u --skip-authorization-header"
+  add_auth TOK rest --headers=A=1 --uri u
+  ok "rest: --headers=A=1 kept" "${AUTH_ARGS[*]}" "rest --headers Authorization=Bearer TOK A=1 --uri u --skip-authorization-header"
 
-  # quoting and exit code through the real interop
+  # dispatch against a stub Windows az (prints TOK123, plus an expiry when asked for one, and
+  # logs each mint to $MINTS; exit code STUB_RC) and a stub WSL az. The group runs in $( )
+  # because dispatch execs; its FAIL lines are counted afterwards.
+  printf '%s\n' '#!/usr/bin/env bash' \
+    'if [[ "$1 $2" == "account get-access-token" ]]; then echo x >>"$MINTS"; printf "TOK123\r\n"' \
+    '  [[ $* == *expires_on* ]] && printf "%s\r\n" "${STUB_EXP:-$(($(date +%s) + 3600))}"' \
+    'else printf "WIN:%s\r\n" "$*"; fi' \
+    'exit "${STUB_RC:-0}"' >"$t/win"
+  printf '%s\n' '#!/usr/bin/env bash' \
+    'printf "%s|" "${AZURE_DEVOPS_EXT_PAT:-}" "$@" >>"$REC"; exit 5' >"$t/real"
+  chmod +x "$t/win" "$t/real"
+  local grp
+  grp=$(
+    REAL_AZ=$t/real WIN_CMD=("$t/win") AZURE_CONFIG_DIR=$out TOKEN_DIR=$t/tok
+    export REC=$t/rec MINTS=$t/mints
+    mints() { cat "$MINTS" 2>/dev/null | wc -l | tr -d ' '; }
+    unset AZURE_DEVOPS_EXT_PAT AZ_SHIM
+    rec() { cat "$REC"; : >"$REC"; }
+    got=$(dispatch repos pr show --id 1 2>&1)
+    rc=$?
+    ok "pat: exit code passes through" "$rc" 5
+    ok "pat: token in the environment, args unchanged" "$(rec)" "TOK123|repos|pr|show|--id|1|"
+    ok "pat: token never echoed" "$got" ""
+    got=$(dispatch rest --method get --resource R --uri https://dev.azure.com/o --headers A=1 2>&1)
+    ok "rest: real az gets bearer header, no --resource" "$(rec)" "|rest|--method|get|--uri|https://dev.azure.com/o|--headers|Authorization=Bearer TOK123|A=1|--skip-authorization-header|"
+    ok "rest: token never echoed" "$got" ""
+    (dispatch rest --uri https://example.com)
+    ok "rest: unknown host goes to plain az" "$(rec)" "|rest|--uri|https://example.com|"
+    (AZURE_DEVOPS_EXT_PAT=mine dispatch repos list)
+    ok "pat: a PAT already set is kept" "$(rec)" "mine|repos|list|"
+    got=$(STUB_RC=7 dispatch keyvault secret show --name n 2>&1)
+    rc=$?
+    ok "keyvault: whole command to Windows, no CR" "$got" "WIN:keyvault secret show --name n"
+    ok "keyvault: exit code passes through" "$rc" 7
+    ok "get-access-token: output through Windows" "$(dispatch account get-access-token --resource R --query expiresOn -o tsv)" TOK123
+    (AZURE_CONFIG_DIR=$in dispatch repos list)
+    ok "signed in: plain WSL az, no token" "$(rec)" "|repos|list|"
+
+    # token cache
+    rm -rf "$TOKEN_DIR" "$MINTS"
+    (dispatch repos list); (dispatch boards query)
+    ok "cache: second call reuses the token" "$(mints)|$(rec)" "1|TOK123|repos|list|TOK123|boards|query|"
+    ok "cache: file is owner-only" "$(stat -c %a "$TOKEN_DIR"/*)" 600
+    rm -rf "$TOKEN_DIR" "$MINTS"
+    (STUB_EXP=$(($(date +%s) + 60)) dispatch repos list); (dispatch repos list)
+    ok "cache: token near expiry is minted again" "$(mints)" 2
+    rec >/dev/null
+  )
+  echo "$grp"
+  fails=$((fails + $(grep -c '^FAIL' <<<"$grp")))
+
+  # a real round trip through Windows az
   if [[ -x $WIN_PY ]]; then
-    WIN_CMD=("$WIN_PY" -X utf8 -c 'import sys,json;print(json.dumps(sys.argv[1:]));sys.exit(7)')
-    local want got rc
-    local tricky=("[?name=='x'].{a:b}" '{"title": "a b", "q": "it'\''s \"x\""}' 'a&b|c%PATH%^d!e' 'C:\dir\' '' $'line1\nline2' 'caf'$'\xc3\xa9' '$HOME `x`' '-x --y')
-    want=$(python3 -c 'import sys,json;print(json.dumps(sys.argv[1:]))' "${tricky[@]}")
-    got=$(run_windows "${tricky[@]}"); rc=$?
-    ok "tricky args round trip" "$got" "$want"
-    ok "exit code passes through" "$rc" 7
-    ok "stdout has no CR" "$(run_windows | grep -c $'\r')" 0
-
-    # output paths: the stub writes a.txt holding the --path it received
-    WIN_CMD=("$WIN_PY" -X utf8 -c 'import sys,os;a=sys.argv;p=a[a.index("--path")+1];os.makedirs(p,exist_ok=True);open(os.path.join(p,"a.txt"),"w").write(p);sys.exit(int(a[a.index("--rc")+1]))')
-    local wt d
-    mkdir "$t/out"
-    wt=$(win_temp); d=$(mktemp -d -p "$wt" az-shim-test.XXXXXX)
-    run_windows pipelines runs artifact download --path "$t/out/new" --rc 0
-    got=$(cat "$t/out/new/a.txt" 2>/dev/null)
-    [[ $got == [A-Za-z]:\\* && $got != *wsl* ]] && ok "WSL output path staged on a drive, lands at original" y y || ok "WSL output path staged on a drive, lands at original" "$got" "<drive path>"
-    run_windows pipelines runs artifact download --path "$d" --rc 0
-    ok "/mnt/c output path not redirected" "$(cat "$d/a.txt")" "$(wslpath -w "$d")"
-    run_windows artifacts universal publish --path "$t/out/new" --rc 0
-    got=$(cat "$t/out/new/a.txt")
-    [[ $got == '\\'* ]] && ok "--path on a non-download is an input, not redirected" y y || ok "--path on a non-download is an input, not redirected" "$got" '\\<wsl path>'
-    run_windows pipelines runs artifact download --path "$t/fail" --rc 3; rc=$?
-    ok "failed download: exit code passes" "$rc" 3
-    ok "failed download: nothing moved to original" "$([[ -e $t/fail ]] && echo y || echo n)" n
-    ok "temp dirs removed" "$(find "$wt" -maxdepth 1 -name 'az-shim.*' | wc -l)" 0
-    rm -rf "$d"
+    ok "real Windows az runs" "$(run_windows --version | grep -c '^azure-cli')" 1
+    ok "real Windows az: stdout has no CR" "$(run_windows --version | grep -c $'\r')" 0
   else
-    echo "skip quoting and exit code: no Windows python at $WIN_PY"
+    echo "skip real Windows round trip: no Windows python at $WIN_PY"
   fi
   rm -rf "$t"
   ((fails == 0)) && echo "all passed" || echo "$fails failed"
@@ -197,17 +266,5 @@ self_test() {
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
   [[ ${1:-} == --shim-self-test ]] && { self_test; exit; }
-  if [[ $(choose_side "$@") == wsl ]]; then exec "$REAL_AZ" "$@"; fi
-  if [[ ! -x $WIN_PY ]]; then
-    echo "az shim: Windows az not found at $WIN_PY and WSL az has no session" >&2
-    exec "$REAL_AZ" "$@"
-  fi
-  # one stderr note per parent shell, only on a terminal so captured output stays clean
-  note=${XDG_RUNTIME_DIR:-/tmp}/az-shim-noted-$PPID-$UID
-  if [[ -t 2 && ! -e $note ]]; then
-    : >"$note"
-    echo "az shim: WSL az has no session, running through Windows az (AZ_SHIM=wsl to force WSL)" >&2
-  fi
-  run_windows "$@"
-  exit $?
+  dispatch "$@"
 fi
