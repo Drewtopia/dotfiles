@@ -130,11 +130,15 @@ mint_token() {
   REPLY=$tok
 }
 
-# The AAD resource for a URI's host; empty when unknown.
+# The AAD resource for an https URI's host; empty when unknown. The token goes to that host,
+# so a URI with userinfo (user@host) gets none: its text before @ can fake a trusted host.
 resource_for() {
+  [[ ${1,,} == https://* ]] || return 0
   local h=${1#*://}
-  h=${h%%[/?]*}
-  case ${h%%:*} in
+  h=${h%%[/?#]*}
+  [[ $h == *@* ]] && return 0
+  h=${h%%:*}
+  case ${h,,} in
     dev.azure.com | *.visualstudio.com) echo "$ADO_RESOURCE" ;;
     *.vault.azure.net) echo https://vault.azure.net ;;
     management.azure.com) echo https://management.azure.com ;;
@@ -245,6 +249,11 @@ self_test() {
   ok "resource: vault" "$(resource_for https://v.vault.azure.net:443/secrets)" https://vault.azure.net
   ok "resource: management" "$(resource_for https://management.azure.com/subscriptions)" https://management.azure.com
   ok "resource: unknown host" "$(resource_for https://example.com/x)" ""
+  ok "resource: upper-case host" "$(resource_for HTTPS://DEV.AZURE.COM/o)" "$ADO_RESOURCE"
+  ok "resource: plain http gets no token" "$(resource_for http://dev.azure.com/o)" ""
+  ok "resource: userinfo can't fake a host" "$(resource_for https://a.visualstudio.com:@evil.example/x)" ""
+  ok "resource: userinfo can't fake a vault" "$(resource_for https://v.vault.azure.net:@evil.example/s)" ""
+  ok "resource: fragment can't fake a host" "$(resource_for 'https://evil.example#.visualstudio.com')" ""
   parse_rest rest --method get --uri https://dev.azure.com/o/_apis/x --query v
   ok "rest: resource from URI" "$REST_RES" "$ADO_RESOURCE"
   parse_rest rest --resource R1 --uri https://dev.azure.com/o --method get
