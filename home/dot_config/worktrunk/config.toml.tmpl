@@ -90,7 +90,7 @@ orca-close = "orca-close-worktree {{ worktree_path }}"
 <% end -%>
 # An Azure merge never closes the GitHub issue a branch carries, so name it while it is still open.
 issue-reminder = """
-N=$(printf '%s' "{{ branch | default(worktree_name) }}" | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
+N=$(git -C "{{ worktree_path }}" branch --show-current 2>/dev/null | grep -oE 'gh[0-9]+' | head -1 | tr -d gh || true)
 [ -n "$N" ] || exit 0
 R=${GH_ISSUE_TRACKER_REPO:-$(mise exec -- printenv GH_ISSUE_TRACKER_REPO 2>/dev/null || true)}
 # One merged slice does not finish an issue that has sub-issues, so a parent gets no reminder.
