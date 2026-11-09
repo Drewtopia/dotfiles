@@ -131,12 +131,13 @@ mint_token() {
 }
 
 # The AAD resource for an https URI's host; empty when unknown. The token goes to that host,
-# so a URI with userinfo (user@host) gets none: its text before @ can fake a trusted host.
+# so only a plain host[:port] qualifies: userinfo (@), a backslash or other odd characters
+# let text that looks like a trusted host hide the real one.
 resource_for() {
   [[ ${1,,} == https://* ]] || return 0
   local h=${1#*://}
   h=${h%%[/?#]*}
-  [[ $h == *@* ]] && return 0
+  [[ $h =~ ^[A-Za-z0-9.-]+(:[0-9]+)?$ ]] || return 0
   h=${h%%:*}
   case ${h,,} in
     dev.azure.com | *.visualstudio.com) echo "$ADO_RESOURCE" ;;
@@ -254,6 +255,8 @@ self_test() {
   ok "resource: userinfo can't fake a host" "$(resource_for https://a.visualstudio.com:@evil.example/x)" ""
   ok "resource: userinfo can't fake a vault" "$(resource_for https://v.vault.azure.net:@evil.example/s)" ""
   ok "resource: fragment can't fake a host" "$(resource_for 'https://evil.example#.visualstudio.com')" ""
+  ok "resource: backslash can't fake a host" "$(resource_for 'https://evil.example\.visualstudio.com/x')" ""
+  ok "resource: percent-encoding can't fake a host" "$(resource_for 'https://evil.example%2f.visualstudio.com/x')" ""
   parse_rest rest --method get --uri https://dev.azure.com/o/_apis/x --query v
   ok "rest: resource from URI" "$REST_RES" "$ADO_RESOURCE"
   parse_rest rest --resource R1 --uri https://dev.azure.com/o --method get
