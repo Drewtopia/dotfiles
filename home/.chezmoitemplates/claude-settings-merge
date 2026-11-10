@@ -215,6 +215,10 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           {
             "type": "command",
             "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/worktree-guidance-topup.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-mistakes.sh\""
           }
         ]
       }
