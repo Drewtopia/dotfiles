@@ -96,6 +96,18 @@ for (const host of ['mac', 'wsl']) {
         assert.deepEqual(decide(host, 'az boards work-item update --id 1 --state Closed'), { decision: 'ask', rule: 'drew.azure_writes:boards-work-item-write' });
         assert.equal(decide(host, 'git branch -D "$B"').decision, 'ask');
     });
+
+    // A rule that only warns must not hide a destructive command beside it or inside it.
+    test(`${host}: a warned shape does not cover a destructive command`, () => {
+        for (const cmd of [
+            'F=/tmp/claude-1000/a.txt; G=/tmp/claude-1000/b.txt; mv "$F" "$G" && git reset --hard',
+            'while read -r x; do echo "$x"; done < <(git worktree list); rm -rf ~',
+            `L='git reset --hard'; zsh -c "$L"`,
+            "bash <<'EOF'\nrm -rf ~\nEOF",
+            'az pipelines run --id 1 && git push --force origin main',
+        ])
+            assert.equal(decide(host, cmd).decision, 'deny', cmd);
+    });
 }
 
 // A real denial: a Python heredoc then scp+ssh, which dcg's Windows filesystem pass
