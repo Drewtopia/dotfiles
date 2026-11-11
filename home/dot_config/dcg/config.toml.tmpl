@@ -43,8 +43,8 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 "core.filesystem:redirect-truncate-dynamic-path" = "warn"
 "core.filesystem:mv-dynamic-path" = "ask"
 "core.git:branch-dynamic-token" = "ask"
-# The rules that lose data stay deny; the rest of drew.homelab asks. Unattended
-# sessions get no ask at all: hooks/dcg-unattended-ask.js turns it into a deny.
+# The rules that lose data stay deny; the rest of drew.homelab asks. An ask goes
+# to the permission prompt in every mode; a session with no prompt denies it.
 "drew.homelab:proxmox-guest-destroy" = "deny"
 "drew.homelab:zfs-destroy" = "deny"
 "drew.homelab:zpool-destroy" = "deny"
@@ -59,6 +59,7 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 # holding `$(…)` or `zsh -c "$L"` is not a data-loss command, so a human decides.
 "heredoc.posix:substitution-unverified" = "ask"
 "heredoc.posix:inline-launcher-unverified" = "ask"
+"heredoc.posix:process-substitution" = "ask"
 "heredoc.powershell:substitution-unverified" = "ask"
 {{- if $windows }}
 "windows.powershell:force-stop-or-restart-computer" = "ask"

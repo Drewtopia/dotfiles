@@ -73,7 +73,20 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
       "mcp__azure-devops__testplan_test_plan_write",
       "mcp__azure-devops__testplan_test_suite_write",
       "mcp__azure-devops__work_iteration_write",
-      "mcp__azure-devops__work_capacity_write"
+      "mcp__azure-devops__work_capacity_write",
+      "Edit(//**/AGENTS.md)",
+      "Edit(//**/CLAUDE.md)",
+      "Edit(//**/CLAUDE.local.md)",
+      "Edit(//**/SKILL.md)",
+      "Edit(//**/.claude/settings*.json)",
+      "Edit(//**/.claude/hooks/**)",
+      "Edit(//**/dot_claude/**)",
+      "Edit(//**/.chezmoitemplates/claude-settings-merge)",
+      "Edit(//**/dot_config/dcg/**)",
+      "Edit(//**/*claude-vault/**/rules/**)",
+      "Edit(//**/*claude-vault/**/global/**)",
+      "Edit(//**/*claude-vault/**/projects/**)",
+      "Edit(//**/*claude-vault/**/hooks/**)"
     ],
     "deny": [
       "Bash(> /dev/sda*)",
@@ -137,15 +150,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       },
       {
-        "matcher": "Bash|PowerShell|Monitor",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/dcg-unattended-ask.js\""
-          }
-        ]
-      },
-      {
         "matcher": "Artifact|mcp__claude_ai_Claude_Docs__.*|mcp__.*__wit_.*",
         "hooks": [
           {
@@ -159,27 +163,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\""
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
             "command": "f=\"$HOME/.claude-vault/hooks/block-windows-root-files.cjs\"; [ ! -f \"$f\" ] || node \"$f\""
-          }
-        ]
-      }
-    ],
-    "UserPromptExpansion": [
-      {
-        "matcher": "edit-governance|audit-rules-and-skills|reorganize-memory",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\" --expansion"
           }
         ]
       }
@@ -351,6 +335,7 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
             "session-start-git-status.js", "session-start-window-name.js",
             "post-commit-clear-nudge.js", "check-onboard-drift", "hooks/notify.js",
             "block-secrets.js", "prior-decision-check.sh",
+            "dcg-unattended-ask.js", "edit-governance-guard.cjs",
             "tmux set-option -w automatic-rename on";
             . as $r | $c | contains($r)) | not)))
       | map(select((.hooks | length) > 0))))

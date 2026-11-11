@@ -6,9 +6,9 @@ disable-model-invocation: true
 
 # Edit governance surfaces
 
-Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governance-guard.cjs`. This skill is the sanctioned path. Take the review phase seriously — it is the point of the skill, not a formality.
+An edit to a governance surface prompts for approval: the `permissions.ask` rules in `settings.json` cover rule files, skills, hooks and agent settings. This skill is the procedure for such an edit. Take the review phase seriously — it is the point of the skill, not a formality.
 
-## Phase 1 — Scope (before any unlock)
+## Phase 1 — Scope (before any edit)
 
 1. Name every file to be changed and the reason, in one line each. No file may be added later without restating scope.
 2. Classify each target's **correct edit location**:
@@ -20,7 +20,7 @@ Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governa
    - Vault: `git -C ~/.claude-vault fetch . <type>/<slug>:main`, which moves only `main`, whatever branch the vault checkout holds, and refuses a non-fast-forward. Then `wt -C <repo> remove <type>/<slug>`, then print `! git -C ~/.claude-vault push origin main` for Drew to run: the push guard blocks agents from pushing `main`.
      - When fetch refuses with `refusing to fetch into branch 'refs/heads/main' checked out at '<path>'`, `main` is checked out in that worktree: land with `git -C <path> merge --ff-only <type>/<slug>` instead.
    - Chezmoi: push the branch and open a PR (`gh pr create`); `main` changes only by its merge. After it merges, `chezmoi update` and `wt -C <repo> remove <type>/<slug>`.
-4. The unlock is already granted: the user typing `/edit-governance` unlocked this session only, for 2h. No agent can grant it; a session without it stops and asks the user to run `/edit-governance`. Every other session stays blocked on Edit/Write and on common shell writes (`>`, `tee`, `cp`, `mv`, `rm`, `sed -i`). Interpreter writes (`python -c`, `node -e`) are not caught, so never use them on a governance surface.
+4. Each Edit or Write to a governed file prompts the user; a session with no prompt denies it. The prompt covers the file tools only, so never change a governance surface with a shell write (`>`, `tee`, `cp`, `mv`, `sed -i`) or an interpreter (`python -c`, `node -e`).
 
 ## Phase 2 — Edit
 
@@ -42,6 +42,5 @@ Direct edits to governance surfaces are blocked by `~/.claude/hooks/edit-governa
 
 ## Gotchas
 
-- The guard denies on internal errors. A deny that says `errored` means the guard needs fixing, not bypassing.
 - `chezmoi apply` prompts on drifted files and dies without a TTY: apply per-file, and investigate any "has changed since chezmoi last wrote it" before `--force`.
-- Editing this skill or the guard hook is itself a governed edit — this skill applies to its own maintenance.
+- Editing this skill or the `ask` rules is itself a governed edit — this skill applies to its own maintenance.
