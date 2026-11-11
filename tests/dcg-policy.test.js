@@ -77,9 +77,24 @@ for (const host of ['mac', 'wsl']) {
             assert.equal(decide(host, tempScript(dir)).decision, 'allow', dir);
     });
 
-    test(`${host}: an inline launcher dcg cannot verify asks instead of denying`, () => {
-        const res = decide(host, `L='for d in a b; do echo $d; done'; zsh -c "$L"`);
-        assert.deepEqual(res, { decision: 'ask', rule: 'heredoc.posix:inline-launcher-unverified' });
+    // An SDK-hosted session in auto mode never shows an ask, so each rule is allow or deny.
+    test(`${host}: shell shapes dcg cannot verify run without asking`, () => {
+        for (const cmd of [
+            `L='for d in a b; do echo $d; done'; zsh -c "$L"`,
+            'F=/tmp/claude-1000/a.txt; G=/tmp/claude-1000/b.txt; mv "$F" "$G"',
+            'while read -r x; do echo "$x"; done < <(git worktree list)',
+        ])
+            assert.equal(decide(host, cmd).decision, 'allow', cmd);
+    });
+
+    test(`${host}: an agent can queue a pipeline run`, () => {
+        assert.equal(decide(host, 'az pipelines run --id 1 --branch main').decision, 'allow');
+    });
+
+    test(`${host}: other Azure writes and a branch delete through a variable still ask`, () => {
+        assert.deepEqual(decide(host, 'az repos pr create --title x'), { decision: 'ask', rule: 'drew.azure_writes:repos-pr-write' });
+        assert.deepEqual(decide(host, 'az boards work-item update --id 1 --state Closed'), { decision: 'ask', rule: 'drew.azure_writes:boards-work-item-write' });
+        assert.equal(decide(host, 'git branch -D "$B"').decision, 'ask');
     });
 }
 

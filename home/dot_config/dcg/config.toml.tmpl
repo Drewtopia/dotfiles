@@ -34,15 +34,19 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 "drew.homelab" = "ask"
 "drew.git_policy" = "deny"
 
+# An ask is a deny wherever no prompt reaches a person (an SDK-hosted session in auto
+# mode), so each rule here is sorted: warn for a shape that loses nothing, ask for the rest.
 # NOTE: these rules cannot see what a variable expands to, so they fire on every
-# `> $VAR/file` write to a scratch dir. Ask puts the call to a human instead of a
-# dead-end deny. The redirect rule warns instead: writes to dotfiles, .git internals
-# and ~/.config are still denied by their own rules, and it was most of all prompts.
+# `> $VAR/file` write or `mv "$A" "$B"` in a scratch dir. They warn: writes to dotfiles,
+# .git internals and ~/.config, and moves of home or system paths, are still denied by
+# their own rules.
 # branch-dynamic-token stays ask because warn would let `git branch -D $B` run.
 [policy.rules]
 "core.filesystem:redirect-truncate-dynamic-path" = "warn"
-"core.filesystem:mv-dynamic-path" = "ask"
+"core.filesystem:mv-dynamic-path" = "warn"
 "core.git:branch-dynamic-token" = "ask"
+# Agents queue test runs. Every other Azure write in the pack still asks.
+"drew.azure_writes:pipelines-run" = "warn"
 # The rules that lose data stay deny; the rest of drew.homelab asks. Unattended
 # sessions get no ask at all: hooks/dcg-unattended-ask.js turns it into a deny.
 "drew.homelab:proxmox-guest-destroy" = "deny"
@@ -54,12 +58,13 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 "careful_company_running_windows.guardrails:agent-hook-config-tamper" = "ask"
 # NOTE: powershell.exe and `ssh host 'pwsh -Command …'` strings holding `$` expressions are
 # unparseable to dcg and denied outright.
-"heredoc.shell:launcher-unverified" = "ask"
+"heredoc.shell:launcher-unverified" = "warn"
 # Heredoc and inline-script bodies dcg cannot statically verify: an ordinary script
-# holding `$(…)` or `zsh -c "$L"` is not a data-loss command, so a human decides.
-"heredoc.posix:substitution-unverified" = "ask"
-"heredoc.posix:inline-launcher-unverified" = "ask"
-"heredoc.powershell:substitution-unverified" = "ask"
+# holding `$(…)`, `zsh -c "$L"` or `< <(…)` is not a data-loss command, so it runs.
+"heredoc.posix:substitution-unverified" = "warn"
+"heredoc.posix:inline-launcher-unverified" = "warn"
+"heredoc.posix:process-substitution" = "warn"
+"heredoc.powershell:substitution-unverified" = "warn"
 {{- if $windows }}
 "windows.powershell:force-stop-or-restart-computer" = "ask"
 {{- else }}
