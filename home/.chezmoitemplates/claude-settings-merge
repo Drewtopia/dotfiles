@@ -321,6 +321,8 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # Tombstones: the merge is add-only (arrays union), so retiring a managed
   # entry in this file cannot remove it from the live settings. List retired
   # entries here to prune them on the next apply.
+  # The Edit(...) ask rules did not prompt in an SDK-hosted auto-mode session.
+  | .permissions.ask = ((.permissions.ask // []) | map(select(startswith("Edit(//**/") | not)))
   # The cwd-relative **/ rules became //**/ (filesystem-wide, as the retired block-secrets
   # hook was); Read(**/.env.*) also denied .env.example; a Read deny already denies Edit.
   | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)",
