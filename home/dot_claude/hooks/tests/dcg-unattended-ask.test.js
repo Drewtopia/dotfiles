@@ -19,6 +19,18 @@ test('attended session: never runs dcg, passes', () => {
     assert.equal(ran, false);
 });
 
+test('default permission mode: a person sees the ask, so dcg is not re-run', () => {
+    let ran = false;
+    const res = guard.run({ ...input, permission_mode: 'default' }, { env: {}, runDcg: () => { ran = true; } });
+    assert.equal(res.exitCode, 0);
+    assert.equal(ran, false);
+});
+
+test('auto permission mode: a dcg ask still becomes a deny', () => {
+    const res = guard.run({ ...input, permission_mode: 'auto' }, { env: {}, runDcg: dcgSays('ask') });
+    assert.equal(JSON.parse(res.stdout).hookSpecificOutput.permissionDecision, 'deny');
+});
+
 test('unattended session: a dcg ask becomes a deny', () => {
     const res = guard.run(input, { env: { CLAUDE_CODE_SESSION_ATTENDED: '0' }, runDcg: dcgSays('ask') });
     assert.equal(res.exitCode, 0);

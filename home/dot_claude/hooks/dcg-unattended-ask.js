@@ -36,6 +36,8 @@ function block(reason) {
 
 function run(input, { env = process.env, runDcg = defaultRunDcg, raw = JSON.stringify(input) } = {}) {
     if (env.CLAUDE_CODE_SESSION_ATTENDED === '1') return { exitCode: 0 };
+    // Default mode routes an ask to a person (a T3 approval-required thread shows it as an approval).
+    if (input.permission_mode === 'default') return { exitCode: 0 };
 
     const res = runDcg(raw) || {};
     if (res.error) return block(`dcg did not run (${res.error.message})`);
