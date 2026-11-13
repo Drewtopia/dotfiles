@@ -226,6 +226,16 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/cross-check/scripts/startup-check.sh\"; [ ! -f \"$f\" ] || bash \"$f\"",
+            "timeout": 15
+          }
+        ]
       }
 {{- end }}
     ],
