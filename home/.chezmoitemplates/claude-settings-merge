@@ -219,6 +219,11 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
           {
             "type": "command",
             "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-mistakes.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/session-start-behind.sh\"",
+            "timeout": 10
           }
         ]
       }
