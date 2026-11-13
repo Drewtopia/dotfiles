@@ -9,10 +9,23 @@
 # vault skill was deleted is removed.
 # Work machines get every vault skill. Other machines get only the skills that
 # carry a .personal marker file, since most vault skills drive work systems.
+# A skill with a .requires file (one command per line) is linked only where
+# every command is on PATH or in ~/.local/bin, on any machine.
 vault="$HOME/.claude-vault/skills"
 dir="$HOME/.claude/skills"
 [ -d "$vault" ] || exit 0
 mkdir -p "$dir"
+
+has_requires() {
+    local cmd
+    [ -f "$1/.requires" ] || return 0
+    while IFS= read -r cmd || [ -n "$cmd" ]; do
+        cmd=${cmd%%#*}
+        cmd=${cmd//[[:space:]]/}
+        [ -n "$cmd" ] || continue
+        command -v "$cmd" >/dev/null 2>&1 || [ -x "$HOME/.local/bin/$cmd" ] || return 1
+    done < "$1/.requires"
+}
 
 for skill in "$vault"/*/; do
     skill=${skill%/}
@@ -21,6 +34,7 @@ for skill in "$vault"/*/; do
 {{- if not .work }}
     [ -f "$skill/.personal" ] || continue
 {{- end }}
+    has_requires "$skill" || continue
     link="$dir/$name"
     if [ -L "$link" ] && [ "$(readlink "$link")" = "$skill" ]; then
         continue
@@ -41,6 +55,8 @@ for link in "$dir"/*; do
     elif [ ! -f "$target/.personal" ]; then
         rm "$link" && echo "[vault-skills] unlinked $(basename "$link") (no .personal marker)"
 {{- end }}
+    elif ! has_requires "$target"; then
+        rm "$link" && echo "[vault-skills] unlinked $(basename "$link") (a .requires command is missing)"
     fi
 done
 {{- end }}
