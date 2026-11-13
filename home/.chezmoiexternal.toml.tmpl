@@ -132,6 +132,15 @@
         args = ["--depth=1"]
     [".claude-vault".pull]
         args = ["--ff-only"]
+
+# Drew's Home Repo: shared skills (linked by run_after_62-link-hub-skills) and
+# the global AGENTS.md (~/.agents/AGENTS.md and ~/.codex/AGENTS.md link here).
+["repos/drew/hub"]
+    type = "git-repo"
+    url = "git@github.com:Drewtopia/hub.git"
+    refreshPeriod = "168h"
+    ["repos/drew/hub".pull]
+        args = ["--ff-only"]
 {{- end }}
 
 [".config/eza/theme.yml"]
