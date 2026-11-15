@@ -6,7 +6,7 @@
 const path = require('path');
 
 const CD = /^cd\s+(?:--\s+)?(['"]?)([^'"]+)\1\s*$/;
-const WRAPPER = /^(?:eval|xargs(?:\s+-\S+)*|(?:ba|z)?sh\s+-c)\s+([\s\S]+)$/;
+const WRAPPER = /^(?:eval|xargs(?:\s+-\S+)*|(?:ba|z)?sh\s+-\w*c)\s+([\s\S]+)$/;
 
 const unquote = s => s.replace(/^(['"])([\s\S]*)\1$/, '$2');
 

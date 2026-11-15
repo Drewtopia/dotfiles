@@ -3,7 +3,7 @@
 const os = require('node:os');
 const { getCommand } = require('../lib/hook-io');
 const { git, currentBranch } = require('../lib/git');
-const { WRAPPER, unquote, segments, cdBefore } = require('../lib/shell');
+const { WRAPPER, unquote, mask, segments, cdBefore } = require('../lib/shell');
 
 const PROTECTED = 'main|master|develop';
 const GIT = /(?:^|[\s'"(`])git((?:\s+(?:-[cC]\s+\S+|--\S+))*)\s+([\s\S]*)$/;
@@ -34,6 +34,14 @@ function assignedBefore(segs, index) {
     return vars;
 }
 
+/** `s` with quoted text masked, each `$(...)` masked on its own so a quote around it does not hide it. */
+function maskKeepingSubst(s) {
+    let out = mask(s);
+    for (const m of s.matchAll(/\$\([^)]*\)/g))
+        out = out.slice(0, m.index) + mask(m[0]) + out.slice(m.index + m[0].length);
+    return out;
+}
+
 /**
  * Each git invocation in `cmd`, as its own text and the directory it runs in, so
  * a flag or branch named by another command in the line is not read as its own.
@@ -45,8 +53,11 @@ function gitCalls(cmd, outerCwd = '') {
         const cwd = resolveDir(cdBefore(segs, i), vars) || outerCwd;
         const wrapped = seg.match(WRAPPER);
         if (wrapped) return gitCalls(unquote(wrapped[1]), cwd);
-        const m = seg.match(GIT);
-        if (!m) return [];
+        // git inside quotes is an argument (a search term, a message), not a command,
+        // unless a `$(...)` around it runs it.
+        const at = maskKeepingSubst(seg).search(GIT);
+        if (at < 0) return [];
+        const m = seg.slice(at).match(GIT);
         const dashC = m[1].match(/-C\s+(\S+)/);
         const tail = m[2].replace(/['"`()]/g, '').trim();
         const [sub = '', ...rest] = tail.split(/\s+/);

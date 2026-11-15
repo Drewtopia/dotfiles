@@ -114,3 +114,25 @@ test('allows: a feature push after a heredoc whose body holds an apostrophe', ()
     assert.equal(code(COMMIT_THEN_PUSH), 0));
 test('allows: a data heredoc body that mentions a protected push', () =>
     assert.equal(code("cat > notes.md <<'EOF'\ngit push origin main\nEOF"), 0));
+
+// Real denial: an atuin watcher whose search text names a push was read as that push.
+test('allows git text quoted as an argument to another command', () => {
+    const onMain = cmd =>
+        run({ tool_input: { command: cmd } }, { currentBranch: () => 'main', isPrimaryOfMany: () => false }).exitCode;
+    assert.equal(
+        onMain(
+            `until r=$(ATUIN_SESSION=x atuin search --author '$all-user' --after '2026-11-15T05:26:00Z' --search-mode full-text --limit 1 --format '{exit}' 'git -C ~/repos/drew/hub push'); do sleep 15; done; echo "hub exit $r"`,
+        ),
+        0,
+    );
+    assert.equal(onMain(`grep -n 'git push' notes.md`), 0);
+    assert.equal(onMain('git push'), 2);
+    assert.equal(onMain(`sh -c 'git push'`), 2);
+    assert.equal(onMain(`bash -lc 'git push'`), 2);
+});
+
+test('still blocks a bare push run by command substitution inside double quotes', () => {
+    const onMain = cmd =>
+        run({ tool_input: { command: cmd } }, { currentBranch: () => 'main', isPrimaryOfMany: () => false }).exitCode;
+    assert.equal(onMain(`echo "pushed: $(git push)"`), 2);
+});
