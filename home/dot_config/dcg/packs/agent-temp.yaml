@@ -1,0 +1,13 @@
+schema_version: 1
+id: drew.agent_temp
+name: Agent temp dir policy
+description: dcg's built-in temp allow lets rm -rf take any path under /tmp. This pack keeps a Claude session's scratchpad, and every dir above it, out of that allow.
+keywords: [rm]
+version: 1.0.0
+denial_banner: Agent temp dir
+destructive_patterns:
+  - name: rm-scratchpad-or-above
+    pattern: '\brm\b(?=[^\n;&|]*\s-(?:[a-zA-Z]*[rR][a-zA-Z]*|-recursive)(?=\s))[^\n;&|]*\s[''"]?(?:/private)?/tmp/claude-\d+(?:/[^/\s''"]+){0,2}(?:/scratchpad/?|/?\*?)[''"]?(?=[\s;&|)]|$)'
+    severity: critical
+    description: Recursively removes a session scratchpad or a dir above it.
+    explanation: Remove what is inside the scratchpad by its absolute path, such as rm -rf <scratchpad>/dry; the scratchpad and the dirs above it belong to Claude Code.

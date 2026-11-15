@@ -108,6 +108,21 @@ for (const host of ['mac', 'wsl']) {
         ])
             assert.equal(decide(host, cmd).decision, 'deny', cmd);
     });
+
+    // dcg cannot see a `cd`, so a relative path stays denied; the literal absolute path is the form that runs.
+    test(`${host}: rm -rf reaches inside a scratchpad, never the scratchpad or a dir above it`, () => {
+        for (const dir of [linuxTemp, macTemp]) {
+            for (const cmd of [`rm -rf ${dir}/dry`, `rm -rf "${dir}/wt-10811" ${dir}/wt-10828`, `rm -rf ${dir}/*`])
+                assert.equal(decide(host, cmd).decision, 'allow', cmd);
+            for (const cmd of [
+                `rm -rf ${dir}`, `rm -rf ${dir}/`, `rm -rf "${dir}"`, `rm -rf ${dir}/dry ${dir}`,
+                `rm -rf ${path.dirname(dir)}`, `rm -rf ${dir}/../../x`, `rm -rf ${dir}/dry/../..`, `cd ${dir} && rm -rf dry`,
+            ])
+                assert.equal(decide(host, cmd).decision, 'deny', cmd);
+        }
+        for (const cmd of ['rm -rf /tmp/claude-1000', 'rm -rf /tmp/claude-1000/', 'rm -rf /tmp/claude-1000/*', 'rm -rf /tmp/claude-1000/-home-me-proj', 'rm -rf /private/tmp/claude-501'])
+            assert.equal(decide(host, cmd).decision, 'deny', cmd);
+    });
 }
 
 // A real denial: a Python heredoc then scp+ssh, which dcg's Windows filesystem pass
