@@ -1,4 +1,4 @@
-# gap: gitleaks' default rules find credentials, not private network or work detail.
+# gap: the scanner's default rules find credentials, not private network or work detail.
 # Leak rules the commit precheck runs only when the repo's GitHub visibility is public.
 # Patterns only: this repo is public. The employer and tailnet names are appended at run time
 # from fnox by git-commit-precheck.sh, so they never appear here.

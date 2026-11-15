@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # PreToolUse: the harness commits with core.hooksPath=/dev/null, so run the repo's
-# lefthook pre-commit (if configured) and a gitleaks scan (if installed) on staged files.
-# In a public GitHub repo it also runs public-leaks.gitleaks.toml over the staged files and
+# lefthook pre-commit (if configured) and a betterleaks scan (gitleaks when betterleaks is
+# absent) on staged files.
+# In a public GitHub repo it also runs public-leaks.toml over the staged files and
 # the commit message, for private IPs, tailnet hosts, work names and foreign issue refs.
 
 set -uo pipefail
@@ -57,7 +58,7 @@ cd "$REPO_ROOT" || exit 0
 STAGED_COUNT=$(git diff --cached --name-only --diff-filter=ACMR | wc -l)
 [[ "$STAGED_COUNT" -eq 0 ]] && exit 0
 
-LEAK_RULES="$(dirname "${BASH_SOURCE[0]}")/public-leaks.gitleaks.toml"
+LEAK_RULES="$(dirname "${BASH_SOURCE[0]}")/public-leaks.toml"
 VISIBILITY_TTL_SECONDS=$((7 * 24 * 3600))
 # A repo made public since it was cached would skip the leak scan, so PRIVATE lasts a day.
 PRIVATE_TTL_SECONDS=$((24 * 3600))
@@ -95,7 +96,7 @@ repo_visibility() {
     echo "UNKNOWN"
 }
 
-# Writes a temp gitleaks config: the committed patterns plus rules for the private names, which
+# Writes a temp leak-scanner config: the committed patterns plus rules for the private names, which
 # come from fnox at run time (~/.config/fnox/private.toml when present, else the global config
 # with its work.toml import). A name fnox doesn't have is skipped, not guessed.
 leak_config() {
@@ -147,12 +148,15 @@ if [[ -n "$LEFTHOOK_CONFIG" ]]; then
     fi
 fi
 
-if command -v gitleaks >/dev/null 2>&1; then
+# betterleaks reads gitleaks configs and gitleaks:allow comments. v2 drops --staged, so
+# mise pins 1.x.
+LEAKS=$(command -v betterleaks || command -v gitleaks || true)
+if [[ -n "$LEAKS" ]]; then
     RAN_SOMETHING=1
-    if ! gitleaks git --staged --redact --no-banner . 2>&1 >&2; then
+    if ! "$LEAKS" git --staged --redact --no-banner . 2>&1 >&2; then
         echo "" >&2
-        echo "BLOCKED: gitleaks found secrets in staged files." >&2
-        echo "Tip: review with \`gitleaks git --staged -v\` and remove the secrets." >&2
+        echo "BLOCKED: ${LEAKS##*/} found secrets in staged files." >&2
+        echo "Tip: review with \`${LEAKS##*/} git --staged -v\` and remove the secrets." >&2
         FAILED=1
     fi
 
@@ -160,12 +164,12 @@ if command -v gitleaks >/dev/null 2>&1; then
         LEAK_CONFIG=$(leak_config) || LEAK_CONFIG=""
         if [[ -n "$LEAK_CONFIG" ]]; then
             LEAKED=0
-            gitleaks git --staged --redact --no-banner --config "$LEAK_CONFIG" . 2>&1 >&2 || LEAKED=1
+            "$LEAKS" git --staged --redact --no-banner --config "$LEAK_CONFIG" . 2>&1 >&2 || LEAKED=1
             # The commit message is in the command text, so scan that too.
             printf '%s\n' "$COMMAND" \
-                | gitleaks stdin --redact --no-banner --config "$LEAK_CONFIG" 2>&1 >&2 || LEAKED=1
+                | "$LEAKS" stdin --redact --no-banner --config "$LEAK_CONFIG" 2>&1 >&2 || LEAKED=1
             if [[ -n "$MSG_FILE" ]]; then
-                gitleaks stdin --redact --no-banner --config "$LEAK_CONFIG" <"$MSG_FILE" 2>&1 >&2 || LEAKED=1
+                "$LEAKS" stdin --redact --no-banner --config "$LEAK_CONFIG" <"$MSG_FILE" 2>&1 >&2 || LEAKED=1
             fi
             rm -f "$LEAK_CONFIG"
             if [[ "$LEAKED" -eq 1 ]]; then
@@ -185,7 +189,7 @@ if [[ "$FAILED" -eq 1 ]]; then
 fi
 
 if [[ "$RAN_SOMETHING" -eq 0 ]]; then
-    echo "INFO: git-commit-precheck: no lefthook/gitleaks available; allowing commit." >&2
+    echo "INFO: git-commit-precheck: no lefthook or leak scanner available; allowing commit." >&2
 fi
 
 exit 0

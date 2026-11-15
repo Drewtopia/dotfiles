@@ -1,6 +1,6 @@
 'use strict';
 
-// Drives the real hook against a throwaway repo with the real gitleaks. Only the network and
+// Drives the real hook against a throwaway repo with the real leak scanner (betterleaks, else gitleaks). Only the network and
 // secret boundaries are stubbed: `gh` (repo visibility) and `fnox` (private names).
 // Leak samples are assembled at run time so this public file never holds one literally.
 
