@@ -80,9 +80,11 @@ function precheck({
         fs.utimesSync(file, when, when);
     }
 
-    const input = JSON.stringify({ tool_input: { command: command ?? `git commit -m "${message}"` } });
+    const cmd = typeof command === 'function' ? command(repo) : command;
+    const input = JSON.stringify({ tool_input: { command: cmd ?? `git commit -m "${message}"` } });
     const res = spawnSync('bash', [HOOK], {
-        cwd: repo,
+        // `command` as a function names the repo itself, so the hook starts outside it.
+        cwd: typeof command === 'function' ? tmp : repo,
         input,
         encoding: 'utf8',
         env: {
@@ -101,6 +103,17 @@ test('public repo: a staged private IP is blocked', () => {
     const r = precheck({ content: sample.privateIp10 });
     assert.equal(r.code, 2, r.stderr);
 });
+
+for (const form of [
+    'git -C "$R" commit -m "chore: x"',
+    'git -c core.quotepath=off -C "$R" commit -m "chore: x"',
+    'git -C "$R" -C . commit -m "chore: x"',
+]) {
+    test(`public repo: a leak is blocked when the commit names its repo (${form})`, () => {
+        const r = precheck({ content: sample.privateIp10, command: repo => form.replace('$R', repo) });
+        assert.equal(r.code, 2, r.stderr);
+    });
+}
 
 test('public repo: a clean commit passes', () => {
     const r = precheck({ content: 'docs: describe the hook with <host> placeholders' });
@@ -195,4 +208,13 @@ test("public repo: another owner's issue in a commit -F message file is blocked"
         const r = precheck({ content: 'clean', command, files: { 'msg.txt': `fix: retry, as in ${sample.foreignIssue}\n` } });
         assert.equal(r.code, 2, `${command}: ${r.stderr}`);
     }
+});
+
+test("public repo: a -F message file named relative to -C is scanned", () => {
+    const r = precheck({
+        content: 'clean',
+        command: repo => `git -C "${repo}" commit -F msg.txt`,
+        files: { 'msg.txt': `fix: retry, as in ${sample.foreignIssue}\n` },
+    });
+    assert.equal(r.code, 2, r.stderr);
 });

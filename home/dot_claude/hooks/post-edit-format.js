@@ -203,7 +203,6 @@ async function main() {
         }
     }
     if (res.stderr) process.stderr.write(res.stderr + '\n');
-    process.stdout.write(raw);
     process.exit(res.exitCode);
 }
 

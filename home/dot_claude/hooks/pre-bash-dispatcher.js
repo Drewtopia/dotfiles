@@ -42,7 +42,6 @@ async function main() {
         if (res.stderr) process.stderr.write(res.stderr + '\n');
         process.exit(2);
     }
-    process.stdout.write(raw);
     process.exit(0);
 }
 

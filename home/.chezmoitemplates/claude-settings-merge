@@ -13,7 +13,8 @@
     - objects merge in the runtime file's key order (byte-clean vs Claude's
       serializer -> no formatting drift);
     - arrays union (managed entries enforced, runtime/plugin additions kept);
-    - hook commands enforced only if absent (never duplicated / double-fired).
+    - hooks merge per event: runtime and plugin hooks kept, managed groups
+      appended whole, and any copy of a managed hook or retired script dropped.
   Net: managed keys stay enforced, Claude's runtime state survives, drift gone.
 
   The managed JSON below is the former settings.json.tmpl body verbatim; it is
@@ -120,6 +121,8 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
       "Read(//**/config.local.toml)"
     ]
   },
+  {{- /* onFailure "block": a guard that cannot start (node off the hook PATH) or hangs
+         blocks the call instead of letting it through. */}}
   "hooks": {
     "PreToolUse": [
       {
@@ -127,7 +130,8 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-bash-dispatcher.js\""
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/pre-bash-dispatcher.js\"",
+            "onFailure": "block"
           },
           {
             "type": "command",
@@ -141,7 +145,9 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/dcg-unattended-ask.js\""
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/dcg-unattended-ask.js\"",
+            "timeout": 15,
+            "onFailure": "block"
           }
         ]
       },
@@ -150,7 +156,9 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/work-safety-ask.js\""
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/work-safety-ask.js\"",
+            "timeout": 10,
+            "onFailure": "block"
           }
         ]
       },
@@ -159,7 +167,9 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\""
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/edit-governance-guard.cjs\"",
+            "timeout": 10,
+            "onFailure": "block"
           }
         ]
       },
@@ -228,17 +238,6 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         ]
       }
 {{- end }}
-    ],
-    "CwdChanged": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/cwd-changed-worktree-check.js\""
-          }
-        ]
-      }
     ]
   },
   "statusLine": {
@@ -300,32 +299,44 @@ existing=$(cat)
 case "$existing" in *[![:space:]]*) ;; *) existing='{}' ;; esac
 
 printf '%s' "$existing" | jq --argjson m "$managed" '
+  # Keys of b then of a, each once, so the runtime key order stays byte-clean.
+  def keys_of(a;b):
+    (b|keys_unsorted)+(a|keys_unsorted) | reduce .[] as $x ([]; if any(.[];.==$x) then . else .+[$x] end);
   # dm(a;b): merge managed (a) as a floor under runtime (b). b (runtime) wins.
   def dm(a;b):
     if (a|type)=="object" and (b|type)=="object" then
-      reduce (((b|keys_unsorted)+(a|keys_unsorted))
-              | reduce .[] as $x ([]; if any(.[];.==$x) then . else .+[$x] end))[] as $k ({};
+      reduce keys_of(a;b)[] as $k ({};
         .[$k] = (if   (b|has($k)) and (a|has($k)) then dm(a[$k]; b[$k])
                  elif (b|has($k))                 then b[$k]
                  else                                  a[$k] end))
-    elif (a|type)=="array" and (b|type)=="array" then
-      # hook-event arrays (objects with matcher+hooks): keep runtime verbatim,
-      # append a managed hook only if its command string is absent anywhere.
-      if ((b+a)|length>0) and ((b+a)|all(type=="object" and has("matcher") and has("hooks"))) then
-        ([b[]|.hooks[].command]) as $bc
-        | b + ( [ a[]
-                  | .hooks = [ .hooks[] | select(.command as $c | ($bc|index($c))==null) ]
-                  | select(.hooks|length>0) ] )
-      else
-        b + (a - b)
-      end
+    elif (a|type)=="array" and (b|type)=="array" then b + (a - b)
     else b end;
+  # A runtime hook to drop: a copy of a managed one (its managed group is appended
+  # whole, in its own event), a script from ~/.claude/hooks that chezmoi no longer
+  # lists, or a retired hook that lived elsewhere. dcg is not managed here: each dcg
+  # run rewrites its own entry to its binary path, so only the old shim form retires.
+  def dropped($managed):
+    (.command // "") as $c
+    | ($managed | index($c)) != null
+      or ($c | test("(\\$HOME/\\.claude\\}\"?|~/\\.claude)/hooks/"))
+      or any(
+           "tmux rename-window \"cc:", "tmux set-option -w automatic-rename on",
+           "-name '\''*.sh'\'' ! -executable", "EnterWorktree without path",
+           "/shims/dcg", "check-onboard-drift", "claude-log-session", "test -d .jj";
+           . as $r | $c | contains($r));
+  # Per event: runtime groups minus dropped hooks, then the managed groups.
+  def merge_hooks(a;b):
+    [a[][]?.hooks[]?.command // empty] as $mc
+    | reduce keys_of(a;b)[] as $ev ({};
+      ([ (b[$ev] // [])[] | .hooks = [ (.hooks // [])[] | select(dropped($mc) | not) ]
+           | select(.hooks | length > 0) ] + (a[$ev] // [])) as $v
+      | if ($v | length) > 0 then .[$ev] = $v else . end);
   # bind runtime input to $e first: jq args are call-by-name filters, so passing
   # "." rebinds b to the reduce accumulator mid-merge and drops runtime-only keys.
   . as $e | dm($m; $e)
-  # Tombstones: the merge is add-only (arrays union), so retiring a managed
-  # entry in this file cannot remove it from the live settings. List retired
-  # entries here to prune them on the next apply.
+  | .hooks = merge_hooks($m.hooks; $e.hooks // {})
+  # Permission tombstones: non-hook arrays union, so a retired rule stays in live
+  # settings unless it is stripped here.
   # The Edit(...) ask rules did not prompt in an SDK-hosted auto-mode session.
   | .permissions.ask = ((.permissions.ask // []) | map(select(startswith("Edit(//**/") | not)))
   # The cwd-relative **/ rules became //**/ (filesystem-wide, as the retired block-secrets
@@ -333,47 +344,6 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)",
       "Read(**/.env)", "Read(**/.env.*)", "Read(**/secrets/**)",
       "Edit(**/.env)", "Edit(**/.env.*)"]
-  # Retire the former inline SessionStart rename (shipped via #81): the add-only
-  # merge keeps it in live settings, so strip that exact command and drop any
-  # hook entry it empties. session-start-window-name.js supersedes it.
-  | .hooks.SessionStart = ((.hooks.SessionStart // [])
-      | map(.hooks |= map(select(.command != "[ -n \"$TMUX\" ] && tmux rename-window \"cc:$(basename \"$PWD\")\" || true")))
-      | map(select((.hooks | length) > 0)))
-  # Retire the stop-end-of-turn hook: its lint half was discarded work and its
-  # secret scan is covered by the permissions.deny Read rules plus pre-commit.
-  # Strip it from live settings (add-only merge keeps it) and drop emptied entries.
-  | .hooks.Stop = ((.hooks.Stop // [])
-      | map(.hooks |= map(select((.command | contains("stop-end-of-turn.js")) | not)))
-      | map(select((.hooks | length) > 0)))
-  # Retire the unmatched SessionEnd log hook that also rebuilt claude-board: it
-  # fired on /clear and /resume too. Strip it (add-only merge keeps it).
-  | .hooks.SessionEnd = ((.hooks.SessionEnd // [])
-      | map(.hooks |= map(select((.command | contains("claude-board")) | not)))
-      | map(select((.hooks | length) > 0)))
-  # Retire removed hooks: strip their commands and drop emptied entries and events.
-  # The dcg hook is not managed here: each dcg run rewrites its own entry to its binary path.
-  | .hooks = ((.hooks // {}) | with_entries(.value |= (
-      map(.hooks |= map(select((.command // "") as $c | any(
-            "warn-worktree-convention.js", "warn-derived-artifact.js",
-            "permission-denied-audit.js", "stop-failure-log.js",
-            "user-prompt-drift-check.js", "pre-compact-snapshot.js",
-            "-name '\''*.sh'\'' ! -executable", "EnterWorktree without path",
-            "/shims/dcg",
-            "session-start-git-status.js", "session-start-window-name.js",
-            "post-commit-clear-nudge.js", "check-onboard-drift", "hooks/notify.js",
-            "block-secrets.js", "prior-decision-check.sh",
-            "tmux set-option -w automatic-rename on";
-            . as $r | $c | contains($r)) | not)))
-      | map(select((.hooks | length) > 0))))
-      | with_entries(select((.value | length) > 0)))
-  # Retire the bash -c wrapper form of managed hooks: shell-form hooks already run
-  # under sh -c (Git Bash on Windows), and the add-only merge would keep both forms.
-  | .hooks = ((.hooks // {}) | with_entries(.value |= (
-      map(.hooks |= map(select(
-            ((.command | startswith("bash -c '\''node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/"))
-             or .command == "bash -c '\''\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/hooks/git-commit-precheck.sh'\''")
-            | not)))
-      | map(select((.hooks | length) > 0)))))
   # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
   # changed managed default cannot move an already-set live value. Force the few
   # keys chezmoi must own regardless of runtime drift.

@@ -110,7 +110,7 @@ function commandStart(words) {
                 if (runner.value?.test(w)) k++;
                 else if (!runner.flag?.test(w)) return -1;
             }
-        } else if (runner === 'mise' && /^(?:x|exec)$/.test(words[k + 1] || '')) {
+        } else if (base(k) === 'mise' && /^(?:x|exec)$/.test(words[k + 1] || '')) {
             const dd = words.indexOf('--', k);
             if (dd < 0) return -1;
             k = dd + 1;

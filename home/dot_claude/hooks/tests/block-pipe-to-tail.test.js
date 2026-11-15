@@ -28,6 +28,7 @@ const DENIED = [
     'timeout 600 uv run pytest -q 2>&1 | tail -15',
     'cargo test 2>&1 | tail -30',
     'go test ./... 2>&1 | tail',
+    'mise x node@22 -- pnpm test 2>&1 | tail -5',
     'make check 2>&1 | tail -20',
     "git commit -q -F - <<EOF 2>&1 | tail -8\nfix(e2e): wait for the table\n\nOne | two | tail\nEOF",
 ];

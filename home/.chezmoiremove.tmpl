@@ -113,6 +113,22 @@
 # Retired for permissions.deny Read rules in settings.json.
 .claude/hooks/block-secrets.js
 .claude/hooks/tests/block-secrets.test.js
+# Retired hooks whose settings entries the merge already strips; their files stayed behind.
+.claude/hooks/notify.js
+.claude/hooks/post-commit-clear-nudge.js
+.claude/hooks/session-start-git-status.js
+.claude/hooks/session-start-window-name.js
+.claude/hooks/stop-end-of-turn.js
+.claude/hooks/bash-checks/block-dangerous-commands.js
+.claude/hooks/tests/notify.test.js
+.claude/hooks/tests/post-commit-clear-nudge.test.js
+.claude/hooks/tests/session-start-git-status.test.js
+.claude/hooks/tests/session-start-window-name.test.js
+.claude/hooks/tests/stop-end-of-turn.test.js
+.claude/hooks/tests/block-dangerous-commands.test.js
+# Retired: CwdChanged's systemMessage never reaches Claude; the worktree-scope mod covers it.
+.claude/hooks/cwd-changed-worktree-check.js
+.claude/hooks/tests/cwd-changed-worktree-check.test.js
 .local/state/prior-decision-check
 
 # Retired: orca worktree ps / orca search cover it.

@@ -39,6 +39,19 @@ for (const cmd of SAFE) {
 }
 test('empty allows', () => assert.equal(code(''), 0));
 
+test('still blocks a bare push on main through a wrapper or subshell', () => {
+    for (const cmd of [
+        `bash -c 'git push'`,
+        `sh -c "git push"`,
+        `(git push)`,
+        `eval "git push"`,
+        `x="$(git push)"`,
+        'echo "`git push`"',
+    ]) {
+        assert.equal(bare(cmd, { '': 'main' }), 2, cmd);
+    }
+});
+
 // A primary checkout that has worktrees keeps its branch (git state faked through deps).
 const moves = (cmd, { primary = true, refs = ['feat/x'] } = {}) =>
     run(

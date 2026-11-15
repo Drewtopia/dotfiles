@@ -55,3 +55,16 @@ test('runs the pipe-to-tail check', () => {
     assert.equal(res.status, 2);
     assert.match(res.stderr, /tail or head/);
 });
+
+test('an allowed command prints nothing on stdout', () => {
+    const { spawnSync } = require('node:child_process');
+    const os = require('node:os');
+    const path = require('node:path');
+    const res = spawnSync(process.execPath, [path.join(__dirname, '..', 'pre-bash-dispatcher.js')], {
+        input: JSON.stringify({ tool_input: { command: 'ls' } }),
+        encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CONFIG_DIR: os.tmpdir(), HOOKS_DISABLED: '' },
+    });
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(res.stdout, '');
+});

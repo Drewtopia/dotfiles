@@ -2,11 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const {
-    run,
-    isGitPush,
-    configArgs,
-} = require('../bash-checks/gate-push-convention');
+const { run, configArgs } = require('../bash-checks/gate-push-convention');
 
 const input = cmd => ({ tool_input: { command: cmd } });
 const deps = (over = {}) => ({
@@ -25,11 +21,23 @@ const PUSHES = [
     'git -C /repo push',
     'FOO=bar git push',
 ];
-const NON_PUSHES = ['git status', 'npm test', 'git pushd', 'pushing'];
+const NON_PUSHES = [
+    'git status',
+    'npm test',
+    'git pushd',
+    'pushing',
+    'rg "git push" docs',
+    `atuin search 'git push'`,
+];
 
-for (const c of PUSHES) test(`isGitPush true: ${c}`, () => assert.ok(isGitPush(c)));
-for (const c of NON_PUSHES)
-    test(`isGitPush false: ${c}`, () => assert.ok(!isGitPush(c)));
+// A push is checked against commit-check; anything else never reaches it.
+const checked = cmd => {
+    let ran = false;
+    run(input(cmd), deps({ check: () => ((ran = true), { ok: true }) }));
+    return ran;
+};
+for (const c of PUSHES) test(`checks a push: ${c}`, () => assert.ok(checked(c)));
+for (const c of NON_PUSHES) test(`does not check: ${c}`, () => assert.ok(!checked(c)));
 
 // --- config resolution ----------------------------------------------------
 test('repo-local config wins (no --config passed)', () => {

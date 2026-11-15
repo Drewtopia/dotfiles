@@ -10,30 +10,41 @@ INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 [[ -z "$COMMAND" ]] && exit 0
 
-if ! echo "$COMMAND" | grep -qE '(^|[^a-zA-Z])git( -c [^ ]+)* commit( |$)'; then
+GIT_COMMIT='(^|[^a-zA-Z])git([[:space:]]+-[cC][[:space:]]+[^[:space:]]+)*[[:space:]]+commit([[:space:]]|$)'
+if ! printf '%s' "$COMMAND" | grep -qE "$GIT_COMMIT"; then
     exit 0
 fi
 
-# Follow the command's own `cd` so the right repo is checked. No eval: the command
-# text is untrusted, so `~` is expanded by parameter substitution.
+# A path as the command wrote it: one layer of quotes off, a leading `~` expanded. No eval:
+# the command text is untrusted.
+unquote_path() {
+    local p="${1%\"}"
+    p="${p#\"}"; p="${p%\'}"; p="${p#\'}"
+    printf '%s' "${p/#\~/$HOME}"
+}
+
+# Follow the command's own `cd` so the right repo is checked.
 CD_TARGET=$(printf '%s' "$COMMAND" \
     | grep -oE '(^|&&|;)[[:space:]]*cd[[:space:]]+[^&;|]+' \
     | tail -1 | sed -E 's/^.*cd[[:space:]]+//; s/[[:space:]]+$//')
 if [[ -n "$CD_TARGET" ]]; then
-    CD_TARGET="${CD_TARGET%\"}"; CD_TARGET="${CD_TARGET#\"}"
-    CD_TARGET="${CD_TARGET%\'}"; CD_TARGET="${CD_TARGET#\'}"
-    CD_TARGET="${CD_TARGET/#\~/$HOME}"
+    CD_TARGET=$(unquote_path "$CD_TARGET")
     [[ -d "$CD_TARGET" ]] && cd "$CD_TARGET" || true
 fi
 
+# Then each `-C <dir>` of the commit, each relative to the one before, as git applies them.
+# A -C naming a missing directory fails the commit itself, so there is nothing to scan.
+while read -r dir; do
+    cd "$(unquote_path "$dir")" 2>/dev/null || exit 0
+done < <(printf '%s' "$COMMAND" | grep -oE "$GIT_COMMIT" | tail -1 \
+    | grep -oE -- '-C[[:space:]]+[^[:space:]]+' | sed -E 's/^-C[[:space:]]+//')
+
 # `git commit -F <file>` / `--file <file>` takes its message from a file, resolved here
-# against the command's cwd; `-F -` reads the command's own stdin, already in its text.
+# against the commit's directory; `-F -` reads the command's own stdin, already in its text.
 MSG_FILE=$(printf '%s' "$COMMAND" \
     | grep -oE '(^|[[:space:]])(-[a-zA-Z]*F|--file)(=|[[:space:]]*)[^[:space:];&|]+' \
     | tail -1 | sed -E 's/^[[:space:]]*(-[a-zA-Z]*F|--file)=?[[:space:]]*//')
-MSG_FILE="${MSG_FILE%\"}"; MSG_FILE="${MSG_FILE#\"}"
-MSG_FILE="${MSG_FILE%\'}"; MSG_FILE="${MSG_FILE#\'}"
-MSG_FILE="${MSG_FILE/#\~/$HOME}"
+MSG_FILE=$(unquote_path "$MSG_FILE")
 if [[ -n "$MSG_FILE" && "$MSG_FILE" != - && -f "$MSG_FILE" ]]; then
     MSG_FILE="$(cd "$(dirname "$MSG_FILE")" && pwd)/$(basename "$MSG_FILE")"
 else
