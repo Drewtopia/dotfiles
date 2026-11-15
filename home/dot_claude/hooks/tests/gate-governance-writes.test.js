@@ -78,3 +78,18 @@ test('a temp path is not exempt when the same command creates links', () => {
     ])
         assert.equal(code(cmd), 2, cmd);
 });
+
+// Real miss: an agent rewrote AGENTS.md through python, past every shell-write check.
+test('blocks interpreter writes that name a governed path', () => {
+    for (const cmd of [
+        "cd ~/repos/drew/hub && python3 - <<'PY'\np='global/AGENTS.md'\ns=open(p).read()\nopen(p,'w').write(s)\nPY",
+        `python3 -c "open('AGENTS.md','w').write('x')"`,
+        `node -e "require('fs').writeFileSync('.claude/skills/x/SKILL.md','x')"`,
+    ])
+        assert.equal(code(cmd), 2, cmd);
+});
+
+test('allows interpreter reads of a governed path', () => {
+    assert.equal(code(`python3 -c "print(open('AGENTS.md').read())"`), 0);
+    assert.equal(code(`node -e "console.log(require('fs').readFileSync('CLAUDE.md','utf8'))"`), 0);
+});

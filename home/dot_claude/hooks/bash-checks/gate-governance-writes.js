@@ -1,6 +1,7 @@
 'use strict';
-// Tripwire, not a boundary: catches the common shell write forms. Interpreter writes
-// (python -c, node -e, awk, git apply, patch) pass unseen.
+// Tripwire, not a boundary: catches the common shell write forms, and interpreter code
+// (python, node, ruby) that writes a file and names a governed path. awk, git apply and
+// patch pass unseen.
 
 const os = require('os');
 const path = require('path');
@@ -52,6 +53,24 @@ function governedTargets(cmd, startCwd, tempExempt = !MAKES_LINKS.test(cmd)) {
     return hits;
 }
 
+const INTERPRETER = /(?:^|[\s;&|(])(?:python3?|node|bun|deno|ruby)(?=\s)/;
+const WRITES_FILE =
+    /open\([^)]*,\s*(?:mode\s*=\s*)?['"][wax]|\.write_text\(|\.write_bytes\(|writeFile|appendFile|createWriteStream|File\.write|os\.(?:remove|rename|replace|unlink)|shutil\.|unlinkSync|rmSync|renameSync/;
+const PATHLIKE = /(?:~|\.{1,2})?\/?[\w.-]+(?:\/[\w.-]+)+|\b(?:AGENTS|CLAUDE)(?:\.local)?\.md\b/g;
+
+// Interpreter code that writes a file: every governed path it names, resolved from the
+// directory the interpreter starts in.
+function interpreterTargets(cmd, startCwd) {
+    if (!INTERPRETER.test(cmd) || !WRITES_FILE.test(cmd)) return [];
+    let cwd = startCwd;
+    for (const seg of segments(cmd)) {
+        if (INTERPRETER.test(` ${seg}`)) break;
+        const cd = seg.match(CD);
+        if (cd) cwd = resolve(cd[2], cwd);
+    }
+    return [...cmd.matchAll(PATHLIKE)].map(m => resolve(m[0], cwd)).filter(t => isGoverned(t));
+}
+
 function run(input, isUnlocked = unlocked) {
     const cmd = getCommand(input);
     if (/edit-governance-guard[^;&|]*--expansion/.test(cmd))
@@ -59,8 +78,8 @@ function run(input, isUnlocked = unlocked) {
             exitCode: 2,
             stderr: "🛑 BLOCKED: only the user's /edit-governance invocation grants a governance unlock.",
         };
-    if (!MAY_WRITE.test(cmd)) return { exitCode: 0 };
-    const hits = governedTargets(cmd, input.cwd || process.cwd());
+    const cwd = input.cwd || process.cwd();
+    const hits = [...interpreterTargets(cmd, cwd), ...(MAY_WRITE.test(cmd) ? governedTargets(cmd, cwd) : [])];
     if (!hits.length || isUnlocked(input.session_id)) return { exitCode: 0 };
     return {
         exitCode: 2,
