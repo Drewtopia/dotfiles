@@ -12,9 +12,6 @@ const { getCommand } = require('../lib/hook-io');
 const { currentBranch, repoRoot } = require('../lib/git');
 const { gitCalls } = require('./block-dangerous-git');
 
-const isGitPush = cmd =>
-    /(^|[^a-zA-Z])git(\s+-[cC]\s+\S+)*\s+push(\s|$)/.test(cmd);
-
 const REPO_CONFIGS = [
     'cchk.toml',
     'commit-check.toml',
@@ -81,9 +78,10 @@ function run(input, deps = {}) {
     const getBranch = deps.currentBranch || currentBranch;
 
     const cmd = getCommand(input);
-    if (!cmd || !isGitPush(cmd)) return { exitCode: 0 };
+    const push = cmd.includes('push') && gitCalls(cmd).find(call => call.sub === 'push');
+    if (!push) return { exitCode: 0 };
 
-    const where = gitCalls(cmd).find(call => call.sub === 'push')?.cwd || '';
+    const where = push.cwd;
     const worktree = getRepoRoot(where);
     if (!worktree) return { exitCode: 0 };
 
@@ -112,4 +110,4 @@ function run(input, deps = {}) {
     };
 }
 
-module.exports = { run, isGitPush, checkBranch, configArgs, GLOBAL_CONFIG };
+module.exports = { run, checkBranch, configArgs, GLOBAL_CONFIG };

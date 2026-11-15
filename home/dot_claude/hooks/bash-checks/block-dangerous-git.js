@@ -35,10 +35,10 @@ function assignedBefore(segs, index) {
     return vars;
 }
 
-/** `s` with quoted text masked, each `$(...)` masked on its own so a quote around it does not hide it. */
+/** `s` with quoted text masked, each `$(...)` or backtick span masked on its own so a quote around it does not hide it. */
 function maskKeepingSubst(s) {
     let out = mask(s);
-    for (const m of s.matchAll(/\$\([^)]*\)/g))
+    for (const m of s.matchAll(/\$\([^)]*\)|`[^`]*`/g))
         out = out.slice(0, m.index) + mask(m[0]) + out.slice(m.index + m[0].length);
     return out;
 }
