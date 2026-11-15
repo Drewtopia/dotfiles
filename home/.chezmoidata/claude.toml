@@ -15,6 +15,7 @@ worktrunk                 = "max-sixty/worktrunk"
 humanizer                 = "blader/humanizer"
 superwhisper              = "superultrainc/superwhisper-claude-code"
 "pstack-claude"           = "michael-denyer/pstack-claude"
+redact                    = "Drewtopia/redact"
 
 # Section = profile (see GLOSSARY.md); a plugin needed in several profiles is
 # listed in each. false = installed but suppressed, kept as a rejection record.
@@ -72,6 +73,8 @@ superwhisper              = "superultrainc/superwhisper-claude-code"
 # Take pstack skills only from this plugin; `npx skills` from cursor/plugins
 # would add bare duplicates beside the namespaced ones.
 "pstack@pstack-claude"                    = true
+# Needs the redact binary from mise; masks secrets and names in prompts and tool results.
+"redact@redact"                           = true
 
 # Added by run_onchange_after_56-add-claude-mcp-servers; add-only, so deleting
 # an entry does not remove it from ~/.claude.json. Each server runs one process
