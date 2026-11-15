@@ -20,6 +20,31 @@ exclude = ["node_modules/", "dist/", ".turbo/"]
 [aliases]
 since-main = "git log --oneline {{ default_branch }}..HEAD"
 
+# Aliases accumulate, user config first, and a failed step stops the rest: this review runs ahead of
+# the project's own `ship` alias and stops it on an Important finding. The report is saved in the
+# worktree's git dir, one file per commit; a commit whose report passed is not reviewed again.
+# One ship without it: SHIP_SKIP_REVIEW=1 wt step ship.
+[projects."dev.azure.com/*"]
+aliases.ship = """
+if [ -n "${SHIP_SKIP_REVIEW:-}" ]; then echo "Review skipped (SHIP_SKIP_REVIEW)" >&2; exit 0; fi
+git fetch -q origin
+BASE=$(git merge-base origin/{{ default_branch }} HEAD)
+OUT=$(git rev-parse --absolute-git-dir)/review-$(git rev-parse --short HEAD).md
+count() { sed -n 's/^IMPORTANT_FINDINGS=\\([0-9]*\\)$/\\1/p' "$OUT" 2>/dev/null | tail -1; }
+if [ "$(count)" != 0 ]; then
+  echo "Reviewing the branch against origin/{{ default_branch }} before the push (a few minutes)" >&2
+  # The prompt goes first: --allowedTools takes every argument after it.
+  claude -p "Run the mattpocock-skills:code-review skill with fixed point $BASE. This run is non-interactive: ask nothing; if no spec is found, skip the Spec axis and say so. Label every finding [Important] or [Minor]: Important is a hard violation of a documented standard (cite the file and rule) or a spec requirement that is missing or implemented wrong; baseline smells and judgement calls are Minor. End with exactly one line: IMPORTANT_FINDINGS=<count>" \
+    --no-session-persistence --allowedTools 'Read Grep Glob Agent Skill Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git rev-parse:*) Bash(git merge-base:*) Bash(gh issue view:*)' > "$OUT"
+fi
+echo "Review: $OUT" >&2
+N=$(count)
+if [ "$N" != 0 ]; then
+  echo "Refused: the review has ${N:-an unreadable count of} Important findings; nothing pushed. Fix them, or ship once without it: SHIP_SKIP_REVIEW=1 wt step ship" >&2
+  exit 1
+fi
+"""
+
 # --safe-mode keeps hooks/plugins/CLAUDE.md out of the generated text;
 # --setting-sources='user' keeps auth out of a project .claude/settings.json.
 [commit.generation]
