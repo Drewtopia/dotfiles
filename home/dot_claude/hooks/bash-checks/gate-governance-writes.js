@@ -68,7 +68,10 @@ function interpreterTargets(cmd, startCwd) {
         const cd = seg.match(CD);
         if (cd) cwd = resolve(cd[2], cwd);
     }
-    return [...cmd.matchAll(PATHLIKE)].map(m => resolve(m[0], cwd)).filter(t => isGoverned(t));
+    const tempExempt = !MAKES_LINKS.test(cmd) && !/symlink/i.test(cmd);
+    return [...cmd.matchAll(PATHLIKE)]
+        .map(m => resolve(m[0], cwd))
+        .filter(t => (tempExempt ? isGoverned(t) : isGoverned(t, () => false)));
 }
 
 function run(input, isUnlocked = unlocked) {

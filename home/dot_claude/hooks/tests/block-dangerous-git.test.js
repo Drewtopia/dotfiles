@@ -136,3 +136,11 @@ test('still blocks a bare push run by command substitution inside double quotes'
         run({ tool_input: { command: cmd } }, { currentBranch: () => 'main', isPrimaryOfMany: () => false }).exitCode;
     assert.equal(onMain(`echo "pushed: $(git push)"`), 2);
 });
+
+// Security review: quoted git is inert only as an argument to a program that reads it as text.
+test('still blocks quoted git handed to a program that may run it', () => {
+    const onMain = cmd =>
+        run({ tool_input: { command: cmd } }, { currentBranch: () => 'main', isPrimaryOfMany: () => false }).exitCode;
+    for (const cmd of [`/bin/bash -c 'git push'`, `env sh -c 'git push'`, `ssh host 'git push'`, `timeout 60 bash -c 'git push'`])
+        assert.equal(onMain(cmd), 2, cmd);
+});

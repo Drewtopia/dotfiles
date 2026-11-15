@@ -93,3 +93,11 @@ test('allows interpreter reads of a governed path', () => {
     assert.equal(code(`python3 -c "print(open('AGENTS.md').read())"`), 0);
     assert.equal(code(`node -e "console.log(require('fs').readFileSync('CLAUDE.md','utf8'))"`), 0);
 });
+
+// Security review: a link made by the same code can send a temp path to live config.
+test('a temp path is not exempt when interpreter code makes a symlink', () => {
+    assert.equal(
+        code(`python3 -c "import os; os.symlink(os.path.expanduser('~/.claude'), '/tmp/d/.claude'); open('/tmp/d/.claude/hooks/a.js','w').write('x')"`),
+        2,
+    );
+});

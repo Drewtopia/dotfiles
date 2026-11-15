@@ -1,6 +1,7 @@
 'use strict';
 
 const os = require('node:os');
+const path = require('node:path');
 const { getCommand } = require('../lib/hook-io');
 const { git, currentBranch } = require('../lib/git');
 const { WRAPPER, unquote, mask, segments, cdBefore } = require('../lib/shell');
@@ -42,6 +43,17 @@ function maskKeepingSubst(s) {
     return out;
 }
 
+const TEXT_READERS = new Set(['atuin', 'grep', 'rg', 'ag', 'echo', 'printf', 'jq']);
+const LEAD = /^(?:until|while|if|then|do|else|!|\{|[A-Za-z_]\w*=\S*)$/;
+
+/** The program whose arguments hold position `at` in `seg`: the first word of its command. */
+function programBefore(seg, at) {
+    const head = seg.slice(0, at);
+    const start = Math.max(head.lastIndexOf('$('), head.lastIndexOf('`'), head.lastIndexOf('(')) + 1;
+    const words = head.slice(start).replace(/^\(/, '').trim().split(/\s+/);
+    return path.basename(words.find(w => !LEAD.test(w)) || '');
+}
+
 /**
  * Each git invocation in `cmd`, as its own text and the directory it runs in, so
  * a flag or branch named by another command in the line is not read as its own.
@@ -53,10 +65,11 @@ function gitCalls(cmd, outerCwd = '') {
         const cwd = resolveDir(cdBefore(segs, i), vars) || outerCwd;
         const wrapped = seg.match(WRAPPER);
         if (wrapped) return gitCalls(unquote(wrapped[1]), cwd);
-        // git inside quotes is an argument (a search term, a message), not a command,
-        // unless a `$(...)` around it runs it.
-        const at = maskKeepingSubst(seg).search(GIT);
-        if (at < 0) return [];
+        // Quoted git is inert only as text handed to a reader (a search term); a `$(...)`
+        // around it, or any other program, may run it.
+        const real = maskKeepingSubst(seg).search(GIT);
+        const at = real >= 0 ? real : seg.search(GIT);
+        if (at < 0 || (real < 0 && TEXT_READERS.has(programBefore(seg, at)))) return [];
         const m = seg.slice(at).match(GIT);
         const dashC = m[1].match(/-C\s+(\S+)/);
         const tail = m[2].replace(/['"`()]/g, '').trim();
