@@ -39,6 +39,47 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
     "pr": "",
     "sessionUrl": false
   },
+{{- if eq .chezmoi.os "darwin" }}
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "enableWeakerNetworkIsolation": true,
+    "excludedCommands": [
+      "git push *",
+      "git fetch *",
+      "git pull *",
+      "git ls-remote *",
+      "ssh *",
+      "op *",
+      "fnox *",
+      "chezmoi *"
+    ],
+    "filesystem": {
+      "allowWrite": [
+        "~/dev/worktrees",
+        "~/repos",
+        "~/.local/share/chezmoi",
+        "~/.claude-vault",
+        "~/.local/share/atuin"
+      ],
+      "denyRead": [
+        "~/.ssh"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "*.githubusercontent.com",
+        "registry.npmjs.org",
+        "crates.io",
+        "index.crates.io",
+        "static.crates.io"
+      ]
+    }
+  },
+{{- end }}
   "permissions": {
     "defaultMode": "auto",
     "allow": [
