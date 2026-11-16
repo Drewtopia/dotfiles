@@ -20,6 +20,59 @@ exclude = ["node_modules/", "dist/", ".turbo/"]
 [aliases]
 since-main = "git log --oneline {{ default_branch }}..HEAD"
 
+# `wt step ship` in any repo. Aliases accumulate, global first, then project entries and the system
+# config, and a failed step stops the rest: this review runs ahead of the repo's ship (the GitHub one
+# below, or a project's own) and stops it on an Important finding. The report is saved in the
+# worktree's git dir, one file per commit; a commit whose report passed is not reviewed again.
+# One ship without it: SHIP_SKIP_REVIEW=1 wt step ship.
+ship = """
+if [ -n "${SHIP_SKIP_REVIEW:-}" ]; then echo "Review skipped (SHIP_SKIP_REVIEW)" >&2; exit 0; fi
+git fetch -q origin
+if ! BASE=$(git merge-base origin/{{ default_branch }} HEAD); then
+  echo "Refused: no merge-base with origin/{{ default_branch }} to review against; nothing pushed" >&2
+  exit 1
+fi
+OUT=$(git rev-parse --absolute-git-dir)/review-$(git rev-parse --short HEAD).md
+count() { sed -n 's/^IMPORTANT_FINDINGS=\\([0-9]*\\)$/\\1/p' "$OUT" 2>/dev/null | tail -1; }
+if [ "$(count)" != 0 ]; then
+  echo "Reviewing the branch against origin/{{ default_branch }} before the push (a few minutes)" >&2
+  # The prompt goes first: --allowedTools takes every argument after it.
+  claude -p "Run the mattpocock-skills:code-review skill with fixed point $BASE. This run is non-interactive: ask nothing; if no spec is found, skip the Spec axis and say so. Label every finding [Important] or [Minor]: Important is a hard violation of a documented standard (cite the file and rule) or a spec requirement that is missing or implemented wrong; baseline smells and judgement calls are Minor. End with exactly one line: IMPORTANT_FINDINGS=<count>" \
+    --no-session-persistence --allowedTools 'Read Grep Glob Agent Skill Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git rev-parse:*) Bash(git merge-base:*) Bash(gh issue view:*)' > "$OUT"
+fi
+echo "Review: $OUT" >&2
+N=$(count)
+if [ "$N" != 0 ]; then
+  echo "Refused: the review has ${N:-an unreadable count of} Important findings; nothing pushed. Fix them, or ship once without it: SHIP_SKIP_REVIEW=1 wt step ship" >&2
+  exit 1
+fi
+"""
+
+# GitHub repos: push, then open the PR to the default branch, or update the open one.
+# Description: the file named by PR_BODY, written with the mattpocock-skills:pr skill. A new PR is
+# refused without it; given to an open PR, it replaces that PR's description.
+# Title of a new PR: `--title="<title>"`, else the first commit's subject.
+[projects."github.com/*"]
+aliases.ship = """
+TITLE={{ title | default('') }}
+if [ -n "${PR_BODY:-}" ] && [ ! -s "$PR_BODY" ]; then
+  echo "Refused: PR_BODY ($PR_BODY) is missing or empty" >&2
+  exit 1
+fi
+if gh pr view --json number >/dev/null 2>&1; then
+  git push -u origin HEAD
+  if [ -n "${PR_BODY:-}" ]; then gh pr edit --body-file "$PR_BODY" >/dev/null; fi
+  gh pr view --json url --jq .url
+else
+  if [ -z "${PR_BODY:-}" ]; then
+    echo "Refused: a new PR needs a description. Write it with the mattpocock-skills:pr skill, then: PR_BODY=<file> wt step ship" >&2
+    exit 1
+  fi
+  git push -u origin HEAD
+  gh pr create --base {{ default_branch }} --fill-first --body-file "$PR_BODY" ${TITLE:+--title "$TITLE"}
+fi
+"""
+
 # --safe-mode keeps hooks/plugins/CLAUDE.md out of the generated text;
 # --setting-sources='user' keeps auth out of a project .claude/settings.json.
 [commit.generation]
