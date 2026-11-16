@@ -121,6 +121,12 @@ for e in rules hooks settings.json; do
 done
 exit 0
 """
+# lefthook-local.yml is gitignored, so a new worktree has none and runs no personal checks.
+lefthook-local = """
+P={{ primary_worktree_path }}
+[ -f "$P/lefthook-local.yml" ] && [ ! -e lefthook-local.yml ] && cp "$P/lefthook-local.yml" .
+exit 0
+"""
 
 <% if .orcaHelpers -%>
 # A new worktree's Orca card: in progress, linked to the branch's gh<n> issue.
