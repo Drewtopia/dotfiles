@@ -50,10 +50,22 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
       "git fetch *",
       "git pull *",
       "git ls-remote *",
-      "ssh *",
-      "op *",
-      "fnox *",
-      "chezmoi *"
+      "op whoami",
+      "op read *",
+      "op item get *",
+      "op item list *",
+      "fnox get *",
+      "fnox list *",
+      "chezmoi apply *",
+      "chezmoi diff *",
+      "chezmoi cat *",
+      "chezmoi managed *",
+      "chezmoi status *",
+      "chezmoi source-path *",
+      "chezmoi -S * apply *",
+      "chezmoi -S * diff *",
+      "chezmoi -S * cat *",
+      "wt *"
     ],
     "filesystem": {
       "allowWrite": [
@@ -63,8 +75,8 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "~/.claude-vault",
         "~/.local/share/atuin"
       ],
-      "denyRead": [
-        "~/.ssh"
+      "denyWrite": [
+        "~/.claude-vault/hooks"
       ]
     },
     "network": {
@@ -399,6 +411,15 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # The sandbox turns Read denies into OS read-denies: .git/config broke every git and
   # gh call, and //**/*.pem hid the system CA bundle (/etc/ssl/cert.pem).
   | .permissions.deny -= ["Read(//**/.git/config)", "Read(//**/*.pem)"]
+{{- if eq .chezmoi.os "darwin" }}
+  # Commit signing reads ~/.ssh/git_signing (written from 1Password by chezmoi);
+  # the Read denies on id_* still keep the SSH auth keys out of the sandbox.
+  | if .sandbox.filesystem.denyRead then .sandbox.filesystem.denyRead -= ["~/.ssh"] else . end
+  # Retired pilot entries: signing never used the 1Password agent, and ssh -o
+  # ProxyCommand= ran anything outside the sandbox.
+  | if .sandbox.network.allowUnixSockets then .sandbox.network.allowUnixSockets -= ["{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"] else . end
+  | if .sandbox.excludedCommands then .sandbox.excludedCommands -= ["ssh *", "op *", "fnox *", "chezmoi *"] else . end
+{{- end }}
   # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
   # changed managed default cannot move an already-set live value. Force the few
   # keys chezmoi must own regardless of runtime drift.
