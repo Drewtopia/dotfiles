@@ -20,15 +20,18 @@ exclude = ["node_modules/", "dist/", ".turbo/"]
 [aliases]
 since-main = "git log --oneline {{ default_branch }}..HEAD"
 
-# Aliases accumulate, user config first, and a failed step stops the rest: this review runs ahead of
-# the project's own `ship` alias and stops it on an Important finding. The report is saved in the
+# `wt step ship` in any repo. Aliases accumulate, global first, then project entries and the system
+# config, and a failed step stops the rest: this review runs ahead of the repo's ship (the GitHub one
+# below, or a project's own) and stops it on an Important finding. The report is saved in the
 # worktree's git dir, one file per commit; a commit whose report passed is not reviewed again.
 # One ship without it: SHIP_SKIP_REVIEW=1 wt step ship.
-[projects."dev.azure.com/*"]
-aliases.ship = """
+ship = """
 if [ -n "${SHIP_SKIP_REVIEW:-}" ]; then echo "Review skipped (SHIP_SKIP_REVIEW)" >&2; exit 0; fi
 git fetch -q origin
-BASE=$(git merge-base origin/{{ default_branch }} HEAD)
+if ! BASE=$(git merge-base origin/{{ default_branch }} HEAD); then
+  echo "Refused: no merge-base with origin/{{ default_branch }} to review against; nothing pushed" >&2
+  exit 1
+fi
 OUT=$(git rev-parse --absolute-git-dir)/review-$(git rev-parse --short HEAD).md
 count() { sed -n 's/^IMPORTANT_FINDINGS=\\([0-9]*\\)$/\\1/p' "$OUT" 2>/dev/null | tail -1; }
 if [ "$(count)" != 0 ]; then
@@ -42,6 +45,31 @@ N=$(count)
 if [ "$N" != 0 ]; then
   echo "Refused: the review has ${N:-an unreadable count of} Important findings; nothing pushed. Fix them, or ship once without it: SHIP_SKIP_REVIEW=1 wt step ship" >&2
   exit 1
+fi
+"""
+
+# GitHub repos: push, then open the PR to the default branch, or update the open one.
+# Description: the file named by PR_BODY, written with the mattpocock-skills:pr skill. A new PR is
+# refused without it; given to an open PR, it replaces that PR's description.
+# Title of a new PR: `--title="<title>"`, else the first commit's subject.
+[projects."github.com/*"]
+aliases.ship = """
+TITLE={{ title | default('') }}
+if [ -n "${PR_BODY:-}" ] && [ ! -s "$PR_BODY" ]; then
+  echo "Refused: PR_BODY ($PR_BODY) is missing or empty" >&2
+  exit 1
+fi
+if gh pr view --json number >/dev/null 2>&1; then
+  git push -u origin HEAD
+  if [ -n "${PR_BODY:-}" ]; then gh pr edit --body-file "$PR_BODY" >/dev/null; fi
+  gh pr view --json url --jq .url
+else
+  if [ -z "${PR_BODY:-}" ]; then
+    echo "Refused: a new PR needs a description. Write it with the mattpocock-skills:pr skill, then: PR_BODY=<file> wt step ship" >&2
+    exit 1
+  fi
+  git push -u origin HEAD
+  gh pr create --base {{ default_branch }} --fill-first --body-file "$PR_BODY" ${TITLE:+--title "$TITLE"}
 fi
 """
 
