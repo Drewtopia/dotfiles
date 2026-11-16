@@ -5,18 +5,22 @@
 # Subject length is the repo's rule. commit-check has no off switch (0 and -1 still apply
 # its default 80), so the ceiling sits out of reach.
 subject_max_length = 1000
-{{- if .work }}
-# Work commits carry no AI attribution: no AI trailer and no vendor named in the message.
-# Personal machines leave attribution allowed.
-ai_attribution = "forbid"
 # message_pattern replaces commit-check's conventional-commit check, so this policy checks
-# only the banned words; commit types stay with the repo's team policy and commitlint.
+# only what is banned; commit types stay with the repo's team policy and commitlint.
+# Everywhere: the redact Claude Code mod's placeholder text ([LABEL-xxxxxxxx], eight hex
+# digits), which has replaced real trailers before.
+{{- if .work }}
+# With .work set, a commit carries no AI trailer. Without it, attribution is allowed.
+ai_attribution = "forbid"
+# With .work set, the pattern also rejects the vendor words.
 # A path (`.claude/`, `CLAUDE.md`) is not a mention.
-message_pattern = '''^(?!(?i:[\s\S]*(?:(?<!\.)claude(?!\.md)|\.claude(?!/)|anthropic)))'''
+message_pattern = '''^(?![\s\S]*\[[A-Z][A-Z0-9-]*-[0-9a-f]{8}\])(?!(?i:[\s\S]*(?:(?<!\.)claude(?!\.md)|\.claude(?!/)|anthropic)))'''
+{{- else }}
+message_pattern = '''^(?![\s\S]*\[[A-Z][A-Z0-9-]*-[0-9a-f]{8}\])'''
 {{- end }}
 {{- if and .work .email }}
-# The work identity's domain, so a clone made outside the usual path cannot commit under
-# the personal identity.
+# With .work and .email set, the author must use .email's domain, so a clone made outside
+# the usual path cannot commit under another identity.
 author_email_pattern = '^.+@{{ .email | splitList "@" | last | replace "." "\\." }}$'
 {{- end }}
 

@@ -17,6 +17,9 @@
 mise.local.toml
 mise.*.local.toml
 
+# lefthook per-machine config: extends the personal checks in ~/.config/lefthook.
+lefthook-local.yml
+
 # VCS
 .jj
 .pc
