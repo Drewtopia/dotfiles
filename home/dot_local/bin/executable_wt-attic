@@ -34,5 +34,6 @@ dest="$HOME/dev/worktree-salvage/$(basename "$main")/${branch//\//-}-$(date +%Y%
 mkdir -p "$dest"
 chmod 700 "${dest%/*/*}"
 printf 'repo=%s\nbranch=%s\nworktree=%s\n' "$main" "$branch" "$wt" > "$dest/.wt-attic"
-(cd "$wt" && printf '%s\n' "$files" | while IFS= read -r p; do cp -p --parents -- "$p" "$dest/"; done)
+# mkdir + cp, not `cp --parents`: that flag is GNU-only and fails on macOS.
+(cd "$wt" && printf '%s\n' "$files" | while IFS= read -r p; do mkdir -p "$dest/$(dirname -- "$p")" && cp -p -- "$p" "$dest/$p"; done)
 echo "📦 archived $(printf '%s\n' "$files" | wc -l) untracked/ignored files → $dest"
