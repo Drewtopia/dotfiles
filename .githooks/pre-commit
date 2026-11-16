@@ -6,6 +6,9 @@
 # Also refuses a newly added script or Claude hook that does not say which gap it fills.
 set -uo pipefail
 
+# The personal checks every repo gets, before the early exits below.
+"$(dirname "$0")/lefthook" pre-commit || exit 1
+
 # Native first: a new script names the native command it checked, in a `# gap:` line near its top.
 missing=$(git diff --cached --name-only --diff-filter=A -- 'home/dot_local/bin/*' 'home/dot_claude/hooks/*' |
   grep -vE '/(tests|lib)/|\.(json|md)$' | while IFS= read -r f; do
