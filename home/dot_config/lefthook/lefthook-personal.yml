@@ -9,8 +9,8 @@
 
 commit-msg:
   commands:
-    # The personal policy chezmoi renders: placeholder text everywhere; AI attribution and
-    # the work identity on work machines.
+    # The personal policy chezmoi renders. It always rejects placeholder text; with .work
+    # set it also checks AI attribution and the author email.
     personal-policy:
       run: |
         command -v commit-check >/dev/null || { echo "commit-check not found: run mise install" >&2; exit 1; }

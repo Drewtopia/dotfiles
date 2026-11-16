@@ -13,7 +13,8 @@ subject_max_length = 1000
 # Work commits carry no AI attribution: no AI trailer and no vendor named in the message.
 # Personal machines leave attribution allowed.
 ai_attribution = "forbid"
-# Work also bans the vendor words. A path (`.claude/`, `CLAUDE.md`) is not a mention.
+# With .work set, the pattern also rejects the vendor words.
+# A path (`.claude/`, `CLAUDE.md`) is not a mention.
 message_pattern = '''^(?![\s\S]*\[[A-Z][A-Z0-9-]*-[0-9a-f]{8}\])(?!(?i:[\s\S]*(?:(?<!\.)claude(?!\.md)|\.claude(?!/)|anthropic)))'''
 {{- else }}
 message_pattern = '''^(?![\s\S]*\[[A-Z][A-Z0-9-]*-[0-9a-f]{8}\])'''
