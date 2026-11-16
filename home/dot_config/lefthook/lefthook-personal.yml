@@ -1,0 +1,60 @@
+# Personal commit checks that every repo gets on top of its own lefthook.yml.
+# A repo opts in with a gitignored lefthook-local.yml that holds:
+#   no_auto_install: true
+#   extends:
+#     - /absolute/path/to/.config/lefthook/lefthook-personal.yml
+# lefthook expands neither ~ nor $HOME in extends. Jobs here start with `personal-` so
+# none replaces a repo's own job of the same name. A missing tool fails the hook: a
+# check that skips itself quietly is the miss this file exists to stop.
+
+commit-msg:
+  commands:
+    # The personal policy chezmoi renders: placeholder text everywhere; AI attribution and
+    # the work identity on work machines.
+    personal-policy:
+      run: |
+        command -v commit-check >/dev/null || { echo "commit-check not found: run mise install" >&2; exit 1; }
+        commit-check -m -e -c "$HOME/.config/commit-check/cchk.toml" --no-banner {1}
+
+pre-commit:
+  commands:
+    # Staged changes only. A repo's own .betterleaks.toml or .gitleaks.toml applies when it
+    # has one; betterleaks loads neither without --config.
+    personal-secrets:
+      run: |
+        command -v betterleaks >/dev/null || { echo "betterleaks not found: run mise install" >&2; exit 1; }
+        set --
+        for f in .betterleaks.toml .gitleaks.toml; do
+          [ -f "$f" ] && { set -- --config "$f"; break; }
+        done
+        betterleaks git --staged --redact --no-banner "$@" .
+      skip: [merge, rebase]
+
+pre-push:
+  commands:
+    # A commit made where no commit hook ran reaches the push unchecked, so every pushed
+    # commit that no remote branch has yet is checked again. An all-zero sha is a deletion.
+    personal-pushed:
+      use_stdin: true
+      # lefthook skips a pre-push job when its own list of pushed files is empty, as for an
+      # empty commit or a branch already on the remote. Every enrolled repo has lefthook-local.yml,
+      # so listing it, and using it in `run`, stops that skip; commits come from stdin.
+      files: echo lefthook-local.yml
+      run: |
+        : {files}
+        command -v commit-check >/dev/null || { echo "commit-check not found: run mise install" >&2; exit 1; }
+        command -v betterleaks >/dev/null || { echo "betterleaks not found: run mise install" >&2; exit 1; }
+        cfg=""
+        for f in .betterleaks.toml .gitleaks.toml; do
+          [ -f "$f" ] && { cfg=$f; break; }
+        done
+        while read -r _ sha _ _; do
+          case "$sha" in *[!0]*) ;; *) continue ;; esac
+          commits=$(git rev-list "$sha" --not --remotes)
+          [ -n "$commits" ] || continue
+          for c in $commits; do
+            commit-check -m -e --no-banner -c "$HOME/.config/commit-check/cchk.toml" --rev "$c" || exit 1
+          done
+          betterleaks git --log-opts="$sha --not --remotes" --redact --no-banner ${cfg:+--config "$cfg"} . || exit 1
+        done
+      skip: [merge, rebase]
