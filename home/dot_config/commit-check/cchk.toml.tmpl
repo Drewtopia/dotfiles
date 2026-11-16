@@ -10,8 +10,7 @@ subject_max_length = 1000
 # Everywhere: the redact Claude Code mod's placeholder text ([LABEL-xxxxxxxx], eight hex
 # digits), which has replaced real trailers before.
 {{- if .work }}
-# Work commits carry no AI attribution: no AI trailer and no vendor named in the message.
-# Personal machines leave attribution allowed.
+# With .work set, a commit carries no AI trailer. Without it, attribution is allowed.
 ai_attribution = "forbid"
 # With .work set, the pattern also rejects the vendor words.
 # A path (`.claude/`, `CLAUDE.md`) is not a mention.
@@ -20,8 +19,8 @@ message_pattern = '''^(?![\s\S]*\[[A-Z][A-Z0-9-]*-[0-9a-f]{8}\])(?!(?i:[\s\S]*(?
 message_pattern = '''^(?![\s\S]*\[[A-Z][A-Z0-9-]*-[0-9a-f]{8}\])'''
 {{- end }}
 {{- if and .work .email }}
-# The work identity's domain, so a clone made outside the usual path cannot commit under
-# the personal identity.
+# With .work and .email set, the author must use .email's domain, so a clone made outside
+# the usual path cannot commit under another identity.
 author_email_pattern = '^.+@{{ .email | splitList "@" | last | replace "." "\\." }}$'
 {{- end }}
 
