@@ -19,6 +19,9 @@ exclude = ["node_modules/", "dist/", ".turbo/"]
 
 [aliases]
 since-main = "git log --oneline {{ default_branch }}..HEAD"
+# `--create` alone branches from the local default branch, which goes stale when
+# work happens in worktrees: start from the remote's copy instead.
+new = "git fetch -q origin {{ default_branch }} && wt switch --create {{ args }} --base origin/{{ default_branch }}"
 
 # `wt step ship` in any repo. Aliases accumulate, global first, then project entries and the system
 # config, and a failed step stops the rest: this review runs ahead of the repo's ship (the GitHub one
