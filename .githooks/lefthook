@@ -1,0 +1,11 @@
+#!/bin/sh
+# usage: .githooks/lefthook <hook> [git's hook arguments]
+# core.hooksPath points here, so lefthook's own hooks never run in this repo. This runs its
+# <hook>, which brings in the personal checks a gitignored lefthook-local.yml extends.
+# --no-auto-install: otherwise lefthook writes its own hooks over the files in this folder.
+hook=$1
+shift
+if command -v lefthook >/dev/null 2>&1; then
+  exec lefthook run "$hook" --no-auto-install "$@"
+fi
+exec mise exec -- lefthook run "$hook" --no-auto-install "$@"
