@@ -24,7 +24,7 @@ const GOVERNED = [
     /\/\.claude\/governance-unlock(\/|$)/,
     /\/\.?claude-vault\/(?:[^/]+\/)?(?:rules|mods|\.githooks)\//,
     // Hub's rules, mods and hooks load into every session, as the vault's did.
-    /\/(?:repos\/drew\/hub|worktrees\/hub\/[^/]+)\/(?:rules|mods|hooks)\//,
+    /\/(?:\.hub|repos\/drew\/hub|worktrees\/hub\/[^/]+)\/(?:rules|mods|hooks)\//,
     /\/(CLAUDE|AGENTS)(\.local)?\.md$/,
     /\/docs\/adr\//,
     /\/CONTEXT(-MAP)?\.md$/,

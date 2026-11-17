@@ -123,7 +123,7 @@
 
 {{- if or .personal (and .work (ne .chezmoi.os "windows")) }}
 # Cloned wherever Claude Code runs; ~/.claude/memory symlinks here (rules, agents and mods
-# come from hub, below).
+# come from hub, below, through ~/.hub).
 # --ff-only: diverged local commits surface as fetch failures, never a merge.
 [".claude-vault"]
     type = "git-repo"

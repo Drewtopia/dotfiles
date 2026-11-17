@@ -124,6 +124,11 @@ README.md
 .config/nvim/lazy-lock.json
 
 
+# ~/.hub links to the hub clone, which exists only where the hub external does.
+{{ if not (or .personal (and .work (ne .chezmoi.os "windows"))) }}
+.hub
+{{ end }}
+
 # Claude
 {{- if and (eq .chezmoi.os "windows") .work }}
 # Claude Code is not used on the work Windows host.

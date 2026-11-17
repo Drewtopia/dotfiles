@@ -92,6 +92,7 @@ test('governs a CLAUDE_CONFIG_DIR config like ~/.claude, but not the vault itsel
 test('governs hub rules, mods and hooks in the checkout and in a worktree', () => {
     for (const p of [
         '/home/u/repos/drew/hub/rules/t3-replies.md',
+        '/home/u/.hub/rules/t3-replies.md',
         '/home/u/dev/worktrees/hub/feat-x/rules/t3-replies.md',
         '/home/u/repos/drew/hub/mods/vault-push/hooks/register.tsx',
         '/home/u/repos/drew/hub/hooks/block-windows-root-files.cjs',

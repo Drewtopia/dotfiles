@@ -178,7 +178,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "f=\"$HOME/repos/drew/hub/hooks/block-windows-root-files.cjs\"; [ ! -f \"$f\" ] || node \"$f\""
+            "command": "f=\"$HOME/.hub/hooks/block-windows-root-files.cjs\"; [ ! -f \"$f\" ] || node \"$f\""
           }
         ]
       }
