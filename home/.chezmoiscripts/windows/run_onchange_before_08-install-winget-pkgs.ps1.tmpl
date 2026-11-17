@@ -80,6 +80,11 @@ $wingetPackages = @(
 {{- range .winget.personal.packages }}
     '{{ . }}'
 {{- end }}
+{{- if dig "orca" true . }}
+{{- range .winget.orca.packages }}
+    '{{ . }}'
+{{- end }}
+{{- end }}
 {{- end }}
 {{- if .work }}
 {{- range .winget.work.packages }}

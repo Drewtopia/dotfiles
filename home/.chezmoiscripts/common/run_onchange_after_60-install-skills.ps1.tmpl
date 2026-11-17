@@ -32,6 +32,7 @@ if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
 }
 
 {{- range .skill_repos }}
+{{- if or (not (hasKey . "host")) (dig .host true $) }}
 Write-Host "[skills] {{ .repo }}{{ if hasKey . "agents" }} ({{ .agents | join ", " }}){{ end }}: {{ .skills | join ", " }}"
 try {
     & npx -y skills add {{ .repo }} -g -y{{ if hasKey . "agents" }} --agent {{ .agents | join " " }}{{ end }} --skill '{{ .skills | join "' '" }}'
@@ -39,6 +40,7 @@ try {
 } catch {
     Write-Warning "[skills] {{ .repo }}: install failed ($_); continuing"
 }
+{{- end }}
 {{- end }}
 
 # Sweep up empty skill directories that `npx skills add` leaves behind

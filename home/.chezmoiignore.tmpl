@@ -53,6 +53,11 @@ Library
 .local/bin/session-done
 {{ end }}
 
+# Orca's scripts, where the `orca` answer is no.
+{{ if not (dig "orca" true .) }}
+.local/bin/orca-*
+{{ end }}
+
 # Work-only encrypted files: skipped off work machines and until the age key is restored.
 {{ if or (not .work) (not (stat (joinPath .chezmoi.homeDir ".config/chezmoi/key.txt"))) }}
 .config/worktrunk/work.toml

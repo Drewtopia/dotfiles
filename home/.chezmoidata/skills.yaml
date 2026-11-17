@@ -1,6 +1,8 @@
 # Installed by run_onchange_after_60-install-skills via `npx skills`. `agents`
 # omitted = every detected agent. Payloads always land in ~/.agents/skills,
 # which Codex/Cursor/Copilot read directly; only Claude gets symlinks.
+# `host:` names an agent-host answer from .chezmoi.toml.tmpl (orca, t3_code):
+# the repo installs only where that answer is yes.
 skill_repos:
   - repo: mattpocock/skills
     # Non-Claude agents have no plugin equivalent, so they take the whole repo.
@@ -53,9 +55,11 @@ skill_repos:
     skills:
       - azure-repos
   - repo: stablyai/orca
+    host: orca
     skills:
-      - computer-use
       - orca-cli
+      - orchestration
+      - orca-computer-use
   - repo: shadcn/improve
     skills:
       - improve
