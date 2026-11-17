@@ -69,3 +69,7 @@ skill_repos:
   - repo: vercel-labs/skills
     skills:
       - find-skills
+  - repo: testdino-hq/playwright-skill
+    skills:
+      - playwright-ci
+      - playwright-core
