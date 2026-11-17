@@ -76,6 +76,16 @@
 {{-   $dev_computer = promptBoolOnce . "dev_computer" "Install dev tools on this machine?" -}}
 {{- end -}}
 
+{{/* Agent hosts: each answer installs that host's app and everything that only it uses
+     (its scripts and its own skills). Templates read them with `dig "<key>" true .`, so a
+     machine whose config predates the question keeps the host until `chezmoi init` asks. */}}
+{{- $orca := false -}}
+{{- $t3_code := false -}}
+{{- if $dev_computer -}}
+{{-   $orca = promptBoolOnce . "orca" "Set up Orca (the app, its scripts and its skills) on this machine?" true -}}
+{{-   $t3_code = promptBoolOnce . "t3_code" "Set up T3 Code (the app) on this machine?" true -}}
+{{- end -}}
+
 {{- $email := "" -}}
 {{- if $opVault -}}
 {{-   if lookPath "op" -}}
@@ -161,6 +171,8 @@ encryption = "age"
   relocated = {{ $relocated }}
   is_wsl = {{ $is_wsl }}
   dev_computer = {{ $dev_computer }}
+  orca = {{ $orca }}
+  t3_code = {{ $t3_code }}
   hostname = {{ $hostname | quote }}
   personal = {{ $personal }}
   osid = {{ $osID | quote }}

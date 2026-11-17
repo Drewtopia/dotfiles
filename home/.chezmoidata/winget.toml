@@ -24,6 +24,11 @@ no_scope = [
 packages = [
   "ZedIndustries.Zed",
   "wez.wezterm",
+]
+
+# Installed where the `orca` answer is yes, with the personal list's scope.
+[winget.orca]
+packages = [
   "StablyAI.Orca",
 ]
 

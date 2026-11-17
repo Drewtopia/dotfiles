@@ -26,9 +26,11 @@ fi
 
 # Per-repo failures must not abort siblings. No set -e; explicit || log.
 {{- range .skill_repos }}
+{{- if or (not (hasKey . "host")) (dig .host true $) }}
 echo "[skills] {{ .repo }}{{ if hasKey . "agents" }} ({{ .agents | join ", " }}){{ end }}: {{ .skills | join ", " }}"
 npx -y skills add {{ .repo }} -g -y{{ if hasKey . "agents" }} --agent {{ .agents | join " " }}{{ end }} --skill '{{ .skills | join "' '" }}' \
     || echo "[skills] {{ .repo }}: install failed (continuing)"
+{{- end }}
 {{- end }}
 
 # Sweep up empty skill directories that `npx skills add` leaves behind

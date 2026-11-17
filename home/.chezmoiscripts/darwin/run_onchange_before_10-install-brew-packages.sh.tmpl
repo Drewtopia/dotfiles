@@ -13,8 +13,10 @@ tap "hamed-elfayome/claude-usage"
 cask "hamed-elfayome/claude-usage/claude-usage-tracker", trusted: true
 tap "nikitabobko/tap"
 cask "nikitabobko/tap/aerospace", trusted: true
+{{- if dig "orca" true . }}
 tap "stablyai/orca", trusted: true
 cask "stablyai/orca/orca", trusted: true
+{{- end }}
 EOF
 
 # Everything else is declared in .chezmoitemplates/mise-bootstrap.toml. This

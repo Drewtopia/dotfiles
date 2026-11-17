@@ -68,7 +68,6 @@
     "spotify"
     "soundsource"
     "syntax-highlight"
-    "t3-code"
     "tailscale-app"
     "telegram"
     "transmission"
@@ -86,6 +85,7 @@
     "rcmd"
     "steam"
     "supasidebar" -}}
+{{- if dig "t3_code" true . }}{{ $casks = append $casks "t3-code" }}{{ end }}
 {{- /* "name;id": mise keys App Store apps by numeric ID; the name is a comment. */ -}}
 {{- $mas := list
     "Actions;1586435171"
