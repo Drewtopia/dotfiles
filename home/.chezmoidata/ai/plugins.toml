@@ -1,5 +1,6 @@
-# Read by run_onchange_after_55-add-claude-marketplaces and by
-# claude-settings-merge (extraKnownMarketplaces). Topgrade refreshes them.
+# Plugins and their marketplaces, for Claude and Codex. Read by
+# run_onchange_after_55-add-claude-marketplaces, run_onchange_after_58-install-codex-plugins
+# and claude-settings-merge (enabledPlugins, extraKnownMarketplaces). Topgrade refreshes them.
 # <short-name> = "<owner/repo>"; the short name is the "@mattpocock" in plugin refs.
 
 [marketplaces]
@@ -76,10 +77,13 @@ redact                    = "Drewtopia/redact"
 # Needs the redact binary from mise; masks secrets and names in prompts and tool results.
 "redact@redact"                           = true
 
-# Added by run_onchange_after_56-add-claude-mcp-servers; add-only, so deleting
-# an entry does not remove it from ~/.claude.json. Each server runs one process
-# per session, so keep work machines lean.
 
-# NOTE: keep this header with no servers: claude-mcp-servers reads
-# `.mcp_servers` under missingkey=error, so an absent key fails every apply.
-[mcp_servers]
+# Plugins Codex installs too (run_onchange_after_58), for marketplaces that ship
+# a Codex manifest (.agents/plugins/marketplace.json). Repos come from [marketplaces].
+[codex]
+plugins = [
+  "pstack@pstack-claude",
+  "worktrunk@worktrunk",
+  "obsidian@obsidian-skills",
+  "i-have-adhd@i-have-adhd",
+]

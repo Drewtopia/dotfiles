@@ -1,0 +1,50 @@
+{{- if ne .chezmoi.os "windows" -}}
+{{- if .dev_computer -}}
+#!/usr/bin/env bash
+# Install the [codex] plugins from plugins.toml into Codex, and pstack into
+# Copilot, as Claude has them. Once pstack is in, drop the bare cursor/plugins
+# copies `npx skills` kept in ~/.agents/skills: beside the plugin they shadow its namespaced skills,
+# and while the skills lock lists them `npx skills update` reinstalls them.
+# Cursor reads ~/.agents/skills too and its `/add-plugin pstack` is in-app only,
+# so the copies stay on a machine with ~/.cursor.
+set -uo pipefail
+
+repo={{ get .marketplaces "pstack-claude" }}
+bare="blast-radius bro technical-writing unslop no-comments"
+installed=0
+
+if command -v codex >/dev/null 2>&1; then
+    markets=$(codex plugin marketplace list 2>/dev/null)
+    plugins=$(codex plugin list 2>/dev/null)
+{{- range .codex.plugins }}
+{{- $m := splitList "@" . | last }}
+    grep -q '^{{ $m }} ' <<<"$markets" \
+        || codex plugin marketplace add {{ get $.marketplaces $m }} \
+        || echo "[codex] marketplace {{ $m }} add failed (continuing)"
+    if grep -Eq '^{{ . }} +installed' <<<"$plugins" || codex plugin add {{ . }}; then
+        {{ if eq . "pstack@pstack-claude" }}installed=1{{ else }}:{{ end }}
+    else
+        echo "[codex] {{ . }} add failed (continuing)"
+    fi
+{{- end }}
+fi
+
+if command -v copilot >/dev/null 2>&1; then
+    copilot plugin marketplace add "$repo" >/dev/null 2>&1 || true
+    if copilot plugin install pstack@pstack-claude; then
+        installed=1
+    else
+        echo "[pstack] copilot: plugin install failed (continuing)"
+    fi
+fi
+
+if [ -d "$HOME/.cursor" ]; then
+    echo "[pstack] ~/.cursor exists: run /add-plugin pstack in Cursor, then:"
+    echo "  npx -y skills remove -g -y $bare"
+elif [ "$installed" = 1 ] && command -v npx >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    npx -y skills remove -g -y $bare >/dev/null \
+        || echo "[pstack] removing bare copies failed (continuing)"
+fi
+{{- end }}
+{{- end }}

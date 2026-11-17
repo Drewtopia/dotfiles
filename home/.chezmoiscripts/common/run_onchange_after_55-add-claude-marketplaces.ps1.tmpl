@@ -1,5 +1,5 @@
 {{- if and (eq .chezmoi.os "windows") (not .work) -}}
-# Register the Claude Code plugin marketplaces declared in .chezmoidata/claude.toml
+# Register the Claude Code plugin marketplaces declared in .chezmoidata/ai/plugins.toml
 # that are not registered yet (Windows counterpart of the .sh sibling).
 # `marketplace add` on a registered name replaces it, so those are skipped.
 # topgrade's claude_code_plugins step refreshes registered marketplaces and
@@ -10,7 +10,7 @@
 # defaults to CP1252 parsing on Windows, which mangles multi-byte chars.
 #
 # Inlining the desired marketplaces below makes run_onchange retrigger when
-# claude.toml changes:
+# plugins.toml changes:
 {{- range $name, $repo := .marketplaces }}
 #   {{ $name }} -> {{ $repo }}
 {{- end }}

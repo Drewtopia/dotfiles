@@ -1,7 +1,7 @@
 {{- $servers := includeTemplate "claude-mcp-servers" . | mustFromJson -}}
 {{- if $servers -}}
 #!/usr/bin/env bash
-# Add the user-scope MCP servers .chezmoidata/claude.toml declares for this
+# Add the user-scope MCP servers .chezmoidata/ai/mcp.toml declares for this
 # machine's profiles. Names already in .claude.json are left as is.
 # servers-hash (retriggers run_onchange when the servers change): {{ $servers | mustToJson | sha256sum }}
 
