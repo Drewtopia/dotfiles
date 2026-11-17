@@ -34,7 +34,7 @@ reconcile-claude-skills = "{{ .chezmoi.homeDir }}/.local/bin/reconcile-claude-sk
 tv-channels = "tv update-channels"
 {{- if ne .chezmoi.os "windows" }}
 # `marketplace upgrade` only refreshes the snapshot; re-adding installs its version.
-codex-plugins = "codex plugin marketplace upgrade && codex plugin add pstack@pstack-claude"
+codex-plugins = "codex plugin marketplace upgrade{{ range .codex.plugins }} && codex plugin add {{ . }}{{ end }}"
 {{- end }}
 {{- if and .work .is_wsl (dig "orca" true .) }}
 # The WSL Orca server runs from an extracted AppImage that Orca's own updater can't replace.

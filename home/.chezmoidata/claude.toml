@@ -83,3 +83,13 @@ redact                    = "Drewtopia/redact"
 # NOTE: keep this header with no servers: claude-mcp-servers reads
 # `.mcp_servers` under missingkey=error, so an absent key fails every apply.
 [mcp_servers]
+
+# Plugins Codex installs too (run_onchange_after_58), for marketplaces that ship
+# a Codex manifest (.agents/plugins/marketplace.json). Repos come from [marketplaces].
+[codex]
+plugins = [
+  "pstack@pstack-claude",
+  "worktrunk@worktrunk",
+  "obsidian@obsidian-skills",
+  "i-have-adhd@i-have-adhd",
+]

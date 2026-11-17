@@ -1,29 +1,32 @@
 {{- if ne .chezmoi.os "windows" -}}
 {{- if .dev_computer -}}
 #!/usr/bin/env bash
-# Give Codex and Copilot pstack as the pstack@pstack-claude plugin, as Claude
-# has it (claude.toml), then drop the bare cursor/plugins copies `npx skills`
-# kept in ~/.agents/skills: beside the plugin they shadow its namespaced skills,
+# Install the [codex] plugins from claude.toml into Codex, and pstack into
+# Copilot, as Claude has them. Once pstack is in, drop the bare cursor/plugins
+# copies `npx skills` kept in ~/.agents/skills: beside the plugin they shadow its namespaced skills,
 # and while the skills lock lists them `npx skills update` reinstalls them.
 # Cursor reads ~/.agents/skills too and its `/add-plugin pstack` is in-app only,
 # so the copies stay on a machine with ~/.cursor.
 set -uo pipefail
 
-repo=michael-denyer/pstack-claude
+repo={{ get .marketplaces "pstack-claude" }}
 bare="blast-radius bro technical-writing unslop no-comments"
 installed=0
 
 if command -v codex >/dev/null 2>&1; then
-    codex plugin marketplace list 2>/dev/null | grep -q '^pstack-claude ' \
-        || codex plugin marketplace add "$repo" \
-        || echo "[pstack] codex: marketplace add failed (continuing)"
-    if codex plugin list 2>/dev/null | grep -Eq '^pstack@pstack-claude +installed'; then
-        installed=1
-    elif codex plugin add pstack@pstack-claude; then
-        installed=1
+    markets=$(codex plugin marketplace list 2>/dev/null)
+    plugins=$(codex plugin list 2>/dev/null)
+{{- range .codex.plugins }}
+{{- $m := splitList "@" . | last }}
+    grep -q '^{{ $m }} ' <<<"$markets" \
+        || codex plugin marketplace add {{ get $.marketplaces $m }} \
+        || echo "[codex] marketplace {{ $m }} add failed (continuing)"
+    if grep -Eq '^{{ . }} +installed' <<<"$plugins" || codex plugin add {{ . }}; then
+        {{ if eq . "pstack@pstack-claude" }}installed=1{{ else }}:{{ end }}
     else
-        echo "[pstack] codex: plugin add failed (continuing)"
+        echo "[codex] {{ . }} add failed (continuing)"
     fi
+{{- end }}
 fi
 
 if command -v copilot >/dev/null 2>&1; then
