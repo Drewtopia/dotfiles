@@ -89,6 +89,19 @@ test('governs a CLAUDE_CONFIG_DIR config like ~/.claude, but not the vault itsel
     assert.ok(!isGoverned('/home/u/.claude-vault/plans/lean-reset.md'));
 });
 
+test('governs hub rules, mods and hooks in the checkout and in a worktree', () => {
+    for (const p of [
+        '/home/u/repos/drew/hub/rules/t3-replies.md',
+        '/home/u/dev/worktrees/hub/feat-x/rules/t3-replies.md',
+        '/home/u/repos/drew/hub/mods/vault-push/hooks/register.tsx',
+        '/home/u/repos/drew/hub/hooks/block-windows-root-files.cjs',
+    ]) {
+        assert.ok(isGoverned(p), p);
+    }
+    assert.ok(!isGoverned('/home/u/repos/drew/hub/wiki/rules.md'));
+    assert.ok(!isGoverned('/home/u/repos/drew/hub/docs/plans/lean-reset.md'));
+});
+
 test('governs mods, which load into every session like hooks', () => {
     assert.ok(isGoverned('/home/u/.claude/mods/vault-push/hooks/register.tsx'));
     assert.ok(!isGoverned('/home/u/.claude/dev-mods/abc/x/hooks/register.ts'));
