@@ -14,10 +14,12 @@ path=("$HOME/.local/bin" ${path:#$HOME/.local/bin})
 path=("/opt/homebrew/bin" ${path:#/opt/homebrew/bin})
 {{- end }}
 
-# Shims for non-interactive shells (topgrade, cron, `zsh -c`) that never source
+# Shims and the mise data folder for non-interactive shells (topgrade, cron,
+# `zsh -c`, agents, GUI apps) that never source
 # .zshrc; interactive shells also run `mise activate`.
 {{- if .dev_computer }}
 path=("{{ .directories.mise_dir }}/shims" ${path:#{{ .directories.mise_dir }}/shims})
+export MISE_DATA_DIR="{{ .directories.mise_dir }}"
 {{- end }}
 
 alias wget="wget --hsts-file='${XDG_DATA_HOME}/wget-hsts'"
