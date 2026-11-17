@@ -66,15 +66,6 @@ skill_repos:
   - repo: dmmulroy/anti-slop
     skills:
       - install-anti-slop
-  - repo: vercel-labs/skills
-    skills:
-      - find-skills
-  - repo: cursor/plugins
-    # Claude also has these from the pstack plugin; the bare copies are kept on purpose.
-    skills:
-      - technical-writing
-      - unslop
-      - no-comments
   - repo: testdino-hq/playwright-skill
     skills:
       - playwright-ci
