@@ -66,3 +66,6 @@ skill_repos:
   - repo: dmmulroy/anti-slop
     skills:
       - install-anti-slop
+  - repo: vercel-labs/skills
+    skills:
+      - find-skills
