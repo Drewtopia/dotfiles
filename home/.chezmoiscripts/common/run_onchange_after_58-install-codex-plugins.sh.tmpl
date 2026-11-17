@@ -1,7 +1,7 @@
 {{- if ne .chezmoi.os "windows" -}}
 {{- if .dev_computer -}}
 #!/usr/bin/env bash
-# Install the [codex] plugins from claude.toml into Codex, and pstack into
+# Install the [codex] plugins from plugins.toml into Codex, and pstack into
 # Copilot, as Claude has them. Once pstack is in, drop the bare cursor/plugins
 # copies `npx skills` kept in ~/.agents/skills: beside the plugin they shadow its namespaced skills,
 # and while the skills lock lists them `npx skills update` reinstalls them.

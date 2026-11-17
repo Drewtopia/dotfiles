@@ -1,6 +1,6 @@
 {{- if .dev_computer -}}
 #!/usr/bin/env bash
-# Register the Claude Code plugin marketplaces declared in .chezmoidata/claude.toml
+# Register the Claude Code plugin marketplaces declared in .chezmoidata/ai/plugins.toml
 # that are not registered yet. `marketplace add` on a registered name replaces it,
 # so those are skipped. topgrade's claude_code_plugins step refreshes registered
 # marketplaces (`claude plugin marketplace update`) and updates installed plugins.
@@ -11,7 +11,7 @@
 # first installed. Forcing it needs `claude plugin uninstall` + `install`.
 #
 # Inlining the desired marketplaces below makes run_onchange retrigger when
-# claude.toml changes:
+# plugins.toml changes:
 {{- range $name, $repo := .marketplaces }}
 #   {{ $name }} -> {{ $repo }}
 {{- end }}

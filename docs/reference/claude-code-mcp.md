@@ -39,6 +39,6 @@ Scope: where Claude Code reads MCP config, how claude.ai connectors reach every 
 
 ## Gating in this repo
 
-- Local servers: `[mcp_servers.<profile>.<name>]` in `home/.chezmoidata/claude.toml`, merged across the machine's profiles (`always`, `personal`, `dev_computer`, `work`) by `home/.chezmoitemplates/claude-mcp-servers`, then added by `home/.chezmoiscripts/common/run_onchange_after_56-add-claude-mcp-servers.{sh,ps1}.tmpl` with `claude mcp add -s user`. It is add-only: a name already in `~/.claude.json` is left as is, and deleting an entry does not remove it. Keep the empty `[mcp_servers]` header: the partial reads it under `missingkey=error`.
+- Local servers: `[mcp_servers.<profile>.<name>]` in `home/.chezmoidata/ai/mcp.toml`, merged across the machine's profiles (`always`, `personal`, `dev_computer`, `work`) by `home/.chezmoitemplates/claude-mcp-servers`, then added by `home/.chezmoiscripts/common/run_onchange_after_56-add-claude-mcp-servers.{sh,ps1}.tmpl` with `claude mcp add -s user`. It is add-only: a name already in `~/.claude.json` is left as is, and deleting an entry does not remove it. Keep the empty `[mcp_servers]` header: the partial reads it under `missingkey=error`.
 - Connector blocks: `deniedMcpServers` under `{{ if .work }}` in `home/.chezmoitemplates/claude-settings-merge`. The settings merge unions arrays, so un-blocking needs a tombstone.
 - Open decision: one `[mcp.<name>] profiles = [...]` table driving both adds and blocks. Revisit at about five connectors or the first work-only local server.

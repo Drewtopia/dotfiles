@@ -1,0 +1,7 @@
+# Added by run_onchange_after_56-add-claude-mcp-servers; add-only, so deleting
+# an entry does not remove it from ~/.claude.json. Each server runs one process
+# per session, so keep work machines lean.
+
+# NOTE: keep this header with no servers: claude-mcp-servers reads
+# `.mcp_servers` under missingkey=error, so an absent key fails every apply.
+[mcp_servers]
