@@ -1,0 +1,47 @@
+{{- if ne .chezmoi.os "windows" -}}
+{{- if .dev_computer -}}
+#!/usr/bin/env bash
+# Give Codex and Copilot pstack as the pstack@pstack-claude plugin, as Claude
+# has it (claude.toml), then drop the bare cursor/plugins copies `npx skills`
+# kept in ~/.agents/skills: beside the plugin they shadow its namespaced skills,
+# and while the skills lock lists them `npx skills update` reinstalls them.
+# Cursor reads ~/.agents/skills too and its `/add-plugin pstack` is in-app only,
+# so the copies stay on a machine with ~/.cursor.
+set -uo pipefail
+
+repo=michael-denyer/pstack-claude
+bare="blast-radius bro technical-writing unslop no-comments"
+installed=0
+
+if command -v codex >/dev/null 2>&1; then
+    codex plugin marketplace list 2>/dev/null | grep -q '^pstack-claude ' \
+        || codex plugin marketplace add "$repo" \
+        || echo "[pstack] codex: marketplace add failed (continuing)"
+    if codex plugin list 2>/dev/null | grep -Eq '^pstack@pstack-claude +installed'; then
+        installed=1
+    elif codex plugin add pstack@pstack-claude; then
+        installed=1
+    else
+        echo "[pstack] codex: plugin add failed (continuing)"
+    fi
+fi
+
+if command -v copilot >/dev/null 2>&1; then
+    copilot plugin marketplace add "$repo" >/dev/null 2>&1 || true
+    if copilot plugin install pstack@pstack-claude; then
+        installed=1
+    else
+        echo "[pstack] copilot: plugin install failed (continuing)"
+    fi
+fi
+
+if [ -d "$HOME/.cursor" ]; then
+    echo "[pstack] ~/.cursor exists: run /add-plugin pstack in Cursor, then:"
+    echo "  npx -y skills remove -g -y $bare"
+elif [ "$installed" = 1 ] && command -v npx >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    npx -y skills remove -g -y $bare >/dev/null \
+        || echo "[pstack] removing bare copies failed (continuing)"
+fi
+{{- end }}
+{{- end }}
