@@ -164,6 +164,10 @@ not_found_auto_install = false
 prefer_offline = true
 fetch_remote_versions_cache = '24h'
 
+# mise hides releases younger than its cooldown. redact is my own tool, and its
+# Claude mod auto-updates at once, so the binary must not lag behind it.
+minimum_release_age_excludes = ['github:Drewtopia/redact']
+
 {{ if eq .chezmoi.os "windows" -}}
 # Windows-only: process spawn is ~10x more expensive than fork on Unix, and
 # `mise activate pwsh` installs prompt/chpwd hooks that oh-my-posh re-fires on every
