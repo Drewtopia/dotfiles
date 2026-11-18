@@ -80,7 +80,6 @@ sh -c 'h=$(ls -d "$HOME"/.claude/plugins/cache/<mp>/<plugin>/*/hooks/<script> 2>
 | `pre:bash:gate-governance-writes` | Common shell write forms against governance files. A tripwire: interpreter writes pass unseen |
 | `pre:bash:gate-push-convention` | A push whose checked-out branch fails commit-check's Conventional Branch rules; allows when commit-check is absent |
 | `pre:bash:gate-commit-not-protected` | A commit on a protected branch, resolved as above |
-| `pre:bash:gate-vault-commit` | A commit in the vault's shared primary checkout beside uncommitted work it does not name |
 | `pre:bash:gate-blocked-issue-close` | `gh issue close <n>` while an issue listed after "Blocked by" is open; a failed lookup allows |
 | `pre:bash:gate-uat-live-ports` | A UAT run or a kill of the live dev ports, unless a prompt this session named them; ports come from an untracked local file |
 | `pre:bash:block-pipe-to-tail` | A test, build, lint or commit command piped to `tail` or `head` |
@@ -115,7 +114,6 @@ Passing:
 
 Working around it:
 
-- Vault edits go through a vault worktree: `wt -C ~/.claude-vault switch --create chore/<slug> --no-cd`, Read and Edit by absolute path, then `wt -C ~/.claude-vault merge <branch>`. `EnterWorktree` refuses a path outside the session repo, and git against the vault is refused.
 - Start a second worktree with `ExitWorktree` (keep), then `EnterWorktree name:<type/slug>`: the directory gets a dash, the branch keeps the slash.
 - A background session cannot edit the shared checkout, even after `ExitWorktree`. For a gitignored file there, write the change to the job's temp dir and hand Drew a `!` command.
 

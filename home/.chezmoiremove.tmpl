@@ -158,3 +158,10 @@ Library/LaunchAgents/com.drew.t3-serve.plist
 
 # Retired: the script that ran /close in Orca tabs; sessions end through T3.
 .local/bin/closeout-tab
+
+# Retired with the claude-vault repo: memory moved to hub, so the vault CLI,
+# its sync command and its commit gate went too.
+.local/bin/cvault
+.claude/commands/vault-sync.md
+.claude/hooks/bash-checks/gate-vault-commit.js
+.claude/hooks/tests/gate-vault-commit.test.js
