@@ -287,6 +287,12 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
       "options": {
         "instructionFiles": "claude-md-and-agents-md"
       }
+    },
+    {{- /* T3's PR tools need the real Azure URL to link or watch a PR; the default list holds no MCP tool. */}}
+    "redact@redact": {
+      "options": {
+        "restoreTools": "Bash,PowerShell,Write,Edit,MultiEdit,NotebookEdit,Read,Glob,Grep,mcp__t3-code__link_pull_request,mcp__t3-code__watch_pull_request"
+      }
     }
   }
 }
