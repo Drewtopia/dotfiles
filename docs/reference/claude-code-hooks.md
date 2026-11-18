@@ -16,7 +16,7 @@ Scope: how the machine-global Claude Code hooks are wired from this repo, how th
 | PreToolUse | `Bash\|PowerShell\|Monitor` | `dcg-unattended-ask.js` | In an unattended session (`claude -p`, SDK, scheduled runs) turns a dcg "ask" into a deny |
 | PreToolUse | Artifact, Claude Docs, Azure DevOps `wit_` tools | `work-safety-ask.js` | Asks before creating an artifact or doc, or writing a work item |
 | PreToolUse | `Edit\|Write` | `edit-governance-guard.cjs` | Denies edits to governance surfaces unless an unlocking command ran this session (also wired at UserPromptExpansion) |
-| PreToolUse | `Edit\|Write` | `~/.claude-vault/hooks/block-windows-root-files.cjs` | Lives in the vault; skipped when the file is absent |
+| PreToolUse | `Edit\|Write` | `~/.hub/hooks/block-windows-root-files.cjs` | Lives in hub; skipped when the file is absent |
 | PostToolUse | `Edit\|Write` | `post-edit-format.js` | Formats and lints the edited file; only a lint error on a changed line blocks |
 | Stop | | `stop-verify.js` | Typechecks changed TypeScript in a moon workspace before the turn ends |
 | SessionStart (not Windows) | | `worktree-guidance-topup.sh`, `session-start-mistakes.sh`, `session-start-behind.sh` | Guidance links in secondary worktrees, the repo's MISTAKES.md lessons, behind-upstream warning |

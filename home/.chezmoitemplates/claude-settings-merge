@@ -322,7 +322,8 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
       or any(
            "tmux rename-window \"cc:", "tmux set-option -w automatic-rename on",
            "-name '\''*.sh'\'' ! -executable", "EnterWorktree without path",
-           "/shims/dcg", "check-onboard-drift", "claude-log-session", "test -d .jj";
+           "/shims/dcg", "check-onboard-drift", "claude-log-session", "test -d .jj",
+           ".claude-vault/hooks/";
            . as $r | $c | contains($r));
   # Per event: runtime groups minus dropped hooks, then the managed groups.
   def merge_hooks(a;b):
