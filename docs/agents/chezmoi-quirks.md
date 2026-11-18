@@ -28,10 +28,10 @@ Set in `home/.chezmoi.toml.tmpl`:
 - `relocated`: only on work Windows; dev tools live under a whitelisted `tools_root` instead of `$HOME`.
 - `osid`: `linux-ubuntu` and similar, for apt and Linux-only externals.
 
-## Agent vault
+## Hub links
 
-- `~/.claude-vault` is a git-repo external (`Drewtopia/claude-vault`), cloned on personal machines and work non-Windows machines, pulled weekly with `--ff-only`.
-- Mac and Linux: `~/.claude/memory` and `~/.claude/rules` are symlinks into it (`home/dot_claude/symlink_memory.tmpl`, `symlink_rules.tmpl`).
+- `~/repos/drew/hub` is a git-repo external (`Drewtopia/hub`), cloned on personal machines and work non-Windows machines, pulled weekly with `--ff-only`. `~/.hub` links to it (`home/symlink_dot_hub.tmpl`).
+- Mac and Linux: `~/.claude/memory`, `rules`, `agents` and `mods` are symlinks into `~/.hub` (`home/dot_claude/symlink_*.tmpl`).
 - Personal Windows manages only the `rules` symlink, which needs Developer Mode; `install.ps1` turns it on through a UAC prompt. Work Windows manages nothing under `~/.claude`.
 
 ## Scripts

@@ -13,7 +13,7 @@ if (Test-Path $target) {
         $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
         $backup = "$target.bak.$timestamp"
         Write-Host "-> Backing up pre-existing $target to $backup"
-        Write-Host "   (run reorganize-memory skill afterward to merge content into vault)"
+        Write-Host "   (run reorganize-memory skill afterward to merge content into hub memory)"
         Move-Item -Path $target -Destination $backup
     }
 }

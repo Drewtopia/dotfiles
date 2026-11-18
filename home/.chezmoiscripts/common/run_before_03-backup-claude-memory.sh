@@ -8,7 +8,7 @@
 # - Someone deleted the symlink and a regular dir was recreated
 #
 # After backup, run `reorganize-memory` skill to merge .bak.<timestamp>/
-# content into the vault.
+# content into hub memory.
 
 set -e
 
@@ -19,7 +19,7 @@ if [ -e "$TARGET" ] && [ ! -L "$TARGET" ]; then
   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
   BACKUP="$TARGET.bak.$TIMESTAMP"
   echo "→ Backing up pre-existing $TARGET to $BACKUP"
-  echo "  (run \`reorganize-memory\` skill afterward to merge content into vault)"
+  echo "  (run \`reorganize-memory\` skill afterward to merge content into hub memory)"
   mv "$TARGET" "$BACKUP"
 fi
 
