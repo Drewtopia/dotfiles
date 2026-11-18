@@ -71,7 +71,7 @@ impeccable                = "pbakaus/impeccable"
 # NOTE: re-add humanizer only as a plugin: via `npx skills` it registers a
 # marketplace-less "humanizer@skills-dir" that `claude plugin update` can't resolve.
 "humanizer@humanizer"                     = false
-"andrej-karpathy-skills@karpathy-skills"  = false
+"andrej-karpathy-skills@karpathy-skills"  = true
 # Take pstack skills only from this plugin; `npx skills` from cursor/plugins
 # would add bare duplicates beside the namespaced ones.
 "pstack@pstack-claude"                    = true
