@@ -20,7 +20,7 @@ destructive_patterns:
     pattern: '\bgit\b(?:\s+\S+)*?\s+worktree\s+add\b'
     severity: high
     description: Makes a worktree by hand.
-    explanation: Use wt switch --create <branch>; it runs the hooks that install dependencies, copy gitignored env files and trust mise.
+    explanation: Use wt new <type>/<slug> --no-cd; it branches from a freshly fetched origin default branch and runs the hooks that install dependencies, copy gitignored env files and trust mise.
   - name: worktree-remove-force
     pattern: '\bgit\b(?:\s+\S+)*?\s+worktree\s+remove\b[^\n;&|]*\s(?:--force|-f)(?=\s|$)'
     severity: high

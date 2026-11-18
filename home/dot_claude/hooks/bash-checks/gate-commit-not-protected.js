@@ -53,7 +53,7 @@ function run(input, deps = {}) {
             '  wt list                                        # find the stream in flight',
             '  git stash -u && git -C <stream-path> stash pop # carry the changes there',
             'No stream yet:',
-            '  wt switch --create <type>/<slug>   # new stream',
+            '  wt new <type>/<slug> --no-cd       # new stream, from a fresh origin',
             '  git switch -c <type>/<slug>        # or carry the changes in place',
             '',
             `If committing on '${branch}' is truly intentional, run it yourself`,
