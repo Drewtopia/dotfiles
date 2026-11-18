@@ -17,6 +17,7 @@ humanizer                 = "blader/humanizer"
 superwhisper              = "superultrainc/superwhisper-claude-code"
 "pstack-claude"           = "michael-denyer/pstack-claude"
 redact                    = "Drewtopia/redact"
+impeccable                = "pbakaus/impeccable"
 
 # Section = profile (see GLOSSARY.md); a plugin needed in several profiles is
 # listed in each. false = installed but suppressed, kept as a rejection record.
@@ -76,6 +77,8 @@ redact                    = "Drewtopia/redact"
 "pstack@pstack-claude"                    = true
 # Needs the redact binary from mise; masks secrets and names in prompts and tool results.
 "redact@redact"                           = true
+# Frontend design skill (/impeccable); hooks run its engine on SessionStart, Edit|Write and Stop.
+"impeccable@impeccable"                   = true
 
 
 # Plugins Codex installs too (run_onchange_after_58), for marketplaces that ship
