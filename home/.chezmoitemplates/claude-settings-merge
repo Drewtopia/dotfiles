@@ -39,6 +39,59 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
     "pr": "",
     "sessionUrl": false
   },
+{{- if eq .chezmoi.os "darwin" }}
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "enableWeakerNetworkIsolation": true,
+    "excludedCommands": [
+      "git push *",
+      "git fetch *",
+      "git pull *",
+      "git ls-remote *",
+      "op whoami",
+      "op read *",
+      "op item get *",
+      "op item list *",
+      "fnox get *",
+      "fnox list *",
+      "chezmoi apply *",
+      "chezmoi diff *",
+      "chezmoi cat *",
+      "chezmoi managed *",
+      "chezmoi status *",
+      "chezmoi source-path *",
+      "chezmoi -S * apply *",
+      "chezmoi -S * diff *",
+      "chezmoi -S * cat *",
+      "wt *"
+    ],
+    "filesystem": {
+      "allowWrite": [
+        "~/dev/worktrees",
+        "~/repos",
+        "~/.local/share/chezmoi",
+        "~/.claude-vault",
+        "~/.local/share/atuin"
+      ],
+      "denyWrite": [
+        "~/.claude-vault/hooks"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "*.githubusercontent.com",
+        "registry.npmjs.org",
+        "crates.io",
+        "index.crates.io",
+        "static.crates.io"
+      ]
+    }
+  },
+{{- end }}
   "permissions": {
     "defaultMode": "auto",
     "allow": [
@@ -113,7 +166,9 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
       "Read(//**/gcloud/credentials.db)",
       "Read(//**/.azure/credentials)",
       "Read(//**/.git-credentials)",
+{{- if ne .chezmoi.os "darwin" }}
       "Read(//**/.git/config)",
+{{- end }}
       "Read(//**/.pgpass)",
       "Read(//**/.my.cnf)",
       "Read(//**/.mongorc.js)",
@@ -351,6 +406,18 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   | .permissions.deny -= ["Write(**/.env)", "Write(**/.env.*)",
       "Read(**/.env)", "Read(**/.env.*)", "Read(**/secrets/**)",
       "Edit(**/.env)", "Edit(**/.env.*)"]
+{{- if eq .chezmoi.os "darwin" }}
+  # The macOS Bash sandbox turns Read denies into read blocks, so this one stopped git
+  # reading its own config. sandbox.filesystem.allowRead takes no globs, so the deny goes.
+  | .permissions.deny -= ["Read(//**/.git/config)"]
+  # Commit signing reads ~/.ssh/git_signing (written from 1Password by chezmoi);
+  # the Read denies on id_* still keep the SSH auth keys out of the sandbox.
+  | if .sandbox.filesystem.denyRead then .sandbox.filesystem.denyRead -= ["~/.ssh"] else . end
+  # Retired pilot entries: signing never used the 1Password agent, and ssh -o
+  # ProxyCommand= ran anything outside the sandbox.
+  | if .sandbox.network.allowUnixSockets then .sandbox.network.allowUnixSockets -= ["{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"] else . end
+  | if .sandbox.excludedCommands then .sandbox.excludedCommands -= ["ssh *", "op *", "fnox *", "chezmoi *"] else . end
+{{- end }}
   # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
   # changed managed default cannot move an already-set live value. Force the few
   # keys chezmoi must own regardless of runtime drift.
