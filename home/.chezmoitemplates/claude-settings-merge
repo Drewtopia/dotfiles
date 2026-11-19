@@ -212,6 +212,11 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
             "type": "command",
             "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-verify.js\"",
             "timeout": 600
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/stop-reply-paths.js\"",
+            "timeout": 10
           }
         ]
       }

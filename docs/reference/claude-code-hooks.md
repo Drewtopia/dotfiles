@@ -19,6 +19,7 @@ Scope: how the machine-global Claude Code hooks are wired from this repo, how th
 | PreToolUse | `Edit\|Write` | `~/.hub/hooks/block-windows-root-files.cjs` | Lives in hub; skipped when the file is absent |
 | PostToolUse | `Edit\|Write` | `post-edit-format.js` | Formats and lints the edited file; only a lint error on a changed line blocks |
 | Stop | | `stop-verify.js` | Typechecks changed TypeScript in a moon workspace before the turn ends |
+| Stop | | `stop-reply-paths.js` | In a T3 Code session, sends back a reply that names a file by relative path, once per turn |
 | SessionStart (not Windows) | | `worktree-guidance-topup.sh`, `session-start-mistakes.sh`, `session-start-behind.sh` | Guidance links in secondary worktrees, the repo's MISTAKES.md lessons, behind-upstream warning |
 | CwdChanged | | `cwd-changed-worktree-check.js` | Warns on entering a main checkout that sits on a ticket branch |
 
