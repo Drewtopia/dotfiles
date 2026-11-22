@@ -2,12 +2,12 @@
 
 Working knowledge for agents editing this repo.
 
-## Edit the source, not `chezmoi add`
+## Edit the source in a worktree, not `chezmoi add`
 
-The generated config sets `[git] autoCommit = true` with a `promptString` commit message. Any source-changing command (`add`, `re-add`, ...) then waits on a prompt a non-TTY caller cannot see, and commits the whole working tree.
+`main` changes only by a merged PR: `.githooks/pre-commit` refuses a commit on `main`. `chezmoi add` and `re-add` write into the main checkout (`~/.local/share/chezmoi`), so what they write has to be carried to a branch.
 
-- Write straight to the source path under `home/` and commit with git.
-- Use `chezmoi add` only when you need its attribute or `--autotemplate` handling, and commit or set aside unrelated work first.
+- Make a worktree (`wt -C ~/.local/share/chezmoi new <type>/<slug> --no-cd`), write straight to the source path under `home/` there, commit, push and open a PR.
+- Use `chezmoi add` only when you need its attribute or `--autotemplate` handling, then `git stash -u` in the main checkout and `git -C <worktree> stash pop`.
 - Check with `chezmoi managed | grep <name>` and `chezmoi diff <live-path>` (empty diff means source matches live).
 
 ## Path mapping
