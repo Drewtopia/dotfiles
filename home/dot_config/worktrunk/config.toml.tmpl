@@ -39,8 +39,17 @@ OUT=$(git rev-parse --absolute-git-dir)/review-$(git rev-parse --short HEAD).md
 count() { sed -n 's/^IMPORTANT_FINDINGS=\\([0-9]*\\)$/\\1/p' "$OUT" 2>/dev/null | tail -1; }
 if [ "$(count)" != 0 ]; then
   echo "Reviewing the branch against origin/{{ default_branch }} before the push (a few minutes)" >&2
+  # A decision the PR description records, with its reason, settles the finding it names. The
+  # description is PR_BODY when given, else the open PR's. A refused ship reviews again on the
+  # next run, so adding the decision to the description and shipping again is enough.
+  DECISIONS=
+  if [ -s "${PR_BODY:-}" ]; then
+    DECISIONS=$(realpath "$PR_BODY")
+  elif gh pr view --json body --jq .body >"$OUT.body" 2>/dev/null && grep -q '[^[:space:]]' "$OUT.body"; then
+    DECISIONS=$OUT.body
+  fi
   # The prompt goes first: --allowedTools takes every argument after it.
-  claude -p "Run the mattpocock-skills:code-review skill with fixed point $BASE. This run is non-interactive: ask nothing; if no spec is found, skip the Spec axis and say so. Label every finding [Important] or [Minor]: Important is a hard violation of a documented standard (cite the file and rule) or a spec requirement that is missing or implemented wrong; baseline smells and judgement calls are Minor. End with exactly one line: IMPORTANT_FINDINGS=<count>" \
+  claude -p "Run the mattpocock-skills:code-review skill with fixed point $BASE. This run is non-interactive: ask nothing; if no spec is found, skip the Spec axis and say so. Label every finding [Important] or [Minor]: Important is a hard violation of a documented standard (cite the file and rule) or a spec requirement that is missing or implemented wrong; baseline smells and judgement calls are Minor.${DECISIONS:+ Read the PR description at $DECISIONS: a finding that a decision recorded there names, with its reason, is Minor, and say which decision covers it.} End with exactly one line: IMPORTANT_FINDINGS=<count>" \
     --no-session-persistence --allowedTools 'Read Grep Glob Agent Skill Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git rev-parse:*) Bash(git merge-base:*) Bash(gh issue view:*)' > "$OUT"
 fi
 echo "Review: $OUT" >&2
