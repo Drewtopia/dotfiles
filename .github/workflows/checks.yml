@@ -31,9 +31,9 @@ jobs:
       - name: Templates render
         run: bash tests/render-templates.test.sh
       - name: dcg policy
-        run: node --test tests/
+        run: node --test 'tests/*.test.js'
       - name: Agent shell
         run: bash tests/agent-shell.test.sh
       - name: Claude hooks
         working-directory: home/dot_claude/hooks
-        run: node --test tests/
+        run: node --test 'tests/*.test.js'
