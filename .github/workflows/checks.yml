@@ -30,7 +30,9 @@ jobs:
         run: sudo apt-get update -q && sudo apt-get install -yq zsh
       # The tests that render a template with no data of their own read it from chezmoi's config.
       - name: chezmoi config from the CI data
-        run: mkdir -p ~/.config/chezmoi && jq '{data: .}' tests/fixtures/ci-data.json > ~/.config/chezmoi/chezmoi.json
+        run: |
+          mkdir -p ~/.config/chezmoi
+          jq '{data: .}' tests/fixtures/ci-data.json > ~/.config/chezmoi/chezmoi.json
       - name: Templates render
         run: bash tests/render-templates.test.sh
       - name: dcg policy
