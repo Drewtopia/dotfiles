@@ -2,6 +2,7 @@
 
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { getCommand } = require('../lib/hook-io');
 const { git, currentBranch } = require('../lib/git');
 const { WRAPPER, unquote, mask, segments, cdBefore } = require('../lib/shell');
@@ -85,14 +86,46 @@ function gitCalls(cmd, outerCwd = '') {
     });
 }
 
-// Force-pushes, pushes naming a protected branch and the destructive git commands are dcg's
-// (core.git and ~/.config/dcg/packs/git-policy.yaml); this guard keeps what needs git state.
-function checkPush({ args, cwd }, branchOf) {
-    // Bare push (no explicit refspec) pushes the branch checked out in `cwd`.
+/**
+ * Whether `branch` has a pull request, by `gh pr view`. Anything but gh's own "no pull
+ * requests found" (no gh, no network, a timeout) counts as having one, so the lease blocks.
+ */
+function hasPr(cwd, branch) {
+    const res = spawnSync('gh', ['pr', 'view', branch, '--json', 'number'], {
+        cwd: cwd || undefined,
+        encoding: 'utf8',
+        timeout: 5000,
+    });
+    return !(res.status !== 0 && /no pull requests? found/i.test(res.stderr || ''));
+}
+
+// A lease push may rewrite only the branch checked out where it runs, before anyone reviews
+// it: not a protected branch, and not one with a pull request. Every other case is blocked.
+function checkLease({ args, cwd }, refspec, deps) {
+    const branch = deps.branchOf(cwd);
+    if (!branch || branch === 'HEAD') return 'a --force-with-lease push needs a checked-out branch.';
+    if (new RegExp(`^(${PROTECTED})$`).test(branch)) return `--force-with-lease would rewrite protected branch '${branch}'.`;
+    const own = r => [branch, 'HEAD', `HEAD:${branch}`, `${branch}:${branch}`].includes(r.replace(/^refs\/heads\//, ''));
+    if (!refspec.every(own))
+        return `--force-with-lease may rewrite only the checked-out branch '${branch}', not '${refspec.join(' ')}'.`;
+    if (deps.hasPr(cwd, branch))
+        return `'${branch}' has a pull request (or gh could not tell), so --force-with-lease would rewrite reviewed history. Push a new commit instead, or ask the user to run '! git push ${args}'.`;
+    return null;
+}
+
+// Plain force-pushes, pushes naming a protected branch and the destructive git commands are
+// dcg's (core.git and ~/.config/dcg/packs/git-policy.yaml); this guard keeps what needs git state.
+function checkPush({ args, cwd }, deps) {
+    const branchOf = deps.branchOf;
     const refspec = args
         .split(/\s+/)
         .filter(t => t && !t.startsWith('-'))
         .slice(1);
+    if (/(?:^|\s)--force-with-lease(?:=\S*)?(?=\s|$)/.test(args)) {
+        const reason = checkLease({ args, cwd }, refspec, deps);
+        if (reason) return reason;
+    }
+    // Bare push (no explicit refspec) pushes the branch checked out in `cwd`.
     if (refspec.length > 0) return null;
     const branch = branchOf(cwd);
     if (branch && new RegExp(`^(${PROTECTED})$`).test(branch)) {
@@ -138,7 +171,7 @@ function run(input, deps = {}) {
     if (!cmd.includes('git')) return { exitCode: 0 };
 
     for (const call of gitCalls(cmd)) {
-        const reason = call.sub === 'push' ? checkPush(call, branchOf) : null;
+        const reason = call.sub === 'push' ? checkPush(call, { branchOf, hasPr: deps.hasPr || hasPr }) : null;
         if (reason) return block(reason);
         if (movesBranch(call, refCheck) && primary(call.cwd)) {
             return block(
