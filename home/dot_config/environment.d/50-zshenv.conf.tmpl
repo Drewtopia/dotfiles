@@ -6,7 +6,6 @@ XDG_DATA_HOME=${XDG_DATA_HOME:-${HOME}/.local/share}
 XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-${HOME}/.config}
 XDG_STATE_HOME=${XDG_STATE_HOME:-${HOME}/.local/state}
 XDG_CACHE_HOME=${XDG_CACHE_HOME:-${HOME}/.cache}
-DO_NOT_TRACK=1
 {{- if .work }}
 WORKTRUNK_SYSTEM_CONFIG_PATH=${XDG_CONFIG_HOME}/worktrunk/work.toml
 {{- end }}
