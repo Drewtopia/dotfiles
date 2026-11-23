@@ -100,6 +100,36 @@ test('allows: bare push in a feature worktree reached by cd', () =>
 test('blocks: bare push in a develop checkout reached by cd', () =>
     assert.equal(bare('cd /repo && git push', { '': 'feat/x', '/repo': 'develop' }), 2));
 
+// A lease push rewrites only the checked-out, unprotected branch, before it has a pull request.
+const lease = (cmd, { branch = 'feat/x', pr = false } = {}) =>
+    run({ tool_input: { command: cmd } }, { currentBranch: () => branch, hasPr: () => pr, isPrimaryOfMany: () => false });
+
+test('allows: a lease push of the checked-out branch with no PR', () => {
+    for (const cmd of [
+        'git push --force-with-lease',
+        'git push --force-with-lease origin feat/x',
+        'git push -u --force-with-lease origin HEAD',
+        'git push --force-with-lease=feat/x:abc123 origin HEAD:feat/x',
+    ])
+        assert.equal(lease(cmd).exitCode, 0, cmd);
+});
+test('blocks: a lease push once the branch has a PR', () => {
+    const res = lease('git push --force-with-lease origin feat/x', { pr: true });
+    assert.equal(res.exitCode, 2);
+    assert.match(res.stderr, /pull request/);
+});
+test('blocks: a lease push of another branch', () =>
+    assert.equal(lease('git push --force-with-lease origin feat/other').exitCode, 2));
+test('blocks: a lease push on a protected or detached checkout', () => {
+    assert.equal(lease('git push --force-with-lease', { branch: 'main' }).exitCode, 2);
+    assert.equal(lease('git push --force-with-lease origin HEAD', { branch: 'HEAD' }).exitCode, 2);
+});
+test('allows: a plain push of the checked-out branch, with no PR lookup', () =>
+    assert.equal(
+        run({ tool_input: { command: 'git push origin feat/x' } }, { currentBranch: () => 'feat/x', hasPr: () => assert.fail('looked up a PR'), isPrimaryOfMany: () => false }).exitCode,
+        0,
+    ));
+
 // The hook reads the command before the shell expands it.
 const home = require('node:os').homedir();
 test('blocks: bare push in a directory named by a variable, judged by the session branch', () => {

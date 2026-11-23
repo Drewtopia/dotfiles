@@ -2,7 +2,7 @@ schema_version: 1
 id: drew.git_policy
 name: Git branch and worktree policy
 version: 1.0.0
-description: Pushes to protected branches, lease-forced pushes and hand-made worktrees. What the command text alone can show; state-based git checks stay in the Claude Code hooks.
+description: Pushes to protected branches and hand-made worktrees. What the command text alone can show; state-based git checks, such as which branch a --force-with-lease push may rewrite, stay in the Claude Code hooks.
 keywords: [git, push, worktree, main, master, develop]
 denial_banner: Git policy
 destructive_patterns:
@@ -11,11 +11,6 @@ destructive_patterns:
     severity: critical
     description: Pushes straight to main, master or develop.
     explanation: Open a pull request from a feature branch instead.
-  - name: push-force-with-lease
-    pattern: '\bgit\b(?:\s+\S+)*?\s+push\b[^\n;&|]*\s--force-with-lease\b'
-    severity: high
-    description: Force-pushes with a lease.
-    explanation: A lease still rewrites the remote branch. core.git allows it; this pack does not.
   - name: worktree-add
     pattern: '\bgit\b(?:\s+\S+)*?\s+worktree\s+add\b'
     severity: high
