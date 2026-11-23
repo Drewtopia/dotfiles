@@ -72,11 +72,10 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
         "~/dev/worktrees",
         "~/repos",
         "~/.local/share/chezmoi",
-        "~/.claude-vault",
         "~/.local/share/atuin"
       ],
       "denyWrite": [
-        "~/.claude-vault/hooks"
+        "~/repos/drew/hub/hooks"
       ]
     },
     "network": {
@@ -419,6 +418,10 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # ProxyCommand= ran anything outside the sandbox.
   | if .sandbox.network.allowUnixSockets then .sandbox.network.allowUnixSockets -= ["{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"] else . end
   | if .sandbox.excludedCommands then .sandbox.excludedCommands -= ["ssh *", "op *", "fnox *", "chezmoi *"] else . end
+  # The vault retired into hub (~/repos/drew/hub, which ~/repos already covers). Its hooks
+  # run unsandboxed, so their real path is write-denied; ~/.hub is only a symlink to it.
+  | if .sandbox.filesystem.allowWrite then .sandbox.filesystem.allowWrite -= ["~/.claude-vault"] else . end
+  | if .sandbox.filesystem.denyWrite then .sandbox.filesystem.denyWrite -= ["~/.claude-vault/hooks"] else . end
 {{- end }}
   # Pinned scalars: the floor merge lets runtime win on scalar conflicts, so a
   # changed managed default cannot move an already-set live value. Force the few
