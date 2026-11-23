@@ -1,0 +1,39 @@
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          mise_toml: |
+            [tools]
+            chezmoi = "2.70.0"
+            node = "24"
+            jq = "1.7.1"
+            "github:Dicklesworthstone/destructive_command_guard" = "0.16.0"
+      - name: Install zsh
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -yq zsh
+      - name: Templates render
+        run: bash tests/render-templates.test.sh
+      - name: dcg policy
+        run: node --test tests/
+      - name: Agent shell
+        run: bash tests/agent-shell.test.sh
+      - name: Claude hooks
+        working-directory: home/dot_claude/hooks
+        run: node --test tests/

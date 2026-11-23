@@ -1,0 +1,31 @@
+{
+  "ephemeral": false,
+  "name": "CI",
+  "email": "ci@example.com",
+  "work": false,
+  "relocated": false,
+  "is_wsl": false,
+  "dev_computer": true,
+  "orca": false,
+  "t3_code": true,
+  "hostname": "ci",
+  "personal": true,
+  "osid": "linux-ubuntu",
+  "opVault": "ci",
+  "zshPlugins": [],
+  "directories": {
+    "tools_root": "/home/ci",
+    "dev_root": "/home/ci/dev",
+    "pnpm_home": "/home/ci/.local/share/pnpm",
+    "vscode_ext_dir": "/home/ci/.vscode/extensions",
+    "vscode_global_storage_dir": "/home/ci/.config/Code/User/globalStorage",
+    "mise_dir": "/home/ci/.local/share/mise",
+    "repos_dir": "/home/ci/repos",
+    "ssh_keys_dir": "/home/ci/.ssh_keys",
+    "user_bin_dir": "/home/ci/bin",
+    "xdg_cache_dir": "/home/ci/.cache",
+    "xdg_config_dir": "/home/ci/.config",
+    "xdg_data_dir": "/home/ci/.local/share",
+    "xdg_state_dir": "/home/ci/.local/state"
+  }
+}
