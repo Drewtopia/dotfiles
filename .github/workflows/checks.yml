@@ -24,6 +24,7 @@ jobs:
             chezmoi = "2.70.0"
             node = "24"
             jq = "1.7.1"
+            gitleaks = "8.28.0"
             "github:Dicklesworthstone/destructive_command_guard" = "0.16.0"
       - name: Install zsh
         if: runner.os == 'Linux'
