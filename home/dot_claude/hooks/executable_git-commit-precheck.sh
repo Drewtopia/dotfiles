@@ -81,7 +81,8 @@ repo_visibility() {
     cache="${XDG_CACHE_HOME:-$HOME/.cache}/claude-hooks/repo-visibility/${slug//\//__}"
     if [[ -f "$cache" ]]; then
         answer=$(cat "$cache")
-        age=$(( $(date +%s) - $(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache") ))
+        # GNU first: GNU stat takes -f as "filesystem status" and succeeds, so BSD-first never falls back.
+        age=$(( $(date +%s) - $(stat -c %Y "$cache" 2>/dev/null || stat -f %m "$cache") ))
         ttl=$VISIBILITY_TTL_SECONDS
         [[ "$answer" == PRIVATE ]] && ttl=$PRIVATE_TTL_SECONDS
         (( age < ttl )) && { echo "$answer"; return; }
