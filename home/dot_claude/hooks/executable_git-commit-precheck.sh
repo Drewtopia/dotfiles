@@ -151,9 +151,19 @@ fi
 # betterleaks reads gitleaks configs and gitleaks:allow comments. v2 drops --staged, so
 # mise pins 1.x.
 LEAKS=$(command -v betterleaks || command -v gitleaks || true)
+# A merge stages everything the other branch brings in, already scanned where it was
+# committed, so only what differs from MERGE_HEAD (this side and the resolution) is scanned.
+scan_staged() {
+    if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+        git diff --cached MERGE_HEAD -U0 --no-color | sed -n 's/^+//p' \
+            | "$LEAKS" stdin --redact --no-banner "$@"
+    else
+        "$LEAKS" git --staged --redact --no-banner "$@" .
+    fi
+}
 if [[ -n "$LEAKS" ]]; then
     RAN_SOMETHING=1
-    if ! "$LEAKS" git --staged --redact --no-banner . 2>&1 >&2; then
+    if ! scan_staged 2>&1 >&2; then
         echo "" >&2
         echo "BLOCKED: ${LEAKS##*/} found secrets in staged files." >&2
         echo "Tip: review with \`${LEAKS##*/} git --staged -v\` and remove the secrets." >&2
@@ -164,7 +174,7 @@ if [[ -n "$LEAKS" ]]; then
         LEAK_CONFIG=$(leak_config) || LEAK_CONFIG=""
         if [[ -n "$LEAK_CONFIG" ]]; then
             LEAKED=0
-            "$LEAKS" git --staged --redact --no-banner --config "$LEAK_CONFIG" . 2>&1 >&2 || LEAKED=1
+            scan_staged --config "$LEAK_CONFIG" 2>&1 >&2 || LEAKED=1
             # The commit message is in the command text, so scan that too.
             printf '%s\n' "$COMMAND" \
                 | "$LEAKS" stdin --redact --no-banner --config "$LEAK_CONFIG" 2>&1 >&2 || LEAKED=1

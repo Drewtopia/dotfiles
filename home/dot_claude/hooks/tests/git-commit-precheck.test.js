@@ -40,6 +40,7 @@ function precheck({
     cached,
     command,
     files = {},
+    setup,
 }) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'precheck-'));
     const repo = path.join(tmp, 'repo');
@@ -51,6 +52,7 @@ function precheck({
     git('remote', 'add', 'origin', remote ?? 'git@github.com:someone/pub.git');
     fs.writeFileSync(path.join(repo, 'notes.txt'), `${content}\n`);
     git('add', 'notes.txt');
+    setup?.(git, repo);
 
     const ghLog = path.join(tmp, 'gh.log');
     fs.writeFileSync(
@@ -216,5 +218,37 @@ test("public repo: a -F message file named relative to -C is scanned", () => {
         command: repo => `git -C "${repo}" commit -F msg.txt`,
         files: { 'msg.txt': `fix: retry, as in ${sample.foreignIssue}\n` },
     });
+    assert.equal(r.code, 2, r.stderr);
+});
+
+// A merge in progress: `other` brings in a file holding a leak, scanned where it was committed.
+// `resolution`, when given, is what the merge itself writes into notes.txt.
+const mergeIn = resolution => (git, repo) => {
+    const commit = msg =>
+        git('-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', '-c', 'user.name=t',
+            '-c', 'user.email=t@example.invalid', 'commit', '-qm', msg);
+    commit('base');
+    git('checkout', '-qb', 'other');
+    fs.writeFileSync(path.join(repo, 'incoming.txt'), `${sample.privateIp10}\n`);
+    git('add', 'incoming.txt');
+    commit('incoming');
+    git('checkout', '-q', '-');
+    fs.writeFileSync(path.join(repo, 'mine.txt'), 'mine\n');
+    git('add', 'mine.txt');
+    commit('mine');
+    git('merge', '-q', '--no-commit', 'other');
+    if (resolution !== undefined) {
+        fs.writeFileSync(path.join(repo, 'notes.txt'), `${resolution}\n`);
+        git('add', 'notes.txt');
+    }
+};
+
+test('public repo: a merge passes when only the merged-in branch holds the leak', () => {
+    const r = precheck({ content: 'clean', setup: mergeIn() });
+    assert.equal(r.code, 0, r.stderr);
+});
+
+test('public repo: a leak written while resolving a merge is blocked', () => {
+    const r = precheck({ content: 'clean', setup: mergeIn(sample.privateIp10) });
     assert.equal(r.code, 2, r.stderr);
 });
