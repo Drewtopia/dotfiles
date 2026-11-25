@@ -41,28 +41,30 @@ pre-commit:
 
 pre-push:
   commands:
-    # lefthook's protect-branch example: refuse a push from a protected branch. A push from
-    # another branch to one (HEAD:main) is left to the server: GitHub rulesets, Azure branch
-    # policies.
-    personal-protected-branch:
-      tags: [personal]
-      only:
-        - ref: main
-        - ref: master
-        - ref: develop
-      skip:
-        - run: test -z "$(git remote)"
-      run: echo "Push from a protected branch refused. Push a branch and open a PR, or skip with --no-verify." >&2; exit 1
     personal-branch-name:
       tags: [personal]
       run: commit-check --branch --no-banner --config "$HOME/.config/commit-check/cchk.toml"
-    # A commit made with --no-verify reaches the push unchecked, so every local commit that no
-    # remote branch has yet is checked again.
+    # Only git's pre-push stdin says which refs a push sends (lefthook's ref conditions see the
+    # checked-out branch, not `git push origin feat/x` or `HEAD:main`), and lefthook gives stdin
+    # to one job only, so this job holds both checks that need it:
+    # - a push to, or deletion of, main, master or develop is refused;
+    # - a commit made with --no-verify reaches the push unchecked, so every pushed commit that
+    #   no remote branch has yet is checked again. An all-zero sha is a deletion.
     personal-pushed:
       tags: [personal]
+      use_stdin: true
       skip: [merge, rebase]
       run: |
-        for c in $(git rev-list HEAD --not --remotes); do
-          commit-check --message --author-email --no-banner --config "$HOME/.config/commit-check/cchk.toml" --rev "$c" || exit 1
+        cfg=$(for f in .betterleaks.toml .gitleaks.toml; do [ -f "$f" ] && { echo "$f"; break; }; done)
+        while read -r _ sha rref _; do
+          case "$rref" in
+            refs/heads/main|refs/heads/master|refs/heads/develop)
+              echo "Push to '${rref#refs/heads/}' refused. Push a branch and open a PR, or skip with --no-verify." >&2
+              exit 1 ;;
+          esac
+          case "$sha" in *[!0]*) ;; *) continue ;; esac
+          for c in $(git rev-list "$sha" --not --remotes); do
+            commit-check --message --author-email --no-banner --config "$HOME/.config/commit-check/cchk.toml" --rev "$c" || exit 1
+          done
+          betterleaks git --log-opts="$sha --not --remotes" --redact --no-banner ${cfg:+--config "$cfg"} . || exit 1
         done
-        betterleaks git --log-opts="HEAD --not --remotes" --redact --no-banner $(for f in .betterleaks.toml .gitleaks.toml; do [ -f "$f" ] && { echo --config "$f"; break; }; done) .
