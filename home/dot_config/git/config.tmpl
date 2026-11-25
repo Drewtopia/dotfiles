@@ -246,6 +246,23 @@
 	diffFilter = delta --color-only
 {{- end }}
 
+{{- if .dev_computer }}
+# Personal git policy in every repo, with no per-repo enrollment: git runs these before a
+# repo's own hook (git 2.54+). Policy and the reasons for the flags are in
+# ~/.config/lefthook/lefthook-personal.yml. --no-verify skips them. Git appends the hook's
+# arguments to each command. Without lefthook installed, the hook fails rather than skip.
+# Each value is quoted: unquoted, git reads `;` as the start of a comment.
+[hook "personal-pre-commit"]
+	event = pre-commit
+	command = "command -v lefthook >/dev/null || { echo 'lefthook not found: run mise install' >&2; exit 1; }; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run pre-commit --tag personal"
+[hook "personal-commit-msg"]
+	event = commit-msg
+	command = "command -v lefthook >/dev/null || { echo 'lefthook not found: run mise install' >&2; exit 1; }; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run commit-msg --tag personal"
+[hook "personal-pre-push"]
+	event = pre-push
+	command = "command -v lefthook >/dev/null || { echo 'lefthook not found: run mise install' >&2; exit 1; }; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run pre-push --tag personal --force"
+{{- end }}
+
 # Machine- or work-specific entries stay out of this public repo.
 [include]
 	path = ~/.config/git/config.local
