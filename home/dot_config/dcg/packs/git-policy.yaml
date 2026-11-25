@@ -3,7 +3,7 @@ id: drew.git_policy
 name: Git branch and worktree policy
 version: 1.0.0
 description: Pushes to protected branches and hand-made worktrees. What the command text alone can show; state-based git checks, such as which branch a --force-with-lease push may rewrite, stay in the Claude Code hooks.
-keywords: [git, push, worktree, main, master, develop, LEFTHOOK]
+keywords: [git, push, worktree, main, master, develop, LEFTHOOK, HOME, XDG_CONFIG_HOME]
 denial_banner: Git policy
 destructive_patterns:
   - name: push-protected-branch
@@ -15,6 +15,7 @@ destructive_patterns:
   # skips it with --no-verify when he means to. These ask before an agent skips it.
   - name: skip-hooks-flag
     pattern: '\bgit\b(?:\s+\S+)*?\s+(?:commit\b[^\n;&|]*?\s[''"]?-[a-zA-Z]*n[a-zA-Z]*(?=[\s''"]|$)|(?:commit|push|merge|am|cherry-pick|revert|rebase)\b[^\n]*?\s[''"]?--no-v(?:e(?:r(?:i(?:fy?)?)?)?)?(?=[\s''"]|$))'
+    executables: [git]
     severity: high
     description: Skips git hooks with --no-verify (or commit -n).
     explanation: That skips lefthook-personal's checks (protected branches, secrets, commit and branch names). Fix what the hook reports, or ask Drew to run the command himself.
@@ -25,6 +26,7 @@ destructive_patterns:
     explanation: LEFTHOOK=0 or LEFTHOOK_EXCLUDE skips lefthook jobs, and another GIT_CONFIG_GLOBAL, HOME or XDG_CONFIG_HOME drops the hook.personal-* entries. Fix what the hook reports, or ask Drew to run the command himself.
   - name: skip-hooks-config
     pattern: '\bgit\b(?:\s+\S+)*?\s+(?:(?:-c\s*|--config-env[=\s])[''"]?(?:hook\.[^\s=]+|(?i:core\.hookspath))=|config\b(?!(?:\s+--?[\w-]+(?:=\S*)?)*\s+(?:--(?:get|get-all|get-regexp|list|show-origin|unset|unset-all)|get|list|unset)\b)[^\n;&|]*\s[''"]?(?:hook\.\S+|(?i:core\.hookspath))\b)'
+    executables: [git]
     severity: high
     description: Disables a git hook or moves the hooks directory through git config.
     explanation: That turns off Drew's hook.personal-* hooks or the repo's own hooks, for one command or for good. Fix what the hook reports, or ask Drew to change the setting himself.

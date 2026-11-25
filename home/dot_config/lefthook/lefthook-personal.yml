@@ -32,22 +32,20 @@ pre-commit:
         - rebase
         - run: test -z "$(git remote)"
       run: echo "Commit on a protected branch refused. Commit on a branch (wt switch --create <type>/<slug>), or skip with --no-verify." >&2; exit 1
-    # Staged changes only. betterleaks loads a repo's .betterleaks.toml or .gitleaks.toml only
-    # when passed with --config.
+    # Staged changes only. --unsafe-auto-load-config applies a repo's own .betterleaks.toml
+    # (or .gitleaks.toml) allowlist, which betterleaks otherwise ignores.
     personal-secrets:
       tags: [personal]
       skip: [merge, rebase]
-      run: betterleaks git --staged --redact --no-banner $(for f in .betterleaks.toml .gitleaks.toml; do [ -f "$f" ] && { echo --config "$f"; break; }; done) .
+      run: betterleaks git --staged --redact --no-banner --unsafe-auto-load-config .
 
 pre-push:
   commands:
-    personal-branch-name:
-      tags: [personal]
-      run: commit-check --branch --no-banner --config "$HOME/.config/commit-check/cchk.toml"
-    # Only git's pre-push stdin says which refs a push sends (lefthook's ref conditions see the
-    # checked-out branch, not `git push origin feat/x` or `HEAD:main`), and lefthook gives stdin
-    # to one job only, so this job holds both checks that need it:
+    # Only git's pre-push stdin says which refs a push sends (lefthook's ref conditions and a
+    # bare `commit-check --branch` see the checked-out branch, not `git push origin feat/x` or
+    # `HEAD:main`), and lefthook gives stdin to one job only, so this job holds every push check:
     # - a push to, or deletion of, main, master or develop is refused;
+    # - each pushed branch's name goes to commit-check --branch, which reads it from stdin;
     # - a commit made with --no-verify reaches the push unchecked, so every pushed commit that
     #   no remote branch has yet is checked again. An all-zero sha is a deletion.
     personal-pushed:
@@ -55,7 +53,7 @@ pre-push:
       use_stdin: true
       skip: [merge, rebase]
       run: |
-        cfg=$(for f in .betterleaks.toml .gitleaks.toml; do [ -f "$f" ] && { echo "$f"; break; }; done)
+        cchk="$HOME/.config/commit-check/cchk.toml"
         while read -r _ sha rref _; do
           case "$rref" in
             refs/heads/main|refs/heads/master|refs/heads/develop)
@@ -63,8 +61,11 @@ pre-push:
               exit 1 ;;
           esac
           case "$sha" in *[!0]*) ;; *) continue ;; esac
+          case "$rref" in
+            refs/heads/*) printf '%s\n' "${rref#refs/heads/}" | commit-check --branch --no-banner --config "$cchk" || exit 1 ;;
+          esac
           for c in $(git rev-list "$sha" --not --remotes); do
-            commit-check --message --author-email --no-banner --config "$HOME/.config/commit-check/cchk.toml" --rev "$c" || exit 1
+            commit-check --message --author-email --no-banner --config "$cchk" --rev "$c" || exit 1
           done
-          betterleaks git --log-opts="$sha --not --remotes" --redact --no-banner ${cfg:+--config "$cfg"} . || exit 1
+          betterleaks git --log-opts="$sha --not --remotes" --redact --no-banner --unsafe-auto-load-config . || exit 1
         done
