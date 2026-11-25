@@ -108,6 +108,9 @@
 [push]
 	autoSetupRemote = true
 	default = current
+	# A --force-with-lease push also needs the remote tip in the local reflog, so a
+	# background fetch that moved the remote-tracking ref can't make the lease pass.
+	useForceIfIncludes = true
 [rebase]
 	autoSquash = true
 	autoStash = true
