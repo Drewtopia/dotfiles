@@ -3,6 +3,18 @@ HashKnownHosts no
 # Untracked machine-local overrides; ssh ignores it when absent.
 Include config.override
 
+# Before `Host *`: ssh keeps the first value it reads for each option.
+Host github.com
+  User git
+  # Port 22 is blocked by the corporate firewall.
+  Hostname ssh.github.com
+  Port 443
+{{- if eq .chezmoi.os "darwin" }}
+  # chezmoi writes id_ed25519 from 1Password, so pushes read the file and
+  # work while 1Password is locked.
+  IdentityAgent none
+{{- end }}
+
 Host *
   IdentityFile ~/.ssh/id_ed25519
   IdentitiesOnly yes
@@ -11,13 +23,6 @@ Host *
   UseKeychain yes
   IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 {{- end }}
-
-
-Host github.com
-  User git
-  # Port 22 is blocked by the corporate firewall.
-  Hostname ssh.github.com
-  Port 443
 
 {{- if .personal }}
 
