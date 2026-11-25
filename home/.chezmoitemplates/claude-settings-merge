@@ -26,7 +26,7 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
-    "DO_NOT_TRACK": "1",
+    "IMPECCABLE_NO_TELEMETRY": "1",
     "EDITOR": "nvim",
     "GIT_EDITOR": "nvim --wait"{{- if eq .chezmoi.os "windows" }},
     "CLAUDE_CODE_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe",
@@ -381,4 +381,7 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # per scalar otherwise) and drop the superseded key from live settings.
   | .attribution = { "commit": "", "pr": "", "sessionUrl": false }
   | del(.includeCoAuthoredBy)
+  # DO_NOT_TRACK in the Claude Code env stops it passing the sign-in to plugins, which
+  # turned off the security-guidance review. Impeccable reads IMPECCABLE_NO_TELEMETRY.
+  | del(.env.DO_NOT_TRACK)
 ' | tr -d '\r'
