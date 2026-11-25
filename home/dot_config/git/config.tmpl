@@ -253,20 +253,20 @@
 # Personal git policy in every repo, with no per-repo enrollment: git runs these before a
 # repo's own hook (git 2.54+). Policy and the reasons for the flags are in
 # ~/.config/lefthook/lefthook-personal.yml. --no-verify skips them. Git appends the hook's
-# arguments to each command. Without lefthook installed, the hook fails rather than skip.
+# arguments to each command, and a missing lefthook fails the hook.
 # Each value is quoted: unquoted, git reads `;` as the start of a comment.
 # lefthook merges a repo's lefthook-local config into this run and has no switch to stop it,
 # so a repo that tracks one (a clone's, not Drew's gitignored file) could run its own code
 # here: the hook refuses instead.
 [hook "personal-pre-commit"]
 	event = pre-commit
-	command = "command -v lefthook >/dev/null || { echo 'lefthook not found: run mise install' >&2; exit 1; }; if git ls-files -- ':(glob)lefthook-local.*' ':(glob).lefthook-local.*' ':(glob).config/lefthook-local.*' | grep -q .; then echo 'This repo tracks a lefthook-local config, which lefthook would merge into the personal checks. Refusing; skip with --no-verify if you trust it.' >&2; exit 1; fi; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run pre-commit --tag personal"
+	command = "if git ls-files -- ':(glob)lefthook-local.*' ':(glob).lefthook-local.*' ':(glob).config/lefthook-local.*' | grep -q .; then echo 'This repo tracks a lefthook-local config, which lefthook would merge into the personal checks. Refusing; skip with --no-verify if you trust it.' >&2; exit 1; fi; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run pre-commit --tag personal --force"
 [hook "personal-commit-msg"]
 	event = commit-msg
-	command = "command -v lefthook >/dev/null || { echo 'lefthook not found: run mise install' >&2; exit 1; }; if git ls-files -- ':(glob)lefthook-local.*' ':(glob).lefthook-local.*' ':(glob).config/lefthook-local.*' | grep -q .; then echo 'This repo tracks a lefthook-local config, which lefthook would merge into the personal checks. Refusing; skip with --no-verify if you trust it.' >&2; exit 1; fi; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run commit-msg --tag personal"
+	command = "if git ls-files -- ':(glob)lefthook-local.*' ':(glob).lefthook-local.*' ':(glob).config/lefthook-local.*' | grep -q .; then echo 'This repo tracks a lefthook-local config, which lefthook would merge into the personal checks. Refusing; skip with --no-verify if you trust it.' >&2; exit 1; fi; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run commit-msg --tag personal --force"
 [hook "personal-pre-push"]
 	event = pre-push
-	command = "command -v lefthook >/dev/null || { echo 'lefthook not found: run mise install' >&2; exit 1; }; if git ls-files -- ':(glob)lefthook-local.*' ':(glob).lefthook-local.*' ':(glob).config/lefthook-local.*' | grep -q .; then echo 'This repo tracks a lefthook-local config, which lefthook would merge into the personal checks. Refusing; skip with --no-verify if you trust it.' >&2; exit 1; fi; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run pre-push --tag personal --force"
+	command = "if git ls-files -- ':(glob)lefthook-local.*' ':(glob).lefthook-local.*' ':(glob).config/lefthook-local.*' | grep -q .; then echo 'This repo tracks a lefthook-local config, which lefthook would merge into the personal checks. Refusing; skip with --no-verify if you trust it.' >&2; exit 1; fi; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run pre-push --tag personal --force"
 {{- end }}
 
 # Machine- or work-specific entries stay out of this public repo.

@@ -1,10 +1,9 @@
-# Personal policy on every machine. The push gate passes it via --config when a repo has no
-# cchk.toml; a repo's local hooks run it as its own check beside the repo's team policy.
+# Personal policy on every machine. lefthook-personal passes it with --config on commit and
+# push, beside whatever team policy a repo's own hooks check.
 
 [commit]
-# Subject length is the repo's rule. commit-check has no off switch (0 and -1 still apply
-# its default 80), so the ceiling sits out of reach.
-subject_max_length = 1000
+# Subject length is the repo's rule; 0 turns commit-check's check off.
+subject_max_length = 0
 # message_pattern replaces commit-check's conventional-commit check, so this policy checks
 # only what is banned; commit types stay with the repo's team policy and commitlint.
 # Everywhere: the redact Claude Code mod's placeholder text ([LABEL-xxxxxxxx], eight hex
@@ -25,13 +24,9 @@ author_email_pattern = '^.+@{{ .email | splitList "@" | last | replace "." "\\."
 {{- end }}
 
 [branch]
-# Widened to the Conventional Commit types (+ wip) so everyday branches pass;
-# `agent` covers the AFK orchestrator's agent/issue-<n>-* branches.
-conventional_branch = true
-allow_branch_types = [
-  "feature", "feat", "bugfix", "fix", "hotfix", "release", "chore",
-  "refactor", "docs", "test", "perf", "ci", "style", "build", "revert", "wip",
-  "agent",
-]
-# main/master/HEAD/PR-* are always allowed by default; add the other trunk-likes.
-allow_branch_names = ["develop", "staging"]
+# commit-check's default branch types already cover the Conventional Commit types and the
+# agent prefixes (ai, claude, codex, copilot, cursor, agents). Setting allow_branch_types
+# would replace that list, so the extras are whole-name patterns here instead: `agent/` for
+# the AFK orchestrator's agent/issue-<n>-* branches, plus wip, revert and staging.
+# main, master, develop and HEAD are always allowed.
+allow_branch_names = ["agent/.+", "wip/.+", "revert/.+", "staging"]
