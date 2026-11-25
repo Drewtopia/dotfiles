@@ -51,7 +51,6 @@ pre-push:
     personal-pushed:
       tags: [personal]
       use_stdin: true
-      skip: [merge, rebase]
       run: |
         cchk="$HOME/.config/commit-check/cchk.toml"
         while read -r _ sha rref _; do

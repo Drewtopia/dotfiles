@@ -3,7 +3,7 @@ id: drew.git_policy
 name: Git branch and worktree policy
 version: 1.0.0
 description: Pushes to protected branches and hand-made worktrees. What the command text alone can show; state-based git checks, such as which branch a --force-with-lease push may rewrite, stay in the Claude Code hooks.
-keywords: [git, push, worktree, main, master, develop, LEFTHOOK, HOME, XDG_CONFIG_HOME]
+keywords: [git, push, worktree, main, master, develop, LEFTHOOK, HOME, XDG_CONFIG_HOME, LEAKS_CONFIG, CCHK_]
 denial_banner: Git policy
 destructive_patterns:
   - name: push-protected-branch
@@ -20,12 +20,12 @@ destructive_patterns:
     description: Skips git hooks with --no-verify (or commit -n).
     explanation: That skips lefthook-personal's checks (protected branches, secrets, commit and branch names). Fix what the hook reports, or ask Drew to run the command himself.
   - name: skip-hooks-env
-    pattern: '(?:^|[;&|(]|\b(?:env|export))\s*(?:\S+=\S*\s+)*[''"]?(?:LEFTHOOK=[''"]?(?:0|false)\b|LEFTHOOK_EXCLUDE=|GIT_CONFIG_GLOBAL=|GIT_CONFIG_PARAMETERS=|GIT_CONFIG_COUNT=|XDG_CONFIG_HOME=|HOME=)|\benv\s+(?:\S+\s+)*?(?:-i|--ignore-environment|-u\s*HOME|--unset=HOME)\s[^\n;&|]*\bgit\b'
+    pattern: '(?:^|[;&|(]|\b(?:env|export))\s*(?:\S+=\S*\s+)*[''"]?(?:LEFTHOOK=[''"]?(?:0|false)\b|LEFTHOOK_EXCLUDE=|GIT_CONFIG_GLOBAL=|GIT_CONFIG_PARAMETERS=|GIT_CONFIG_COUNT=|(?:BETTER|GIT)LEAKS_CONFIG(?:_TOML)?=|CCHK_\w+=|(?:XDG_CONFIG_HOME|HOME)=\S*\s+(?:\S+=\S*\s+)*(?:\S*/)?git\b)|\bexport\s+(?:\S+=\S*\s+)*(?:XDG_CONFIG_HOME|HOME)=|\benv\s+(?:\S+\s+)*?(?:-i|--ignore-environment|-u\s*HOME|--unset=HOME)\s[^\n;&|]*\bgit\b'
     severity: high
     description: Turns lefthook off, or hides or swaps out the global git config that runs Drew's hooks.
-    explanation: LEFTHOOK=0 or LEFTHOOK_EXCLUDE skips lefthook jobs, and another GIT_CONFIG_GLOBAL, HOME or XDG_CONFIG_HOME drops the hook.personal-* entries. Fix what the hook reports, or ask Drew to run the command himself.
+    explanation: LEFTHOOK=0 or LEFTHOOK_EXCLUDE skips lefthook jobs, another GIT_CONFIG_GLOBAL, HOME or XDG_CONFIG_HOME drops the hook.personal-* entries, and BETTERLEAKS_CONFIG, GITLEAKS_CONFIG or a CCHK_ variable overrides the secret-scan or commit-check rules. Fix what the hook reports, or ask Drew to run the command himself.
   - name: skip-hooks-config
-    pattern: '\bgit\b(?:\s+\S+)*?\s+(?:(?:-c\s*|--config-env[=\s])[''"]?(?:hook\.[^\s=]+|(?i:core\.hookspath))=|config\b(?!(?:\s+--?[\w-]+(?:=\S*)?)*\s+(?:--(?:get|get-all|get-regexp|list|show-origin|unset|unset-all)|get|list|unset)\b)[^\n;&|]*\s[''"]?(?:hook\.\S+|(?i:core\.hookspath))\b)'
+    pattern: '\bgit\b(?:\s+\S+)*?\s+(?:(?:-c\s*|--config-env[=\s])[''"]?(?:hook\.[^\s=]+|(?i:core\.hookspath))=|config\b(?!(?:\s+--?[\w-]+(?:=\S*)?)*\s+(?:--(?:get|get-all|get-regexp|list|show-origin)|get|list)\b)[^\n;&|]*\s[''"]?(?:hook\.\S+|(?i:core\.hookspath))\b)'
     executables: [git]
     severity: high
     description: Disables a git hook or moves the hooks directory through git config.

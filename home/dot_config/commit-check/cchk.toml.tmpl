@@ -2,8 +2,9 @@
 # push, beside whatever team policy a repo's own hooks check.
 
 [commit]
-# Subject length is the repo's rule; 0 turns commit-check's check off.
+# Subject length is the repo's rule; 0 turns each of commit-check's length checks off.
 subject_max_length = 0
+subject_min_length = 0
 # message_pattern replaces commit-check's conventional-commit check, so this policy checks
 # only what is banned; commit types stay with the repo's team policy and commitlint.
 # Everywhere: the redact Claude Code mod's placeholder text ([LABEL-xxxxxxxx], eight hex
