@@ -14,8 +14,6 @@ const CHECKS = [
     'pre:bash:gate-blocked-issue-close',
     'pre:bash:gate-pr-body',
     'pre:bash:gate-uat-live-ports',
-    'pre:bash:block-pipe-to-tail',
-    'pre:bash:block-recursive-grep',
 ].map(id => ({
     id,
     run: input => require(`./bash-checks/${id.slice('pre:bash:'.length)}`).run(input),
