@@ -48,6 +48,8 @@ custom_paths = ["~/.config/dcg/packs/*.yaml"]
 "core.git:branch-dynamic-token" = "ask"
 # Agents queue test runs. Every other Azure write in the pack still asks.
 "drew.azure_writes:pipelines-run" = "warn"
+# Skipping Drew's git hooks asks, not denies. It is sometimes right, and Drew decides.
+"drew.git_policy:skip-hooks" = "ask"
 # The rules that lose data stay deny; the rest of drew.homelab asks. Unattended
 # sessions get no ask at all: hooks/dcg-unattended-ask.js turns it into a deny.
 "drew.homelab:proxmox-guest-destroy" = "deny"

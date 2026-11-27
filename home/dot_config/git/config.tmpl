@@ -108,6 +108,9 @@
 [push]
 	autoSetupRemote = true
 	default = current
+	# A bare --force-with-lease also needs the remote tip in the local reflog, so a
+	# background fetch can't make the lease pass.
+	useForceIfIncludes = true
 [rebase]
 	autoSquash = true
 	autoStash = true
@@ -244,6 +247,23 @@
 
 [interactive]
 	diffFilter = delta --color-only
+{{- end }}
+
+{{- if .dev_computer }}
+# Runs ~/.config/lefthook/lefthook-personal.yml in every repo, before the repo's own hook
+# (git 2.54+). Git appends the hook's arguments to the command. Each value is quoted
+# because git reads an unquoted ; as the start of a comment.
+# lefthook would merge a repo's tracked lefthook-local config into this run, letting a
+# cloned repo run its own code, so the command refuses such a repo.
+[hook "personal-pre-commit"]
+	event = pre-commit
+	command = "test -z \"$(git ls-files '*lefthook-local.*')\" || { echo 'This repo tracks a lefthook-local config. Refusing. To trust it: git config hook.personal-pre-commit.enabled false' >&2; exit 1; }; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run pre-commit --tag personal --force"
+[hook "personal-commit-msg"]
+	event = commit-msg
+	command = "test -z \"$(git ls-files '*lefthook-local.*')\" || { echo 'This repo tracks a lefthook-local config. Refusing. To trust it: git config hook.personal-commit-msg.enabled false' >&2; exit 1; }; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run commit-msg --tag personal --force"
+[hook "personal-pre-push"]
+	event = pre-push
+	command = "test -z \"$(git ls-files '*lefthook-local.*')\" || { echo 'This repo tracks a lefthook-local config. Refusing. To trust it: git config hook.personal-pre-push.enabled false' >&2; exit 1; }; LEFTHOOK_CONFIG=\"$HOME/.config/lefthook/lefthook-personal.yml\" lefthook run pre-push --tag personal --force"
 {{- end }}
 
 # Machine- or work-specific entries stay out of this public repo.

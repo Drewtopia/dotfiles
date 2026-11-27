@@ -1,60 +1,64 @@
-# Personal commit checks that every repo gets on top of its own lefthook.yml.
-# A repo opts in with a gitignored lefthook-local.yml that holds:
-#   no_auto_install: true
-#   extends:
-#     - /absolute/path/to/.config/lefthook/lefthook-personal.yml
-# lefthook expands neither ~ nor $HOME in extends. Jobs here start with `personal-` so
-# none replaces a repo's own job of the same name. A missing tool fails the hook: a
-# check that skips itself quietly is the miss this file exists to stop.
+# Drew's git policy for every repo on every machine, agents and Drew alike.
+# The global git config's hook.personal-* entries run it through LEFTHOOK_CONFIG.
+# They pass --tag personal, so a repo's lefthook-local jobs stay out of the run, but a
+# lefthook-local job that reuses one of these names replaces it. They also pass --force,
+# because lefthook skips a job when no files changed, as on an empty commit.
+# --no-verify skips everything here.
+# A repo's own lefthook config can extend this file, by absolute path only: lefthook
+# expands neither ~ nor $HOME in extends.
+
+# This file runs in repos that don't use lefthook, so it must not install hooks there.
+no_auto_install: true
 
 commit-msg:
   commands:
-    # The personal policy chezmoi renders. It always rejects placeholder text; with .work
-    # set it also checks AI attribution and the author email.
     personal-policy:
-      run: |
-        command -v commit-check >/dev/null || { echo "commit-check not found: run mise install" >&2; exit 1; }
-        commit-check -m -e -c "$HOME/.config/commit-check/cchk.toml" --no-banner {1}
+      tags: [personal]
+      run: commit-check --message --author-email --no-banner --config "$HOME/.config/commit-check/cchk.toml" {1}
 
 pre-commit:
   commands:
-    # Staged changes only. A repo's own .betterleaks.toml or .gitleaks.toml applies when it
-    # has one; betterleaks loads neither without --config.
+    # A repo with no remote has no PRs, so it may commit on main.
+    personal-protected-branch:
+      tags: [personal]
+      only:
+        - ref: main
+        - ref: master
+        - ref: develop
+      skip:
+        - merge
+        - rebase
+        - run: test -z "$(git remote)"
+      run: echo "Commits to main, master and develop are refused. Make a branch first (wt switch --create <type>/<slug>), or skip with --no-verify." >&2; exit 1
+    # --unsafe-auto-load-config loads the repo's own .betterleaks.toml or .gitleaks.toml,
+    # which betterleaks otherwise ignores.
     personal-secrets:
-      run: |
-        command -v betterleaks >/dev/null || { echo "betterleaks not found: run mise install" >&2; exit 1; }
-        set --
-        for f in .betterleaks.toml .gitleaks.toml; do
-          [ -f "$f" ] && { set -- --config "$f"; break; }
-        done
-        betterleaks git --staged --redact --no-banner "$@" .
+      tags: [personal]
       skip: [merge, rebase]
+      run: betterleaks git --staged --redact --no-banner --unsafe-auto-load-config .
 
 pre-push:
   commands:
-    # A commit made where no commit hook ran reaches the push unchecked, so every pushed
-    # commit that no remote branch has yet is checked again. An all-zero sha is a deletion.
+    # Only git's pre-push stdin names the refs a push sends, and lefthook gives stdin to one
+    # job only, so this job runs every push check. It re-checks each pushed commit no remote
+    # has, because a commit made with --no-verify was never checked. An all-zero sha is a deletion.
     personal-pushed:
+      tags: [personal]
       use_stdin: true
-      # lefthook skips a pre-push job when its own list of pushed files is empty, as for an
-      # empty commit or a branch already on the remote. Every enrolled repo has lefthook-local.yml,
-      # so listing it, and using it in `run`, stops that skip; commits come from stdin.
-      files: echo lefthook-local.yml
       run: |
-        : {files}
-        command -v commit-check >/dev/null || { echo "commit-check not found: run mise install" >&2; exit 1; }
-        command -v betterleaks >/dev/null || { echo "betterleaks not found: run mise install" >&2; exit 1; }
-        cfg=""
-        for f in .betterleaks.toml .gitleaks.toml; do
-          [ -f "$f" ] && { cfg=$f; break; }
-        done
-        while read -r _ sha _ _; do
+        cchk="$HOME/.config/commit-check/cchk.toml"
+        while read -r _ sha rref _; do
+          case "$rref" in
+            refs/heads/main|refs/heads/master|refs/heads/develop)
+              echo "Push to '${rref#refs/heads/}' refused. Push a branch and open a PR, or skip with --no-verify." >&2
+              exit 1 ;;
+          esac
           case "$sha" in *[!0]*) ;; *) continue ;; esac
-          commits=$(git rev-list "$sha" --not --remotes)
-          [ -n "$commits" ] || continue
-          for c in $commits; do
-            commit-check -m -e --no-banner -c "$HOME/.config/commit-check/cchk.toml" --rev "$c" || exit 1
+          case "$rref" in
+            refs/heads/*) printf '%s\n' "${rref#refs/heads/}" | commit-check --branch --no-banner --config "$cchk" || exit 1 ;;
+          esac
+          for c in $(git rev-list "$sha" --not --remotes); do
+            commit-check --message --author-email --no-banner --config "$cchk" --rev "$c" || exit 1
           done
-          betterleaks git --log-opts="$sha --not --remotes" --redact --no-banner ${cfg:+--config "$cfg"} . || exit 1
+          betterleaks git --log-opts="$sha --not --remotes" --redact --no-banner --unsafe-auto-load-config . || exit 1
         done
-      skip: [merge, rebase]

@@ -3,7 +3,7 @@ id: drew.git_policy
 name: Git branch and worktree policy
 version: 1.0.0
 description: Pushes to protected branches and hand-made worktrees. What the command text alone can show; state-based git checks, such as which branch a --force-with-lease push may rewrite, stay in the Claude Code hooks.
-keywords: [git, push, worktree, main, master, develop]
+keywords: [git, push, worktree, main, master, develop, LEFTHOOK, GIT_CONFIG_GLOBAL]
 denial_banner: Git policy
 destructive_patterns:
   - name: push-protected-branch
@@ -11,6 +11,14 @@ destructive_patterns:
     severity: critical
     description: Pushes straight to main, master or develop.
     explanation: Open a pull request from a feature branch instead.
+  # A speed bump for agents, not a security boundary: it catches the plain ways to skip
+  # lefthook-personal, not every trick.
+  - name: skip-hooks
+    pattern: '\bgit\b(?:\s+\S+)*?\s+(?:commit\b[^\n;&|]*?\s-[a-zA-Z]*n[a-zA-Z]*(?=\s|$)|(?:commit|push|merge|rebase|am|cherry-pick|revert)\b[^\n;&|]*?\s--no-verify\b|-c\s*[''"]?(?:hook\.|(?i:core\.hookspath))|config\b(?![^\n;&|]*\s(?:--get\S*|get|--list|list)\b)[^\n;&|]*\s(?:hook\.|(?i:core\.hookspath)))|\bLEFTHOOK=[''"]?(?:0|false)\b|\bGIT_CONFIG_GLOBAL='
+    executables: [git]
+    severity: high
+    description: Skips git hooks with --no-verify, commit -n, LEFTHOOK=0, another global config, or a hook setting.
+    explanation: That skips lefthook-personal's checks on protected branches, secrets, and commit and branch names. Fix what the hook reports, or ask Drew to run the command himself.
   - name: worktree-add
     pattern: '\bgit\b(?:\s+\S+)*?\s+worktree\s+add\b'
     severity: high
