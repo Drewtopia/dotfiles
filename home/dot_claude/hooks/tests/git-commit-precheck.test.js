@@ -126,6 +126,15 @@ test('private repo: leak rules are not run', () => {
     assert.match(r.ghCalls, /someone\/pub/);
 });
 
+test("the repo's .gitleaks.toml allowlist applies to the secret scan", () => {
+    const content = `password: '${'Zx9q7Lm2'}${'Vb8Rt4Wp'}'`;
+    const allowlist =
+        '[extend]\nuseDefault = true\n\n[[allowlists]]\npaths = [\'\'\'notes\\.txt$\'\'\']\n';
+    assert.equal(precheck({ content, visibility: 'PRIVATE' }).code, 2);
+    const r = precheck({ content, visibility: 'PRIVATE', files: { '.gitleaks.toml': allowlist } });
+    assert.equal(r.code, 0, r.stderr);
+});
+
 test('no GitHub remote: not checked and gh is not asked', () => {
     const r = precheck({
         content: sample.privateIp10,

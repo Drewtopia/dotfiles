@@ -154,7 +154,10 @@ fi
 LEAKS=$(command -v betterleaks || command -v gitleaks || true)
 if [[ -n "$LEAKS" ]]; then
     RAN_SOMETHING=1
-    if ! "$LEAKS" git --staged --redact --no-banner . 2>&1 >&2; then
+    # betterleaks reads a repo's .gitleaks.toml only when passed it; gitleaks finds it alone.
+    REPO_CONFIG=()
+    [[ -f .gitleaks.toml ]] && REPO_CONFIG=(--config .gitleaks.toml)
+    if ! "$LEAKS" git --staged --redact --no-banner "${REPO_CONFIG[@]}" . 2>&1 >&2; then
         echo "" >&2
         echo "BLOCKED: ${LEAKS##*/} found secrets in staged files." >&2
         echo "Tip: review with \`${LEAKS##*/} git --staged -v\` and remove the secrets." >&2
