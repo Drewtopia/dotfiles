@@ -83,8 +83,6 @@ sh -c 'h=$(ls -d "$HOME"/.claude/plugins/cache/<mp>/<plugin>/*/hooks/<script> 2>
 | `pre:bash:gate-commit-not-protected` | A commit on a protected branch, resolved as above |
 | `pre:bash:gate-blocked-issue-close` | `gh issue close <n>` while an issue listed after "Blocked by" is open; a failed lookup allows |
 | `pre:bash:gate-uat-live-ports` | A UAT run or a kill of the live dev ports, unless a prompt this session named them; ports come from an untracked local file |
-| `pre:bash:block-pipe-to-tail` | A test, build, lint or commit command piped to `tail` or `head` |
-| `pre:bash:block-recursive-grep` | A recursive grep; use `rg` |
 
 Elsewhere:
 
