@@ -71,9 +71,27 @@ $__deferredInits.Add({ Import-Module Terminal-Icons -Global -ErrorAction Silentl
 # History, not HistoryAndPlugin: without a registered predictor module the plugin
 # state stays null and atuin's GetHistoryItems() null-derefs. PSReadLine throws
 # on non-VT hosts (redirected stdout), hence the try.
+# InlineView shows one grey suggestion; Right arrow accepts it. EditMode stays at
+# the Windows default: setting it resets every key binding below.
 try {
     Set-PSReadLineOption -PredictionSource History -ErrorAction Stop
-    Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction Stop
+    Set-PSReadLineOption -PredictionViewStyle InlineView -ErrorAction Stop
+    Set-PSReadLineOption -BellStyle None -HistoryNoDuplicates -HistorySearchCursorMovesToEnd -ErrorAction Stop
+    # Like zsh's histignorespace: a line starting with a space stays out of
+    # PSReadLine's history.
+    Set-PSReadLineOption -AddToHistoryHandler { param([string]$Line) $Line -notmatch '^\s' } -ErrorAction Stop
+    # Catppuccin Mocha, matching the eza theme.
+    Set-PSReadLineOption -ErrorAction Stop -Colors @{
+        Command          = '#89b4fa'
+        Parameter        = '#94e2d5'
+        String           = '#a6e3a1'
+        Variable         = '#f5c2e7'
+        Comment          = '#6c7086'
+        Keyword          = '#cba6f7'
+        Number           = '#fab387'
+        Operator         = '#89dceb'
+        InlinePrediction = '#585b70'
+    }
 } catch {
 }
 
