@@ -3,7 +3,7 @@ id: drew.git_policy
 name: Git branch and worktree policy
 version: 1.0.0
 description: Pushes to protected branches and hand-made worktrees. What the command text alone can show; state-based git checks, such as which branch a --force-with-lease push may rewrite, stay in the Claude Code hooks.
-keywords: [git, push, worktree, main, master, develop, LEFTHOOK, HOME, XDG_CONFIG_HOME, LEAKS_CONFIG, CCHK_]
+keywords: [git, push, worktree, main, master, develop, LEFTHOOK, GIT_CONFIG_GLOBAL]
 denial_banner: Git policy
 destructive_patterns:
   - name: push-protected-branch
@@ -11,25 +11,14 @@ destructive_patterns:
     severity: critical
     description: Pushes straight to main, master or develop.
     explanation: Open a pull request from a feature branch instead.
-  # Drew's git policy lives in lefthook-personal, run by global git config hooks, and Drew
-  # skips it with --no-verify when he means to. These ask before an agent skips it.
-  - name: skip-hooks-flag
-    pattern: '\bgit\b(?:\s+\S+)*?\s+(?:commit\b[^\n;&|]*?\s[''"]?-[a-zA-Z]*n[a-zA-Z]*(?=[\s''"]|$)|(?:commit|push|merge|am|cherry-pick|revert|rebase)\b[^\n]*?\s[''"]?--no-v(?:e(?:r(?:i(?:fy?)?)?)?)?(?=[\s''"]|$))'
+  # A speed bump for agents, not a security boundary: it catches the plain ways to skip
+  # lefthook-personal, not every trick.
+  - name: skip-hooks
+    pattern: '\bgit\b(?:\s+\S+)*?\s+(?:commit\b[^\n;&|]*?\s-[a-zA-Z]*n[a-zA-Z]*(?=\s|$)|(?:commit|push|merge|rebase|am|cherry-pick|revert)\b[^\n;&|]*?\s--no-verify\b|-c\s*[''"]?(?:hook\.|(?i:core\.hookspath))|config\b(?![^\n;&|]*\s(?:--get\S*|get|--list|list)\b)[^\n;&|]*\s(?:hook\.|(?i:core\.hookspath)))|\bLEFTHOOK=[''"]?(?:0|false)\b|\bGIT_CONFIG_GLOBAL='
     executables: [git]
     severity: high
-    description: Skips git hooks with --no-verify (or commit -n).
-    explanation: That skips lefthook-personal's checks (protected branches, secrets, commit and branch names). Fix what the hook reports, or ask Drew to run the command himself.
-  - name: skip-hooks-env
-    pattern: '(?:^|[;&|(]|\b(?:env|export))\s*(?:\S+=\S*\s+)*[''"]?(?:LEFTHOOK=[''"]?(?:0|false)\b|LEFTHOOK_EXCLUDE=|GIT_CONFIG_GLOBAL=|GIT_CONFIG_PARAMETERS=|GIT_CONFIG_COUNT=|(?:BETTER|GIT)LEAKS_CONFIG(?:_TOML)?=|CCHK_\w+=|(?:XDG_CONFIG_HOME|HOME)=(?=[\s\S]*\bgit\b))|\b(?:export|declare|typeset|local|readonly)\b(?:\s+-\w+)*\s+(?:\S+=\S*\s+)*[''"]?(?:XDG_CONFIG_HOME|HOME)=|(?:^|[;&|(])\s*(?:\S+=\S*\s+)*[''"]?(?:XDG_CONFIG_HOME|HOME)=\S*[''"]?\s*(?:$|[;&|)])|\bunset\s+(?:-\w+\s+)*(?:\S+\s+)*?(?:XDG_CONFIG_HOME|HOME)\b|\benv\s+(?:\S+\s+)*?(?:-i|--ignore-environment|-u\s*HOME|--unset=HOME)\s[^\n;&|]*\bgit\b'
-    severity: high
-    description: Turns lefthook off, or hides or swaps out the global git config that runs Drew's hooks.
-    explanation: LEFTHOOK=0 or LEFTHOOK_EXCLUDE skips lefthook jobs, another GIT_CONFIG_GLOBAL, HOME or XDG_CONFIG_HOME drops the hook.personal-* entries, and BETTERLEAKS_CONFIG, GITLEAKS_CONFIG or a CCHK_ variable overrides the secret-scan or commit-check rules. Fix what the hook reports, or ask Drew to run the command himself.
-  - name: skip-hooks-config
-    pattern: '\bgit\b(?:\s+\S+)*?\s+(?:(?:-c\s*|--config-env[=\s])[''"]?(?:hook\.[^\s=]+|(?i:core\.hookspath))=|config\b(?!(?:\s+--?[\w-]+(?:=\S*)?)*\s+(?:--(?:get|get-all|get-regexp|list|show-origin)|get|list)\b)[^\n;&|]*\s[''"]?(?:hook\.\S+|(?i:core\.hookspath))\b)'
-    executables: [git]
-    severity: high
-    description: Disables a git hook or moves the hooks directory through git config.
-    explanation: That turns off Drew's hook.personal-* hooks or the repo's own hooks, for one command or for good. Fix what the hook reports, or ask Drew to change the setting himself.
+    description: Skips git hooks with --no-verify, commit -n, LEFTHOOK=0, another global config, or a hook setting.
+    explanation: That skips lefthook-personal's checks on protected branches, secrets, and commit and branch names. Fix what the hook reports, or ask Drew to run the command himself.
   - name: worktree-add
     pattern: '\bgit\b(?:\s+\S+)*?\s+worktree\s+add\b'
     severity: high

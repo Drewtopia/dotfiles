@@ -25,9 +25,7 @@ author_email_pattern = '^.+@{{ .email | splitList "@" | last | replace "." "\\."
 {{- end }}
 
 [branch]
-# commit-check's default branch types already cover the Conventional Commit types and the
-# agent prefixes (ai, claude, codex, copilot, cursor, agents). Setting allow_branch_types
-# would replace that list, so the extras are whole-name patterns here instead: `agent/` for
-# the AFK orchestrator's agent/issue-<n>-* branches, plus wip, revert and staging.
-# main, master, develop and HEAD are always allowed.
+# commit-check's default branch types include the AI agent prefixes. Setting
+# allow_branch_types would replace that list, so the extras are whole-name patterns here:
+# agent/ for the AFK orchestrator's branches, plus wip, revert and staging.
 allow_branch_names = ["agent/.+", "wip/.+", "revert/.+", "staging"]
