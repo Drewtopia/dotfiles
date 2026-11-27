@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Copies the untracked and gitignored files a worktree removal would lose into
 # ~/dev/worktree-salvage/<repo>/<branch>-<time>/ before worktrunk's pre-remove lets it go.
-# Skipped: build output and dependency dirs, Playwright session caches (cookies), and files
-# byte-identical to the primary checkout's copy (the .worktreeinclude copies).
+# Skipped: build output and dependency dirs, Playwright session caches (cookies), the
+# per-worktree generated worktree-ports.toml, and files byte-identical to the primary
+# checkout's copy (the .worktreeinclude copies).
 # Usage: wt-attic [-n] [<worktree-path>]   -n lists what would be archived and copies nothing.
 set -euo pipefail
 
@@ -12,7 +13,7 @@ wt=$(git -C "${1:-.}" rev-parse --show-toplevel)
 main=$(git -C "$wt" worktree list --porcelain | awk '/^worktree / && !n++ {print substr($0,10)}')
 [ "$wt" = "$main" ] && { echo "wt-attic: $wt is the primary checkout; nothing to archive" >&2; exit 0; }
 
-regen='(^|/)(node_modules|dist|\.moon/cache|\.astro|\.turbo|playwright-report|test-results|blob-report|playwright/\.auth)/|\.tsbuildinfo$'
+regen='(^|/)(node_modules|dist|\.moon/cache|\.astro|\.turbo|playwright-report|test-results|blob-report|playwright/\.auth|\.global-cache|\.playwright-mcp|target|__pycache__)/|\.tsbuildinfo$|(^|/)worktree-ports\.toml$'
 g() { git -C "$wt" -c core.quotePath=false "$@"; }
 
 files=$(
@@ -30,7 +31,9 @@ files=$(
 if ((dry)); then printf '%s\n' "$files"; exit 0; fi
 
 branch=$(git -C "$wt" branch --show-current)
-dest="$HOME/dev/worktree-salvage/$(basename "$main")/${branch//\//-}-$(date +%Y%m%d-%H%M%S)"
+# Detached HEAD (T3 worktrees) has no branch: name the folder after the worktree instead.
+name=${branch:-$(basename "$wt")}
+dest="$HOME/dev/worktree-salvage/$(basename "$main")/${name//\//-}-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$dest"
 chmod 700 "${dest%/*/*}"
 printf 'repo=%s\nbranch=%s\nworktree=%s\n' "$main" "$branch" "$wt" > "$dest/.wt-attic"
