@@ -6,7 +6,7 @@ const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
-const { relativePaths, missingPaths, lastAssistantText, isT3 } = require('../stop-reply-paths.js');
+const { relativePaths, missingPaths, bareRefs, lastAssistantText, isT3 } = require('../stop-reply-paths.js');
 
 const HOOK = path.join(__dirname, '..', 'stop-reply-paths.js');
 
@@ -69,9 +69,47 @@ const notFiles = [
 ];
 for (const [name, text] of notFiles) test(`not a file, not flagged: ${name}`, () => assert.deepEqual(here(text), []));
 
-test('lets a T3 reply with a bare tracker number stop', () => {
-    const r = run({ last_assistant_message: 'complete PR 11191 and close #1225' }, { CLAUDE_CODE_ENTRYPOINT: 't3-code' });
-    assert.equal(r.status, 0);
+// Copied from replies Drew pushed back on, 23-24 Nov.
+const bare = [
+    ['Azure PR', 'PR 11191 is ready to complete', ['PR 11191']],
+    ['PR list', 'PRs 10901, 10752 and 10591 are mid-merge', ['PRs 10901, 10752 and 10591']],
+    ['Azure bang', 'Open PRs: !11282 and !11275', ['!11282', '!11275']],
+    ['GitHub issue', 'close #1225 and #1148', ['#1225', '#1148']],
+    ['repo issue', 'keep GH-1857, close hub#42?', ['GH-1857', 'hub#42']],
+    ['work item', 'bug 65781 and story 59805', ['bug 65781', 'story 59805']],
+    ['build and run', 'build 50169 is green; runs 48218 and 48219', ['build 50169', 'runs 48218 and 48219']],
+    ['pipeline', 'pipeline 703 publishes', ['pipeline 703']],
+    ['commit', 'fixed in commit `ef87d744d`', ['commit `ef87d744d']],
+    ['code style', 'see `PR 11176`', ['PR 11176']],
+    ['27 Nov reply', 'PR checks are running for 11370 as build 50810', ['build 50810']],
+    ['only one linked', '[PR 11370](https://x/pullrequest/11370) runs as build 50810', ['build 50810']],
+    ['list half linked', '[PR 10901](https://x/10901) waits; PRs 10901 and 10752 too', ['PRs 10901 and 10752']],
+    ['number only in a label', '[PR 42](https://x.io/foo) and PR 42', ['PR 42']],
+    ['number mid-URL', 'see https://x.io/2026/11/27/post. PR 2026 is open', ['PR 2026']],
+    ['other hash, same prefix', 'https://x/commit/1234567abcd then commit 1234567ffff', ['commit 1234567ffff']],
+];
+const linked = [
+    ['link', '[PR 11191](https://dev.azure.com/o/p/_git/r/pullrequest/11191) is ready'],
+    ['link list', 'drafts: [11176](https://x/11176), [11180](https://x/11180)'],
+    ['url', 'see https://github.com/Drewtopia/hub/pull/79'],
+    ['fenced', '```sh\naz repos pr update --id 11191 --status completed\n```'],
+    ['small numbers', 'step 4 of 5, item 2, PR 7 lines, #1 priority'],
+    ['heading', '## Step 3'],
+    ['html entity', 'got `O&#39;Conner`'],
+    ['issues-log row', 'see row #71 in the issues log'],
+    ['command flag', 'run `gh pr view 79 -R o/r`'],
+    ['empty', ''],
+    ['linked earlier', '[PR 11319](https://x/pullrequest/11319) is green. Merge PR 11319 when ready'],
+    ['linked by url', 'https://dev.azure.com/o/p/_build/results?buildId=50810 runs; build 50810 takes 25 min'],
+];
+for (const [name, text, want] of bare) test(`bare ref: ${name}`, () => assert.deepEqual(bareRefs(text), want));
+for (const [name, text] of linked) test(`linked or not a ref: ${name}`, () => assert.deepEqual(bareRefs(text), []));
+
+test('blocks a T3 reply with a bare PR number and says how to link it', () => {
+    const r = run({ last_assistant_message: 'complete PR 11191' }, { CLAUDE_CODE_ENTRYPOINT: 't3-code' });
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /PR 11191/);
+    assert.match(r.stderr, /pullrequest/);
 });
 
 test('prefers last_assistant_message over the transcript', () => {

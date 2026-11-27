@@ -5,10 +5,12 @@
 // isn't on this machine. T3 links it anyway (pingdotgg/t3code#29421), so
 // `packages/x.yaml` for a file on Home Assistant opens nothing. A path that resolves
 // from the session folder, the repo root or a tracked file's path suffix passes: T3
-// finds those since #28554 and #35337. Remove this hook once #29421 is fixed.
-// It does not check tracker numbers: that check made 77 of its 109 bounces in a week,
-// 27 in one session (friction audit, 25 Nov 2026). Code blocks are skipped. One nudge
-// per turn: when Claude is already continuing from a Stop hook, this lets it stop.
+// finds those since #28554 and #35337. Remove the path check once #29421 is fixed.
+// It also refuses a tracker reference with no link (a PR, issue, work item, build or run
+// by number): Drew's rules say to link what you cite, and only a check makes that stick.
+// A number already linked elsewhere in the reply (it ends a URL there) passes.
+// Code blocks are skipped. One nudge per turn: when Claude is already continuing from
+// a Stop hook, this lets it stop.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -35,6 +37,38 @@ const DOMAIN = /^[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}$/i;
 const SCHEME = /^[a-z][\w+.-]*:/i;
 const FENCED = /^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?(?:^ {0,3}\1[^\n]*$|(?![\s\S]))/gm;
 const URL = /\b[a-z][\w+.-]*:\/\/\S+/gi;
+
+// A word before a number needs 2+ digits, so "step 4" and "item 2" stay prose.
+const KINDS = 'PRs?|pull requests?|issues?|bugs?|stor(?:y|ies)|work items?|tasks?|test cases?|builds?|runs?|pipelines?';
+const NUM = '#?\\d{2,}';
+const BARE_REFS = [
+    new RegExp(`\\b(?:${KINDS})\\s+${NUM}(?:(?:,\\s*|\\s+and\\s+|\\s+or\\s+|\\s*/\\s*)${NUM})*`, 'gi'),
+    /\b[\w.-]+#\d+\b/g, // owner/repo#42, hub#42
+    /(?<![\w&/])(?<!\brows? )#\d{2,}\b/g, // #42; & keeps an HTML entity (&#39;) out, "row #71" is a log row
+    /(?<![\w/])!\d{3,}\b/g, // Azure's !11282
+    /\bGH-\d+\b/g,
+    /\bcommits?\s+`?[0-9a-f]{7,40}\b/gi,
+];
+
+const LINK = /\[[^\]\n]*\]\(([^)\n]*)\)/g;
+const REF_ID = /\b[0-9a-f]{7,40}\b|\d{2,}/gi;
+
+/**
+ * Tracker references in `text` outside a link, a URL or a code block, in order, without repeats.
+ * A reference passes when each of its numbers ends a URL elsewhere in the reply (…/pullrequest/11191,
+ * ?buildId=50810, …/commit/ef87d744d): Drew already has that link.
+ */
+function bareRefs(text) {
+    const unfenced = String(text || '').replace(FENCED, '');
+    const urls = [...[...unfenced.matchAll(LINK)].map(m => m[1]), ...[...unfenced.matchAll(URL)].map(m => m[0])];
+    const linkedIds = new Set(urls.map(u => (u.match(/[0-9a-z]+/gi) || []).pop()?.toLowerCase()));
+    const prose = unfenced.replace(LINK, ' ').replace(URL, ' ');
+    const hits = BARE_REFS.flatMap(re => [...prose.matchAll(re)]).sort((a, b) => a.index - b.index);
+    return [...new Set(hits.map(m => m[0]))].filter(ref => {
+        const ids = ref.match(REF_ID) || [];
+        return !ids.length || !ids.every(id => linkedIds.has(id.toLowerCase()));
+    });
+}
 
 /** Relative file paths a reader of `text` would see as links, in order, without repeats. */
 function relativePaths(text) {
@@ -84,19 +118,35 @@ async function main() {
     const input = parseInput(await readStdin());
     if (!isHookEnabled(HOOK_ID) || !isT3(process.env) || input.stop_hook_active) return 0;
     const text = lastAssistantText(input);
-    if (!relativePaths(text).length) return 0;
-    const cwd = input.cwd || process.cwd();
-    const root = repoRoot(cwd);
-    const tracked = root ? git(['-C', root, 'ls-files']).split('\n').filter(Boolean) : [];
-    const paths = missingPaths(text, [cwd, root], tracked);
-    if (!paths.length) return 0;
-    process.stderr.write(
-        `Your reply names files by relative path that don't exist here: ${paths.join(', ')}.\n` +
-            'T3 still makes each one a link, and it opens nothing. Send a corrected reply: ' +
-            'link a file on this machine at its absolute path, [name](/abs/path:line). A file ' +
-            'that only exists on another host (Home Assistant, a server, a container) is named ' +
-            'in words with its host, not as a path.\n',
-    );
+    const refs = bareRefs(text);
+    let paths = [];
+    if (relativePaths(text).length) {
+        const cwd = input.cwd || process.cwd();
+        const root = repoRoot(cwd);
+        const tracked = root ? git(['-C', root, 'ls-files']).split('\n').filter(Boolean) : [];
+        paths = missingPaths(text, [cwd, root], tracked);
+    }
+    if (!paths.length && !refs.length) return 0;
+    if (paths.length)
+        process.stderr.write(
+            `Your reply names files by relative path that don't exist here: ${paths.join(', ')}.\n` +
+                'T3 still makes each one a link, and it opens nothing. Send a corrected reply: ' +
+                'link a file on this machine at its absolute path, [name](/abs/path:line). A file ' +
+                'that only exists on another host (Home Assistant, a server, a container) is named ' +
+                'in words with its host, not as a path.\n',
+        );
+    if (refs.length)
+        process.stderr.write(
+            `Your reply cites these without a link: ${refs.join(', ')}.\n` +
+                'Send a corrected reply with each one linked at its web URL, e.g. ' +
+                '[PR 11191](https://dev.azure.com/<org>/<project>/_git/<repo>/pullrequest/11191) or ' +
+                '[#42](https://github.com/<owner>/<repo>/issues/42). Get the URL from the host: ' +
+                '`gh pr view <n> --json url`, `gh issue view <n> --json url`, or for Azure ' +
+                '`az repos pr show --id <n> --query repository.webUrl` plus `/pullrequest/<n>`, ' +
+                'a work item at https://dev.azure.com/<org>/<System.TeamProject>/_workitems/edit/<n>, ' +
+                'a build or run at https://dev.azure.com/<org>/<project.name>/_build/results?buildId=<n> ' +
+                '(project from `az boards work-item show` or `az pipelines runs show`).\n',
+        );
     return 2;
 }
 
@@ -109,4 +159,4 @@ if (require.main === module)
         },
     );
 
-module.exports = { relativePaths, resolvesLocally, missingPaths, lastAssistantText, isT3 };
+module.exports = { relativePaths, resolvesLocally, missingPaths, bareRefs, lastAssistantText, isT3 };
