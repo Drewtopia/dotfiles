@@ -8,6 +8,7 @@
 // finds those since #28554 and #35337. Remove the path check once #29421 is fixed.
 // It also refuses a tracker reference with no link (a PR, issue, work item, build or run
 // by number): Drew's rules say to link what you cite, and only a check makes that stick.
+// A number already linked elsewhere in the reply (it ends a URL there) passes.
 // Code blocks are skipped. One nudge per turn: when Claude is already continuing from
 // a Stop hook, this lets it stop.
 
@@ -49,14 +50,24 @@ const BARE_REFS = [
     /\bcommits?\s+`?[0-9a-f]{7,40}\b/gi,
 ];
 
-/** Tracker references in `text` outside a link, a URL or a code block, in order, without repeats. */
+const LINK = /\[[^\]\n]*\]\(([^)\n]*)\)/g;
+const REF_ID = /\b[0-9a-f]{7,40}\b|\d{2,}/gi;
+
+/**
+ * Tracker references in `text` outside a link, a URL or a code block, in order, without repeats.
+ * A reference passes when each of its numbers ends a URL elsewhere in the reply (…/pullrequest/11191,
+ * ?buildId=50810, …/commit/ef87d744d): Drew already has that link.
+ */
 function bareRefs(text) {
-    const prose = String(text || '')
-        .replace(FENCED, '')
-        .replace(/\[[^\]\n]*\]\([^)\n]*\)/g, ' ')
-        .replace(URL, ' ');
+    const unfenced = String(text || '').replace(FENCED, '');
+    const urls = [...[...unfenced.matchAll(LINK)].map(m => m[1]), ...[...unfenced.matchAll(URL)].map(m => m[0])];
+    const linkedIds = new Set(urls.map(u => (u.match(/[0-9a-z]+/gi) || []).pop()?.toLowerCase()));
+    const prose = unfenced.replace(LINK, ' ').replace(URL, ' ');
     const hits = BARE_REFS.flatMap(re => [...prose.matchAll(re)]).sort((a, b) => a.index - b.index);
-    return [...new Set(hits.map(m => m[0]))];
+    return [...new Set(hits.map(m => m[0]))].filter(ref => {
+        const ids = ref.match(REF_ID) || [];
+        return !ids.length || !ids.every(id => linkedIds.has(id.toLowerCase()));
+    });
 }
 
 /** Relative file paths a reader of `text` would see as links, in order, without repeats. */

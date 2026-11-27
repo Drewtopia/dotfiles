@@ -81,6 +81,12 @@ const bare = [
     ['pipeline', 'pipeline 703 publishes', ['pipeline 703']],
     ['commit', 'fixed in commit `ef87d744d`', ['commit `ef87d744d']],
     ['code style', 'see `PR 11176`', ['PR 11176']],
+    ['27 Nov reply', 'PR checks are running for 11370 as build 50810', ['build 50810']],
+    ['only one linked', '[PR 11370](https://x/pullrequest/11370) runs as build 50810', ['build 50810']],
+    ['list half linked', '[PR 10901](https://x/10901) waits; PRs 10901 and 10752 too', ['PRs 10901 and 10752']],
+    ['number only in a label', '[PR 42](https://x.io/foo) and PR 42', ['PR 42']],
+    ['number mid-URL', 'see https://x.io/2026/11/27/post. PR 2026 is open', ['PR 2026']],
+    ['other hash, same prefix', 'https://x/commit/1234567abcd then commit 1234567ffff', ['commit 1234567ffff']],
 ];
 const linked = [
     ['link', '[PR 11191](https://dev.azure.com/o/p/_git/r/pullrequest/11191) is ready'],
@@ -93,6 +99,8 @@ const linked = [
     ['issues-log row', 'see row #71 in the issues log'],
     ['command flag', 'run `gh pr view 79 -R o/r`'],
     ['empty', ''],
+    ['linked earlier', '[PR 11319](https://x/pullrequest/11319) is green. Merge PR 11319 when ready'],
+    ['linked by url', 'https://dev.azure.com/o/p/_build/results?buildId=50810 runs; build 50810 takes 25 min'],
 ];
 for (const [name, text, want] of bare) test(`bare ref: ${name}`, () => assert.deepEqual(bareRefs(text), want));
 for (const [name, text] of linked) test(`linked or not a ref: ${name}`, () => assert.deepEqual(bareRefs(text), []));
