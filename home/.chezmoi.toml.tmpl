@@ -86,6 +86,14 @@
 {{-   $t3_code = promptBoolOnce . "t3_code" "Set up T3 Code (the app) on this machine?" true -}}
 {{- end -}}
 
+{{/* Claude Code's Bash sandbox, off by default. To switch it, set claude_sandbox under
+     [data] in chezmoi.toml and run `chezmoi apply ~/.claude/settings.json`. For one
+     session only: claude --settings '{"sandbox":{"enabled":true}}'. */}}
+{{- $claude_sandbox := false -}}
+{{- if $dev_computer -}}
+{{-   $claude_sandbox = promptBoolOnce . "claude_sandbox" "Turn on Claude Code's Bash sandbox?" false -}}
+{{- end -}}
+
 {{- $email := "" -}}
 {{- if $opVault -}}
 {{-   if lookPath "op" -}}
@@ -173,6 +181,7 @@ encryption = "age"
   dev_computer = {{ $dev_computer }}
   orca = {{ $orca }}
   t3_code = {{ $t3_code }}
+  claude_sandbox = {{ $claude_sandbox }}
   hostname = {{ $hostname | quote }}
   personal = {{ $personal }}
   osid = {{ $osID | quote }}

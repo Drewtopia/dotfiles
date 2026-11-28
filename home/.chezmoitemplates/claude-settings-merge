@@ -40,6 +40,40 @@ managed=$(cat <<'CHEZMOI_SETTINGS_EOF'
     "pr": "",
     "sessionUrl": false
   },
+{{- if dig "claude_sandbox" false . }}
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": true,
+    "enableWeakerNetworkIsolation": true,
+    "excludedCommands": [
+      "git push *",
+      "git fetch *",
+      "git pull *",
+      "git ls-remote *",
+      "wt *"
+    ],
+    "filesystem": {
+      "allowWrite": [
+        "~/dev/worktrees",
+        "~/repos",
+        "~/.local/share/chezmoi",
+        "~/.local/share/atuin"
+      ],
+      "denyWrite": [
+        "~/repos/drew/hub/hooks"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "*.githubusercontent.com",
+        "registry.npmjs.org"
+      ]
+    }
+  },
+{{- end }}
   "permissions": {
     "defaultMode": "auto",
     "allow": [
@@ -384,4 +418,11 @@ printf '%s' "$existing" | jq --argjson m "$managed" '
   # DO_NOT_TRACK in the Claude Code env stops it passing the sign-in to plugins, which
   # turned off the security-guidance review. Impeccable reads IMPECCABLE_NO_TELEMETRY.
   | del(.env.DO_NOT_TRACK)
+  # The sandbox is a switch (claude_sandbox in chezmoi data). The floor merge keeps
+  # runtime values and never drops a key, so own the whole block either way.
+{{- if dig "claude_sandbox" false . }}
+  | .sandbox = $m.sandbox
+{{- else }}
+  | del(.sandbox)
+{{- end }}
 ' | tr -d '\r'
